@@ -93,6 +93,7 @@ public class SistemaPLG {
     public void estadoDePedidosALas(LocalDateTime fecha){
         Boolean estaEnDestino = false;
         for(Camion c : flota){
+            if(c.getDestinos().isEmpty())continue;
             Destino anterior = c.getDestinos().get(0), d;
             if(anterior.getFechaHoraSalida().isAfter(fecha)){
                 return;
@@ -134,6 +135,7 @@ public class SistemaPLG {
     public double calcularGLPActual(int idCamion, LocalDateTime fecha){
         Boolean estaEnDestino = false;
         Camion c = flota.get(idCamion-1);
+        if(c.getDestinos().isEmpty())return 0.0;
         Destino anterior = c.getDestinos().get(0), d;
         if(anterior.getFechaHoraSalida().isAfter(fecha)){
             return anterior.getSaldoGLPCamion();
@@ -157,6 +159,7 @@ public class SistemaPLG {
     public Camion getCamionEnInstante(int idCamion, LocalDateTime fecha){
         Camion c = flota.get(idCamion-1);
         Camion camion = new Camion(c);
+        if(camion.getDestinos().isEmpty())return camion;
         Destino anterior = c.getDestinos().get(0), d;
         if(anterior.getFechaHoraSalida().isAfter(fecha)){
             camion.setCombustibleActual(anterior.getSaldoCombustibleCamion());

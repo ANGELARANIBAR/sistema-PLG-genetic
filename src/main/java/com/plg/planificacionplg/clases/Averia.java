@@ -11,6 +11,7 @@ public class Averia {
     private LocalDateTime fechaHoraInicio, fechaHoraFin;
     private TipoAveria tipo;
     private double tiempoInoperativo;
+    private int turnoOcurrencia;
     public void determinarFechaFin(SistemaPLG sistemaPLG){
         // no se considera el tiempo inmobilizado en el calculo de la fecha de disponibilidad
         if(tipo.getId()==1){

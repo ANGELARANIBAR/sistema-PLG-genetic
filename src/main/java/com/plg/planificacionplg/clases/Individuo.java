@@ -39,6 +39,13 @@ public class Individuo {
 
             asignacion.get(camion).add(pedido);
         }
+        if(sistema.getCamionCausanteReplan()!=null){
+            for(Pedido ped : sistema.getCamionCausanteReplan().getPedidosAsignados()){
+                if(ped.getEstado()==EstadoPedido.PENDIENTE){
+                    asignacion.get(sistema.getCamionCausanteReplan().getId()).add(ped.getId());
+                }
+            }
+        }
         for (int i = 1; i < numCamiones; i++) {
 
             List<Integer> cargasGLP = new ArrayList<>();
@@ -136,14 +143,17 @@ public class Individuo {
             }
 
             Reabastecimiento retorno = new Reabastecimiento();
-            retorno.setCisterna(sistemaPLG.getCisternas().get(0));
-            retorno.setUbicacion(sistemaPLG.getCisternas().get(0).getUbicacion());
+            retorno.setCisterna(cisternas.get(0));
+            retorno.setUbicacion(cisternas.get(0).getUbicacion());
             retorno.setGLPOperacion(0.0);
             camion.getDestinos().add(retorno);
 
             camion.setCargasGLP(pedidosXcargasGLP.get(camionIdx));
             double GLPInicial=0.0;
             camion.setIndicePedidoActual(0);
+            if(pedidosXcargasGLP.get(camionIdx).isEmpty()){
+                continue;
+            }
             for(int i=0; i < pedidosXcargasGLP.get(camionIdx).get(0); i++){
                 GLPInicial += camion.getPedidosAsignados().get(i).getVolumenGLP();
             }

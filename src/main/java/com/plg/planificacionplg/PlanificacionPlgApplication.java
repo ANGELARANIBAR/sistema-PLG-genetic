@@ -26,28 +26,29 @@ public class PlanificacionPlgApplication {
     public static void main(String[] args) {
         //SpringApplication.run(PlanificacionPlgApplication.class, args);
 
+        List<Cisterna> cisternas = new ArrayList<>();
         Cisterna principal = new Cisterna();
         principal.setPrincipal(true);
         principal.setCargaGLPActual(MAX_DOUBLE);
         principal.setCapacidadTotal(MAX_DOUBLE);
-        principal.setUbicacion(new Nodo(0,0));
+        principal.setUbicacion(new Nodo(12,8));
         principal.setHoraAbastecimento(LocalTime.now());
+        cisternas.add(principal);
 
         Cisterna cintermedio1 = new Cisterna();
         cintermedio1.setPrincipal(false);
-        cintermedio1.setCapacidadTotal(40);
+        cintermedio1.setCapacidadTotal(160);
         cintermedio1.setCargaGLPActual(cintermedio1.getCapacidadTotal());
-        cintermedio1.setUbicacion(new Nodo(11,11));
-        cintermedio1.setHoraAbastecimento(LocalTime.now().plusMinutes(1));
-        List<Cisterna> cisternas = new ArrayList<>();
-        cisternas.add(principal);
+        cintermedio1.setUbicacion(new Nodo(42,42));
+        cintermedio1.setHoraAbastecimento(LocalTime.MIN);
         cisternas.add(cintermedio1);
+
         Cisterna cintermedio2 = new Cisterna();
         cintermedio2.setPrincipal(false);
-        cintermedio2.setCapacidadTotal(40);
+        cintermedio2.setCapacidadTotal(160);
         cintermedio2.setCargaGLPActual(cintermedio1.getCapacidadTotal());
-        cintermedio2.setUbicacion(new Nodo(14,14));
-        cintermedio2.setHoraAbastecimento(LocalTime.now().plusMinutes(86));
+        cintermedio2.setUbicacion(new Nodo(63,3));
+        cintermedio2.setHoraAbastecimento(LocalTime.MIN);
         cisternas.add(cintermedio2);
 
         // Crear el primer pedido
@@ -85,10 +86,10 @@ public class PlanificacionPlgApplication {
             Pedido pedido = new Pedido();
             pedido.setId(i);
             pedido.setNumeroPedido("PED-00"+i);
-            pedido.setVolumenGLP(14+i);
-            pedido.setUbicacion(new Nodo(5+i*2, 30-i*2)); // Suponiendo que Nodo tiene un constructor
+            pedido.setVolumenGLP(15+i/2);
+            pedido.setUbicacion(new Nodo(5+i*2, 50-i*2));
             pedido.setFechaHoraRegistro(LocalDateTime.now());
-            pedido.setTiempoMaxEntrega(60*3-i*10);
+            pedido.setTiempoMaxEntrega(60*14);
             pedido.setFechaHoraMaxEntrega(LocalDateTime.now().plusMinutes((long)pedido.getTiempoMaxEntrega()));
             pedido.setEstado(EstadoPedido.PENDIENTE);
             pedido.setCompletado(false);
@@ -102,7 +103,7 @@ public class PlanificacionPlgApplication {
         sistemaPLG.setPedidosTodos(new ArrayList<>(pedidos));
         sistemaPLG.setCisternas(cisternas);
         sistemaPLG.setDistanciaManzana(1);
-        sistemaPLG.setMaxXmapa(50);
+        sistemaPLG.setMaxXmapa(70);
         sistemaPLG.setMaxYmapa(50);
         sistemaPLG.setBloqueos(new ArrayList<>());
         sistemaPLG.setFlota(new ArrayList<>());
@@ -112,22 +113,34 @@ public class PlanificacionPlgApplication {
                 LocalTime.of(16, 0),
                 LocalTime.MAX // Representa 23:59:59.999999999
         ));
-
+        double velocidadPromedio = 5.0/6.0;
         TipoCamion tipoCamion1 = new TipoCamion();
-        tipoCamion1.setTara(20);
-        tipoCamion1.setCapCombustibleMax(100);
-        tipoCamion1.setVelocidadPromedio(1);//unidad distancia / minuto
-        tipoCamion1.setPesoGLPMax(500);
-        tipoCamion1.setCargaGLPMax(50);
+        tipoCamion1.setTara(2.5);
+        tipoCamion1.setCapCombustibleMax(25);
+        tipoCamion1.setVelocidadPromedio(velocidadPromedio);//unidad distancia / minuto
+        tipoCamion1.setPesoGLPMax(12.5);
+        tipoCamion1.setCargaGLPMax(25);
         TipoCamion tipoCamion2 = new TipoCamion();
-        tipoCamion2.setTara(20);
-        tipoCamion2.setCapCombustibleMax(100);
-        tipoCamion2.setVelocidadPromedio(20);//unidad distancia / minuto
-        tipoCamion2.setPesoGLPMax(800);
-        tipoCamion2.setCargaGLPMax(75);
+        tipoCamion2.setTara(2);
+        tipoCamion2.setCapCombustibleMax(25);
+        tipoCamion2.setVelocidadPromedio(velocidadPromedio);//unidad distancia / minuto
+        tipoCamion2.setPesoGLPMax(7.5);
+        tipoCamion2.setCargaGLPMax(15);
+        TipoCamion tipoCamion3 = new TipoCamion();
+        tipoCamion3.setTara(1.5);
+        tipoCamion3.setCapCombustibleMax(25);
+        tipoCamion3.setVelocidadPromedio(velocidadPromedio);//unidad distancia / minuto
+        tipoCamion3.setPesoGLPMax(5);
+        tipoCamion3.setCargaGLPMax(10);
+        TipoCamion tipoCamion4 = new TipoCamion();
+        tipoCamion4.setTara(1);
+        tipoCamion4.setCapCombustibleMax(25);
+        tipoCamion4.setVelocidadPromedio(velocidadPromedio);//unidad distancia / minuto
+        tipoCamion4.setPesoGLPMax(2.5);
+        tipoCamion4.setCargaGLPMax(5);
 
 
-        for(int i=1; i<4; i++){
+        for(int i=1; i<3; i++){
             Camion camion = new Camion();   // Cisterna media
             camion.setId(i);
             camion.setTipo(tipoCamion1);
@@ -137,10 +150,28 @@ public class PlanificacionPlgApplication {
             //camion.setCargaGLPActual(camion.getTipo().getCargaGLPMax());
             sistemaPLG.getFlota().add(camion);
         }
-        for(int i=4; i<4; i++){
+        for(int i=3; i<7; i++){
             Camion camion = new Camion();   // Cisterna media
             camion.setId(i);
             camion.setTipo(tipoCamion2);
+            camion.setPlaca("ABC-00"+String.valueOf(i));
+            camion.setEstado(EstadoCamion.DISPONIBLE);
+            camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
+            sistemaPLG.getFlota().add(camion);
+        }
+        for(int i=7; i<11; i++){
+            Camion camion = new Camion();   // Cisterna media
+            camion.setId(i);
+            camion.setTipo(tipoCamion3);
+            camion.setPlaca("ABC-00"+String.valueOf(i));
+            camion.setEstado(EstadoCamion.DISPONIBLE);
+            camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
+            sistemaPLG.getFlota().add(camion);
+        }
+        for(int i=11; i<21; i++){
+            Camion camion = new Camion();   // Cisterna media
+            camion.setId(i);
+            camion.setTipo(tipoCamion4);
             camion.setPlaca("ABC-00"+String.valueOf(i));
             camion.setEstado(EstadoCamion.DISPONIBLE);
             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
@@ -156,12 +187,13 @@ public class PlanificacionPlgApplication {
         bloqueo.setRutasBloqueadas(Arrays.asList(bloqueado1, bloqueado2));
 
         sistemaPLG.setBloqueos(Arrays.asList(bloqueo));
+        sistemaPLG.setBloqueos(new ArrayList<>());
         sistemaPLG.setCamionesAveriados(new ArrayList<>());
 
 
 
 
-        int tamPoblacion = 50;
+        int tamPoblacion = 100;
         int generaciones = 10;
         double probCruce = 0.3;
         double probMutacion = 0.5;
@@ -205,6 +237,13 @@ public class PlanificacionPlgApplication {
                 System.out.println("----------------------------------");
             }
         }
+        Mantenimiento mantenimiento;
+        mantenimiento = new Mantenimiento();
+        mantenimiento.setFechaHoraInicio(LocalDateTime.now().plusDays(1).toLocalDate().atTime(LocalTime.MIN));
+        mantenimiento.setFechaHoraFin(LocalDateTime.now().plusDays(1).toLocalDate().atTime(LocalTime.MAX));
+        mejorSolucion.getSistemaPLG().getFlota().get(1).setMantenimientos(new ArrayList<>());
+        mejorSolucion.getSistemaPLG().getFlota().get(1).getMantenimientos().add(mantenimiento);
+
 
         SistemaPLG sistema = mejorSolucion.getSistemaPLG();
         Camion camion = sistema.getFlota().stream()
@@ -243,7 +282,7 @@ public class PlanificacionPlgApplication {
         averia.setTipo(tipos.get(request.getTipoAveria()-1));
         averia.setFechaHoraInicio(request.getFechaHoraInicioAveria());
         averia.determinarFechaFin(mejorSolucion.getSistemaPLG());
-        camion.getAverias().add(averia);
+        averia.setTurnoOcurrencia(2);
 
         for(Pedido ped : camion.getPedidosAsignados()){
             if(ped.getEstado()==EstadoPedido.PENDIENTE){
