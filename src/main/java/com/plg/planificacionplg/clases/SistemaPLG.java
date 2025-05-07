@@ -2,6 +2,7 @@ package com.plg.planificacionplg.clases;
 
 import lombok.Data;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -11,7 +12,6 @@ import java.util.List;
 public class SistemaPLG {
     private List<Cisterna> cisternas;
     private List<Camion> flota;
-    private List<Camion> camionesAveriados;
     private List<Bloqueo> bloqueos;
     private double maxXmapa;
     private double maxYmapa;
@@ -20,7 +20,9 @@ public class SistemaPLG {
     private double distanciaManzana;
     private LocalDateTime fechaHoraInicio;
     private List<LocalTime> turnosFin; //ordenado ascendentemente
+    private List<Camion> camionesAveriados;
     private List<Averia> averias;
+    private Camion camionCausanteReplan;
 
     public SistemaPLG() {}
     public SistemaPLG(SistemaPLG otro) {
@@ -45,6 +47,7 @@ public class SistemaPLG {
         this.fechaHoraInicio = otro.fechaHoraInicio;
         this.turnosFin = otro.turnosFin;
         this.averias = otro.averias;
+        this.camionCausanteReplan = otro.camionCausanteReplan;
     }
     public List<Nodo> encontrarTramo(Nodo start, Nodo end) {
         List<Nodo> lista = new ArrayList<Nodo>();
@@ -85,6 +88,105 @@ public class SistemaPLG {
         for (Nodo nodo : tramo) {
             System.out.println("Nodo en posición: (" + nodo.getPosX() + ", " + nodo.getPosY() + ")");
         }
+    }
+
+    public void estadoDePedidosALas(LocalDateTime fecha){
+        Boolean estaEnDestino = false;
+        for(Camion c : flota){
+            Destino anterior = c.getDestinos().get(0), d;
+            if(anterior.getFechaHoraSalida().isAfter(fecha)){
+                return;
+            }
+            int i=0;
+            for(i = 1; i<c.getDestinos().size(); i++){
+                d = c.getDestinos().get(i);
+                if(d.getFechaHoraLlegada().isAfter(fecha)){
+                    break;
+                }
+                else{
+                    if(d.getFechaHoraSalida().isAfter(fecha)||d.getFechaHoraLlegada().isEqual(fecha)){
+                        i++;
+                        estaEnDestino = true;
+                        break;
+                    }
+                }
+                anterior = d;
+            }
+            if(i==c.getDestinos().size()){continue;}
+            if(estaEnDestino){
+                // hora de salida de replanificaicon es cuando acabes de entregar el pedido
+                d = c.getDestinos().get(i);
+                if(d instanceof EntregaPedido)
+                    ((EntregaPedido)d).getPedido().setEstado(EstadoPedido.DESPACHANDO);
+            }
+            for(int j = 0; j<i; j++){
+                d = c.getDestinos().get(j);
+                if(d instanceof EntregaPedido)
+                    ((EntregaPedido)d).getPedido().setEstado(EstadoPedido.ENTREGADO);
+            }
+            for(int j = i; j<c.getDestinos().size(); j++){
+                d = c.getDestinos().get(j);
+                if(d instanceof EntregaPedido)
+                    ((EntregaPedido)d).getPedido().setEstado(EstadoPedido.PENDIENTE);
+            }
+        }
+    }
+    public double calcularGLPActual(int idCamion, LocalDateTime fecha){
+        Boolean estaEnDestino = false;
+        Camion c = flota.get(idCamion-1);
+        Destino anterior = c.getDestinos().get(0), d;
+        if(anterior.getFechaHoraSalida().isAfter(fecha)){
+            return anterior.getSaldoGLPCamion();
+        }
+        int i=0;
+        for(i = 1; i<c.getDestinos().size(); i++){
+            d = c.getDestinos().get(i);
+            if(d.getFechaHoraLlegada().isAfter(fecha)){
+                return anterior.getSaldoGLPCamion();
+            }
+            else{
+                if(d.getFechaHoraSalida().isAfter(fecha)||d.getFechaHoraLlegada().isEqual(fecha)){
+                    d.getSaldoGLPCamion();
+                }
+            }
+            anterior = d;
+        }
+        return 0.0;
+    }
+
+    public Camion getCamionEnInstante(int idCamion, LocalDateTime fecha){
+        Camion c = flota.get(idCamion-1);
+        Camion camion = new Camion(c);
+        Destino anterior = c.getDestinos().get(0), d;
+        if(anterior.getFechaHoraSalida().isAfter(fecha)){
+            camion.setCombustibleActual(anterior.getSaldoCombustibleCamion());
+            camion.setCargaGLPActual(anterior.getSaldoGLPCamion());
+            camion.setUbicacionActual(anterior.getUbicacion());
+            return camion;
+        }
+        int i=0;
+        for(i = 1; i<c.getDestinos().size(); i++){
+            d = c.getDestinos().get(i);
+            if(d.getFechaHoraLlegada().isAfter(fecha)){
+                long tiempoEnRuta = Duration.between(anterior.getFechaHoraSalida(), fecha).toMinutes();
+                camion.setCombustibleActual(anterior.getSaldoCombustibleCamion()-(int)(Math.abs(tiempoEnRuta)*c.getTipo()
+                        .getVelocidadPromedio())*distanciaManzana*c.calcularPesoTotal()/180.0);
+                camion.setCargaGLPActual(anterior.getSaldoGLPCamion());
+                camion.setUbicacionActual(d.getRuta().getNodos().get((int)(Math.abs(tiempoEnRuta)*c.getTipo().getVelocidadPromedio())));
+                return camion;
+            }
+            else{
+                if(d.getFechaHoraSalida().isAfter(fecha)||d.getFechaHoraLlegada().isEqual(fecha)){
+                    camion.setCombustibleActual(d.getSaldoCombustibleCamion());
+                    camion.setCargaGLPActual(d.getSaldoGLPCamion());
+                    camion.setUbicacionActual(d.getUbicacion());
+                    d.getSaldoGLPCamion();
+                    return camion;
+                }
+            }
+            anterior = d;
+        }
+        return camion;
     }
 
 }

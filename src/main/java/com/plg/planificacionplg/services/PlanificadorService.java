@@ -166,7 +166,7 @@ public class PlanificadorService {
         double porcentajeElite = 0.3;
 
         Genetico ga = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
-        mejorSolucion = ga.ejecutar(sistemaPLG);
+        mejorSolucion = ga.ejecutar(1, sistemaPLG);
 
 
 

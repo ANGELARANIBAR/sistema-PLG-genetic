@@ -17,7 +17,7 @@ public class Genetico {
         this.porcentajeElite = porcentajeElite;
     }
 
-    public Individuo ejecutar(SistemaPLG sistema) {
+    public Individuo ejecutar(int code, SistemaPLG sistema) {
         int numPedidos = sistema.getPedidos().size();
         int numCamiones = sistema.getFlota().size();
 
@@ -26,12 +26,12 @@ public class Genetico {
 
         // Inicializar población
         for (int i = 0; i < tamPoblacion; i++) {
-            Individuo ind = new Individuo(numPedidos, numCamiones);
-            ind.evaluar(sistema);
+            Individuo ind = new Individuo(numPedidos, numCamiones, sistema, code);
+            ind.evaluar(code, sistema);
             poblacion.add(ind);
         }
 
-        Individuo mejorSolucion = Collections.max(poblacion, Comparator.comparingDouble(Individuo::getFitness)).clonar();
+        Individuo mejorSolucion = Collections.max(poblacion, Comparator.comparingDouble(Individuo::getFitness)).clonar(code);
 
         for (int gen = 0; gen < generaciones; gen++) {
             List<Individuo> nuevaGeneracion = new ArrayList<>();
@@ -40,7 +40,7 @@ public class Genetico {
             int numElite = (int) (tamPoblacion * porcentajeElite);
             poblacion.sort(Comparator.comparingDouble(Individuo::getFitness).reversed());
             for (int i = 0; i < numElite; i++) {
-                nuevaGeneracion.add(poblacion.get(i).clonar());
+                nuevaGeneracion.add(poblacion.get(i).clonar(code));
             }
 
             // Cruce y mutación
@@ -49,14 +49,14 @@ public class Genetico {
                 Individuo padre2 = seleccionarTorneo(poblacion);
 
                 Individuo hijo = (rand.nextDouble() < probCruce)
-                        ? cruzar(padre1, padre2, numCamiones)
-                        : padre1.clonar();
+                        ? cruzar(padre1, padre2, numCamiones, code)
+                        : padre1.clonar(code);
 
                 if (rand.nextDouble() < probMutacion) {
                     mutar(hijo, numCamiones);
                 }
 
-                hijo.evaluar(sistema);
+                hijo.evaluar(code, sistema);
                 if (hijo.getFitness() > 0) {
                     nuevaGeneracion.add(hijo);
                 }
@@ -66,7 +66,7 @@ public class Genetico {
 
             Individuo mejorGen = Collections.max(poblacion, Comparator.comparingDouble(Individuo::getFitness));
             if (mejorGen.getFitness() > mejorSolucion.getFitness()) {
-                mejorSolucion = mejorGen.clonar();
+                mejorSolucion = mejorGen.clonar(code);
             }
 
             System.out.println("Gen " + gen + " - Fitness: " + mejorSolucion.getFitness());
@@ -85,7 +85,7 @@ public class Genetico {
         return Collections.max(torneo, Comparator.comparingDouble(Individuo::getFitness));
     }
 
-    private Individuo cruzar(Individuo padre1, Individuo padre2, int numCamiones) {
+    private Individuo cruzar(Individuo padre1, Individuo padre2, int numCamiones, int code) {
         numCamiones+=1;
         Random rand = new Random();
         Map<Integer, List<Integer>> asignacionHijo = new HashMap<>();
@@ -144,7 +144,7 @@ public class Genetico {
             cargasGLP.put(i, cargas);
         }
 
-        Individuo hijo = new Individuo(0, 0);
+        Individuo hijo = new Individuo(0, 0, padre1.getSistemaPLG(), code);
         hijo.setAsignacion(asignacionHijo);
         hijo.setPedidosXcargasGLP(cargasGLP);
         return hijo;

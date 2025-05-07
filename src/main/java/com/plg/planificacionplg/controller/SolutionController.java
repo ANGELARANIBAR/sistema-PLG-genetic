@@ -3,6 +3,7 @@ package com.plg.planificacionplg.controller;
 import com.plg.planificacionplg.PlanificacionPlgApplication;
 import com.plg.planificacionplg.clases.*;
 import com.plg.planificacionplg.dto.*;
+import jakarta.persistence.criteria.CriteriaBuilder;
 import org.springframework.cglib.core.Local;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
@@ -115,9 +116,7 @@ public class SolutionController {
     @PostMapping("/{truckId}/registrarAveria")
     public void registrarAveria(
             @PathVariable int truckId,
-            @RequestBody Map<Integer, Integer> destinoActuales,
-            @RequestBody int tipoAveria,
-            @RequestBody LocalDateTime fechaHoraInicioAveria) { // 🔹 Se recibe el nuevo estado en el cuerpo de la petición
+            @RequestBody AveriaRequest request) { // 🔹 Se recibe el nuevo estado en el cuerpo de la petición
         Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
         if (mejorSolucion == null) {
             return;
@@ -133,9 +132,6 @@ public class SolutionController {
             return;
         }
 
-        if (destinoActuales.get(truckId) < 0 || destinoActuales.get(truckId) >= camion.getDestinos().size()) {
-            return; // indice está fuera del rango
-        }
         TipoAveria tipoAveria1 = new TipoAveria();
         tipoAveria1.setId(1);
         tipoAveria1.setTiempoInmovilizado(2);
@@ -153,18 +149,46 @@ public class SolutionController {
         tipos.add(tipoAveria2);
         tipos.add(tipoAveria3);
         Averia averia = new Averia();
-        averia.setTipo(tipos.get(tipoAveria-1));
-        averia.setFechaHoraInicio(fechaHoraInicioAveria);
+        averia.setTipo(tipos.get(request.getTipoAveria()-1));
+        averia.setFechaHoraInicio(request.getFechaHoraInicioAveria());
         averia.determinarFechaFin(mejorSolucion.getSistemaPLG());
         camion.getAverias().add(averia);
-        mejorSolucion.getSistemaPLG().getCamionesAveriados().add(camion);
         List<Pedido>afectados=new ArrayList<>();
         for(Pedido p : mejorSolucion.getSistemaPLG().getPedidos()){
             if(p.getEstado()==EstadoPedido.PENDIENTE)afectados.add(p);
         }
+        SistemaPLG replanificado = new SistemaPLG(mejorSolucion.getSistemaPLG());
+        replanificado.setFlota(new ArrayList<>());
+        replanificado.setPedidos(afectados);
+        replanificado.getCamionesAveriados().add(camion);
+        for(int i = 0; i < mejorSolucion.getSistemaPLG().getFlota().size(); i++){
+            Camion nuevoCamion = new Camion(mejorSolucion.getSistemaPLG().getFlota().get(i));
+            nuevoCamion.setCargasGLP(new ArrayList<>()); //reasignaciones de pedidos
+            nuevoCamion.setDestinos(new ArrayList<>());
+            if(mejorSolucion.getSistemaPLG().getFlota().get(nuevoCamion.getId()-1).getPedidosAsignados()!=null){
+                Replanficacion origenReplan = new Replanficacion();
+                origenReplan.setUbicacion(nuevoCamion.calcularUbicacion(request.getFechaHoraInicioAveria()));
+                if(nuevoCamion.getId()==camion.getId()) { // no considera averias de camiones que estan sin pedidos asignados
+                    origenReplan.setFechaHoraSalida(averia.getFechaHoraFin());
+                }
+                else origenReplan.setFechaHoraSalida(request.getFechaHoraInicioAveria());
+                origenReplan.setGLPOperacion(0.0);
+                origenReplan.setSaldoGLPCamion(camion.getCargaGLPActual());
+                origenReplan.setSaldoCombustibleCamion(camion.getCombustibleActual());
+                nuevoCamion.getDestinos().add(origenReplan);
+            }
+            replanificado.getFlota().add(nuevoCamion);
+        }
+        int tamPoblacion = 50;
+        int generaciones = 10;
+        double probCruce = 0.3;
+        double probMutacion = 0.5;
+        double porcentajeElite = 0.3;
 
-        //Destino destinoSeleccionado = camion.getDestinos().get(destinoActual);
+        Genetico ga = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
+        Individuo solReplanificado = ga.ejecutar(2, replanificado);
 
+        PlanificacionPlgApplication.setMejorSolucion(solReplanificado);
 
 
     }

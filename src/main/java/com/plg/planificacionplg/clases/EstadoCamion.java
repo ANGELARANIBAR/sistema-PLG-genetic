@@ -1,3 +1,3 @@
 package com.plg.planificacionplg.clases;
 
-public enum EstadoCamion { EN_RUTA, AVERIADO, EN_RECARGA, DE_REGRESO, EN_MANTENIMIENTO }
+public enum EstadoCamion { EN_RUTA, AVERIADO, EN_RECARGA, DE_REGRESO, EN_MANTENIMIENTO, DISPONIBLE, EN_RETORNO }

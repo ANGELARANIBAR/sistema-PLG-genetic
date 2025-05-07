@@ -33,6 +33,7 @@ public class Cisterna {
         //rango de fechas sin abastecimento
         LocalDateTime abastecimientoHoy = fechaHora.toLocalDate().atTime(horaAbastecimento), limiteInferior;
         LocalDateTime abastecimientoManana = fechaHora.toLocalDate().plusDays(1).atTime(horaAbastecimento);
+        LocalDateTime abastecimientoAyer = fechaHora.toLocalDate().minusDays(1).atTime(horaAbastecimento);
 
         // Registrar nueva operación
         OperacionesGLPCisterna nuevaOp = new OperacionesGLPCisterna(), temporal = new OperacionesGLPCisterna();
@@ -53,7 +54,7 @@ public class Cisterna {
             //  D    x       AH   x    D     AM
             if(fechaHora.isBefore(abastecimientoHoy)) {
                 temporal.setFechaHoraOperacion(abastecimientoHoy);
-                limiteInferior = fechaHora.toLocalDate().atTime(LocalTime.MIN);
+                limiteInferior = abastecimientoAyer;
             }else{
                 temporal.setFechaHoraOperacion(abastecimientoManana);
                 limiteInferior = abastecimientoHoy;
@@ -122,6 +123,7 @@ public class Cisterna {
         //rango de fechas sin abastecimento
         LocalDateTime abastecimientoHoy = fechaHora.toLocalDate().atTime(horaAbastecimento), limiteInferior;
         LocalDateTime abastecimientoManana = fechaHora.toLocalDate().plusDays(1).atTime(horaAbastecimento);
+        LocalDateTime abastecimientoAyer = fechaHora.toLocalDate().minusDays(1).atTime(horaAbastecimento);
 
         // Registrar nueva operación
         OperacionesGLPCisterna nuevaOp = new OperacionesGLPCisterna(), temporal = new OperacionesGLPCisterna();
@@ -140,7 +142,7 @@ public class Cisterna {
             //  D    x       AH   x    D     AM
             if(fechaHora.isBefore(abastecimientoHoy)) {
                 temporal.setFechaHoraOperacion(abastecimientoHoy);
-                limiteInferior = fechaHora.toLocalDate().atTime(LocalTime.MIN);
+                limiteInferior = abastecimientoAyer;
             }else{
                 temporal.setFechaHoraOperacion(abastecimientoManana);
                 limiteInferior = abastecimientoHoy;
@@ -178,7 +180,7 @@ public class Cisterna {
                 //restar a lso siguinets
             }
             else{//recien se hace el abastecimento
-                if(capacidadTotal>cantidadSolicitada)return false;
+                if(capacidadTotal<cantidadSolicitada)return false;
             }
         }
         else{

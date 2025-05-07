@@ -28,6 +28,7 @@ public class Camion {
     private Integer indicePedidoActual;
 
     public Camion() {
+        averias = new ArrayList<>();
         destinos = new ArrayList<>();
         pedidosAsignados = new ArrayList<>();
     }
@@ -127,8 +128,10 @@ public class Camion {
             cantNodosInicial=destinos.size();
             Destino destinoFinal = destinos.get(index);
             destinoFinal.setRuta(new Ruta());
-            destinoFinal.setGLPOperacion(destinoFinal.getPedido().getVolumenGLP());
-            destinoFinal.setUbicacion(destinoFinal.getPedido().getUbicacion());
+            if(destinoFinal instanceof EntregaPedido){
+                destinoFinal.setGLPOperacion(destinoFinal.getPedido().getVolumenGLP());
+                destinoFinal.setUbicacion(destinoFinal.getPedido().getUbicacion());
+            }
 
             int resultadoNodosIntermedios = insertarNodosIntermediosCargaGLP(destinoInicial, destinoFinal, sistemaPLG);
             if (resultadoNodosIntermedios == 1) {//caso en que no necesitas GLP, y puede que necesitss gasolina
@@ -155,13 +158,15 @@ public class Camion {
         if (start.getUbicacion().sonIguales(end.getUbicacion())) {
             return -1;
         }
-        if (end.getGLPOperacion() > cargaGLPActual && Math.abs(end.getGLPOperacion() - cargaGLPActual) > 0.001) {
+        if (end instanceof EntregaPedido && end.getGLPOperacion() > cargaGLPActual && Math.abs(end.getGLPOperacion() - cargaGLPActual) > 0.001) {
             int mejorCisterna = -1;
             double mejorDistancia = Double.MAX_VALUE;
             double faltanteGLP = end.getGLPOperacion() - cargaGLPActual;
             Destino mejorEnd=null, elegido=null;
             indicePedidoActual++;
             faltanteGLP = -cargaGLPActual;
+            if(indicePedidoActual==cargasGLP.size())
+                System.out.println("");
             for(int j=cargasGLP.get(indicePedidoActual-1); j<cargasGLP.get(indicePedidoActual); j++){
                 faltanteGLP += getPedidosAsignados().get(j).getVolumenGLP();
             }
