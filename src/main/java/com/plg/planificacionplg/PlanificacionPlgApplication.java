@@ -201,9 +201,6 @@ public class PlanificacionPlgApplication {
                 //replanificación por averia
                 mejorSolucion.getSistemaPLG().estadoDePedidosALas(inicioAveria); // estado de pedidos actualizados
                 List<Pedido>afectados=new ArrayList<>();
-                for(Pedido p : mejorSolucion.getSistemaPLG().getPedidos()){
-                    if(p.getEstado()==EstadoPedido.PENDIENTE)afectados.add(p);
-                }
                 replanificado.setFlota(new ArrayList<>());
                 replanificado.setPedidos(afectados);
                 replanificado.getCamionesAveriados().add(cam);
@@ -231,11 +228,10 @@ public class PlanificacionPlgApplication {
                         }
                     }
                 }
-                else{//caso 2 y 3 donde no atiende sino se va
-                    cam.setPedidosAsignados(new ArrayList<>());
-
+                else cam.setPedidosAsignados(new ArrayList<>());//caso 2 y 3 donde no atiende sino se va
+                for(Pedido p : mejorSolucion.getSistemaPLG().getPedidos()){
+                    if(p.getEstado()==EstadoPedido.PENDIENTE)afectados.add(p);// pedidos en cola por replanificacion
                 }
-                //caso 2 y 3
                 for(int i = 0; i < mejorSolucion.getSistemaPLG().getFlota().size(); i++){
                     //si el camion no tiene registro de atenciones en la planificaicon
                     if(mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().isEmpty()){

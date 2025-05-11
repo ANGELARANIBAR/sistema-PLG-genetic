@@ -128,27 +128,27 @@ public class Individuo {
         List<Camion> flota = sistemaPLG.getFlota();
         List<Pedido> pedidos = sistemaPLG.getPedidos();
         List<Cisterna> cisternas = sistemaPLG.getCisternas();
+        int entregasTardias = 0;
         for (Map.Entry<Integer, List<Integer>> entry : asignacion.entrySet()) {
             int camionIdx = entry.getKey();
             List<Integer> pedidosAsignados = entry.getValue();
-            if(sistemaPLG.getCamionCausanteReplan() != null && camionIdx!=sistemaPLG.getCamionCausanteReplan().getId()){
-                if(sistemaPLG.getCamionCausanteReplan().getAverias().getLast().getTipo().getId() == 1)
-                    for(Pedido pedAsig : sistemaPLG.getCamionCausanteReplan().getPedidosAsignados())
+            if (sistemaPLG.getCamionCausanteReplan() != null && camionIdx != sistemaPLG.getCamionCausanteReplan().getId()) {
+                if (sistemaPLG.getCamionCausanteReplan().getAverias().getLast().getTipo().getId() == 1)
+                    for (Pedido pedAsig : sistemaPLG.getCamionCausanteReplan().getPedidosAsignados())
                         pedidosAsignados.add(pedAsig.getId());
-            }
-            else if (pedidosAsignados.isEmpty()) continue;
+            } else if (pedidosAsignados.isEmpty()) continue;
 
 
-            Camion camion = flota.get(camionIdx-1);
+            Camion camion = flota.get(camionIdx - 1);
             camion.setEstado(EstadoCamion.EN_RUTA);
             for (int pedidoIdx : pedidosAsignados) {
                 EntregaPedido entrega = new EntregaPedido();
                 entrega.setId(pedidoIdx);
                 entrega.setVolumenGLPEntregado(0.0);
 
-                entrega.setPedido(pedidos.get(pedidoIdx-1));
-                entrega.setUbicacion(pedidos.get(pedidoIdx-1).getUbicacion());
-                camion.getPedidosAsignados().add(pedidos.get(pedidoIdx-1));
+                entrega.setPedido(pedidos.get(pedidoIdx - 1));
+                entrega.setUbicacion(pedidos.get(pedidoIdx - 1).getUbicacion());
+                camion.getPedidosAsignados().add(pedidos.get(pedidoIdx - 1));
                 camion.getDestinos().add(entrega);
             }
 
@@ -159,20 +159,20 @@ public class Individuo {
             camion.getDestinos().add(retorno); // para los camiones averiados inclusive
 
             camion.setCargasGLP(pedidosXcargasGLP.get(camionIdx));
-            double GLPInicial=0.0;
+            double GLPInicial = 0.0;
             camion.setIndicePedidoActual(0);
-            if(pedidosXcargasGLP.get(camionIdx).isEmpty()){
+            if (pedidosXcargasGLP.get(camionIdx).isEmpty()) {
                 continue;
             }
-            for(int i=0; i < pedidosXcargasGLP.get(camionIdx).get(0); i++){
+            for (int i = 0; i < pedidosXcargasGLP.get(camionIdx).get(0); i++) {
                 GLPInicial += camion.getPedidosAsignados().get(i).getVolumenGLP();
             }
-            if(camion.getTipo().getCargaGLPMax()<GLPInicial){
+            if (camion.getTipo().getCargaGLPMax() < GLPInicial) {
                 fitness = 0.0;
                 return;
             }
             //camion.setCargaGLPActual(camion.getDestinos().get(1).getPedido().getVolumenGLP());
-            if(code==1) {
+            if (code == 1) {
                 Reabastecimiento origen = new Reabastecimiento();
                 origen.setCisterna(cisternas.get(0));
                 origen.setUbicacion(cisternas.get(0).getUbicacion());
@@ -185,24 +185,22 @@ public class Individuo {
                 camion.getDestinos().add(0, origen);
                 origen.setSaldoGLPCamion(GLPInicial);
                 origen.setSaldoCombustibleCamion(camion.getCombustibleActual());
-            }
-            else if(code==2){
-                List<Destino> destinos = sistema.getFlota().get(camion.getId()-1).getDestinos();
-                if(destinos!=null){
+            } else if (code == 2) {
+                List<Destino> destinos = sistema.getFlota().get(camion.getId() - 1).getDestinos();
+                if (destinos != null) {
                     camion.getDestinos().add(0, destinos.get(0));
-                    camion.setCargaGLPActual(sistema.getFlota().get(camion.getId()-1).getCargaGLPActual());
-                    camion.setCombustibleActual(sistema.getFlota().get(camion.getId()-1).getCombustibleActual());
-                    if(camion.getCargaGLPActual()<GLPInicial){
+                    camion.setCargaGLPActual(sistema.getFlota().get(camion.getId() - 1).getCargaGLPActual());
+                    camion.setCombustibleActual(sistema.getFlota().get(camion.getId() - 1).getCombustibleActual());
+                    if (camion.getCargaGLPActual() < GLPInicial) {
                         fitness = 0.0;
                         return;
                     }
-                    camion.setCombustibleActual(sistema.getFlota().get(camion.getId()-1).getCombustibleActual());
-                }
-                else {
+                    camion.setCombustibleActual(sistema.getFlota().get(camion.getId() - 1).getCombustibleActual());
+                } else {
                     System.out.println("No hay destinos");
                 }
             }
-
+            entregasTardias = 0;
             int resultado = camion.construirRutaHaciaPedido(sistemaPLG);
             if (resultado != 0) {
                 fitness = 0.0;
@@ -214,16 +212,19 @@ public class Individuo {
         // Evaluar desempeño (ej: eficiencia: distancia/combustible)
         double totalDistancia = 0;
         double totalCombustible = 0;
+        double totalTiempo = 0;
 
         for (Camion c : flota) {
             if (!c.getDestinos().isEmpty()) {
                 totalDistancia += c.getDistanciaTotal();
                 totalCombustible += c.getCombustibleEmpleado();
+                totalTiempo += c.getDistanciaTotal() / c.getTipo().getVelocidadPromedio();
             }
         }
 
         //fitness = totalDistancia / (totalCombustible + 1e-5); // evitar división por cero
-        fitness = 10000 / (totalCombustible + 1e-5); // evitar división por cero
+        //fitness = 10000 / (totalCombustible + 1e-5); // evitar división por cero
+        fitness = 1.0 / (0.4 * totalCombustible + 0.1 * totalTiempo + 0.5 * entregasTardias * 1000 + 1e-5);
 
     }
 
