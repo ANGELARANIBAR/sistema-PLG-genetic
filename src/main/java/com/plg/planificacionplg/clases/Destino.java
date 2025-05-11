@@ -15,6 +15,7 @@ public abstract class Destino {
     private double saldoGLPCamion;
     private double saldoCombustibleCamion;
     private Ruta ruta;
+    private EstadoCamion estadoCamion;
     public abstract double operacionCargaGLP();
     public Destino(){
         ruta = new Ruta();

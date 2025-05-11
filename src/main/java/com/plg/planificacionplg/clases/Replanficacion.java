@@ -23,6 +23,8 @@ public class Replanficacion extends Destino{
         this.setSaldoGLPCamion(otro.getSaldoGLPCamion());
         this.setNumeroOrden(otro.getNumeroOrden());
         this.setIdDestino(otro.getIdDestino());
+        this.setEstadoCamion(otro.getEstadoCamion());
+
         //this.setRuta(new Ruta(otro.getRuta()));
     }
     @Override

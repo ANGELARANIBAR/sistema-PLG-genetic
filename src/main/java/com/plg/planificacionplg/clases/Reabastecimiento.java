@@ -26,6 +26,7 @@ public class Reabastecimiento extends Destino {
         this.setNumeroOrden(otro.getNumeroOrden());
         this.setIdDestino(otro.getIdDestino());
         this.setRuta(new Ruta(otro.getRuta()));
+        this.setEstadoCamion(otro.getEstadoCamion());
         this.id = otro.getId();
         this.cisterna = otro.getCisterna();
         this.cargaAbastecida = otro.getCargaAbastecida();

@@ -24,7 +24,7 @@ public class PlanificacionPlgApplication {
     }
 
     public static void main(String[] args) {
-        SpringApplication.run(PlanificacionPlgApplication.class, args);
+        //SpringApplication.run(PlanificacionPlgApplication.class, args);
 
         List<Cisterna> cisternas = new ArrayList<>();
         Cisterna principal = new Cisterna();
@@ -95,10 +95,11 @@ public class PlanificacionPlgApplication {
         tipoCamion4.setPesoGLPMax(2.5);
         tipoCamion4.setCargaGLPMax(5);
         tipoCamion2.setCodigo("TD");
-
+        int cantCamionesInicial=0;
         for(int i=1; i<3; i++){
             Camion camion = new Camion();   // Cisterna media
             camion.setId(i);
+            camion.setIdxPorTipo(i);
             camion.setTipo(tipoCamion1);
             camion.setCodigo(tipoCamion1.getCodigo()+String.format("%02d", i));
             camion.setPlaca("ABC-00"+String.valueOf(i));
@@ -107,31 +108,37 @@ public class PlanificacionPlgApplication {
             //camion.setCargaGLPActual(camion.getTipo().getCargaGLPMax());
             sistemaPLG.getFlota().add(camion);
         }
+        cantCamionesInicial = sistemaPLG.getFlota().size();
         for(int i=3; i<7; i++){
             Camion camion = new Camion();   // Cisterna media
             camion.setId(i);
+            camion.setIdxPorTipo(i-cantCamionesInicial);
             camion.setTipo(tipoCamion2);
-            camion.setCodigo(tipoCamion2.getCodigo()+String.format("%02d", i-sistemaPLG.getFlota().size()));
+            camion.setCodigo(tipoCamion2.getCodigo()+String.format("%02d", camion.getIdxPorTipo()));
             camion.setPlaca("ABC-00"+String.valueOf(i));
             camion.setEstado(EstadoCamion.DISPONIBLE);
             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
             sistemaPLG.getFlota().add(camion);
         }
+        cantCamionesInicial = sistemaPLG.getFlota().size();
         for(int i=7; i<11; i++){
             Camion camion = new Camion();   // Cisterna media
             camion.setId(i);
+            camion.setIdxPorTipo(i-cantCamionesInicial);
             camion.setTipo(tipoCamion3);
-            camion.setCodigo(tipoCamion3.getCodigo()+String.format("%02d", i-sistemaPLG.getFlota().size()));
+            camion.setCodigo(tipoCamion3.getCodigo()+String.format("%02d", camion.getIdxPorTipo()));
             camion.setPlaca("ABC-00"+String.valueOf(i));
             camion.setEstado(EstadoCamion.DISPONIBLE);
             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
             sistemaPLG.getFlota().add(camion);
         }
+        cantCamionesInicial = sistemaPLG.getFlota().size();
         for(int i=11; i<21; i++){
             Camion camion = new Camion();   // Cisterna media
             camion.setId(i);
+            camion.setIdxPorTipo(i-cantCamionesInicial);
             camion.setTipo(tipoCamion4);
-            camion.setCodigo(tipoCamion4.getCodigo()+String.format("%02d", i-sistemaPLG.getFlota().size()));
+            camion.setCodigo(tipoCamion4.getCodigo()+String.format("%02d", camion.getIdxPorTipo()));
             camion.setPlaca("ABC-00"+String.valueOf(i));
             camion.setEstado(EstadoCamion.DISPONIBLE);
             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
@@ -161,45 +168,11 @@ public class PlanificacionPlgApplication {
         Genetico ga = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
         mejorSolucion = ga.ejecutar(1, sistemaPLG);
 
-        for(Camion camion : mejorSolucion.getSistemaPLG().getFlota()){
+        mejorSolucion.getSistemaPLG().imprimirPlanificacion();
 
-            System.out.println("******************Camion: " + camion.getId() + " Placa: " +camion.getPlaca());
-            System.out.println("Distancia total recorrida: " + camion.getDistanciaTotal());
-            System.out.println("Cantidad de gasolina empleada TOTAL CAMION: " + camion.getCombustibleEmpleado());
-            System.out.println("Cantidad de gasolina FINAL: " + camion.getCombustibleActual());
-            System.out.println("Cantidad de GLP FINAL: " + camion.getCargaGLPActual());
-            for(Destino destino : camion.getDestinos()){
-                destino.imprimir();
 
-                System.out.println("Cantidad de gasolina empleada en ruta: " + destino.getRuta().getConsumoCombustible());
-                System.out.println("Llegada: " + destino.getFechaHoraLlegada());
-                System.out.println("Salida: " + destino.getFechaHoraSalida());
-                if(destino instanceof EntregaPedido)
-                    System.out.println("Entregas hasta las : " + destino.getPedido().getFechaHoraMaxEntrega());
-                //if(destino.getRuta().getNodos() == null)System.out.println("Nodo inicial del camión");
-                //else System.out.println("Ruta: " + destino.getRuta().getNodos());
-                System.out.println("-------------------------------------------------------------------------");
-
-            }
-        }
-
-        System.out.println("----------------------------Cisternas----------------------------");
-        for (Cisterna c : mejorSolucion.getSistemaPLG().getCisternas()){
-            if(c.getOperacionesGLPCisterna()==null)continue;
-            System.out.println("************************Cisterna en" + c.getUbicacion());
-            System.out.println("Hora de Abastecimiento" + c.getHoraAbastecimento());
-            System.out.println("SALDO FINAL DE GLP " + c.getCargaGLPActual());
-            for(OperacionesGLPCisterna op : c.getOperacionesGLPCisterna()){
-                System.out.println("fecha Operacion:"+op.getFechaHoraOperacion());
-                System.out.println("GLP Saldo"+op.getSaldoGLP());
-                System.out.println("GLP sacado"+op.getCantSalidaGLP());
-                System.out.println("Camion ID:"+op.getCamion().getId());
-                System.out.println("----------------------------------");
-            }
-        }
-
-        /*mejorSolucion.getSistemaPLG().cargarMantenimientos(
-                "./test/planmantenimimento.txt",
+        mejorSolucion.getSistemaPLG().cargarMantenimientos(
+                "src/main/java/com/plg/planificacionplg/test/planmantenimiento.txt",
                 LocalTime.MIN, LocalTime.MAX
         );
 
@@ -213,13 +186,6 @@ public class PlanificacionPlgApplication {
         if (camion == null) {
             return;
         }
-
-        AveriaRequest request = new AveriaRequest();
-        request.setFechaHoraInicioAveria(mejorSolucion.getSistemaPLG().getFechaHoraInicio().plusMinutes(40));
-        request.setTipoAveria(2);
-
-
-        mejorSolucion.getSistemaPLG().estadoDePedidosALas(request.getFechaHoraInicioAveria());
 
         TipoAveria tipoAveria1 = new TipoAveria();
         tipoAveria1.setId(1);
@@ -237,93 +203,104 @@ public class PlanificacionPlgApplication {
         tipos.add(tipoAveria1);
         tipos.add(tipoAveria2);
         tipos.add(tipoAveria3);
-        Averia averia = new Averia();
-        averia.setTipo(tipos.get(request.getTipoAveria()-1));
-        averia.setFechaHoraInicio(request.getFechaHoraInicioAveria());
-        averia.determinarFechaFin(mejorSolucion.getSistemaPLG());
-        averia.setTurnoOcurrencia(2);
 
-        for(Pedido ped : camion.getPedidosAsignados()){
-            if(ped.getEstado()==EstadoPedido.PENDIENTE){
-                ped.setEstado(EstadoPedido.ASIGNADO);
-            }
-        }
-
-
-        List<Pedido>afectados=new ArrayList<>();
-        for(Pedido p : mejorSolucion.getSistemaPLG().getPedidos()){
-            if(p.getEstado()==EstadoPedido.PENDIENTE)afectados.add(p);
-        }
+        mejorSolucion.getSistemaPLG().cargarAverias("src/main/java/com/plg/planificacionplg/test/averias.txt");
         SistemaPLG replanificado = new SistemaPLG(mejorSolucion.getSistemaPLG());
-        replanificado.setFlota(new ArrayList<>());
-        replanificado.setPedidos(afectados);
-        replanificado.getCamionesAveriados().add(camion);
-        for(int i = 0; i < mejorSolucion.getSistemaPLG().getFlota().size(); i++){
-            Camion nuevoCamion = new Camion(mejorSolucion.getSistemaPLG().getCamionEnInstante(i+1, request.getFechaHoraInicioAveria()));
-            nuevoCamion.setCargasGLP(new ArrayList<>());
-            nuevoCamion.setDestinos(new ArrayList<>());
-            if(mejorSolucion.getSistemaPLG().getFlota().get(nuevoCamion.getId()-1).getPedidosAsignados()!=null){
+
+        double min = 0.35;
+        double max = 0.75;
+
+        for(Averia a : mejorSolucion.getSistemaPLG().getAverias()){
+            Camion c = mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion());
+            double random = min + (Math.random() * ((max - min) + Double.MIN_VALUE));
+            double tiempoAveria = c.getDistanciaTotal()*random/c.getTipo().getVelocidadPromedio();
+            LocalDateTime inicioAveria = mejorSolucion.getSistemaPLG().getFechaHoraInicio().plusSeconds((long)tiempoAveria*60);
+            int turnoiniidx = a.getTurnoOcurrencia() - 2, turnoidx = a.getTurnoOcurrencia()-1;
+            LocalTime turnoini;
+            if(turnoiniidx < 0){turnoini = LocalTime.MIN;}
+            else turnoini = mejorSolucion.getSistemaPLG().getTurnosFin().get(turnoiniidx);
+            Camion cam = mejorSolucion.getSistemaPLG().getCamionEnInstante(a.getIdCamion()+1, inicioAveria);
+            if(cam!=null && cam.getEstado()==EstadoCamion.EN_RETORNO)continue;
+            if(turnoini.isBefore(inicioAveria.toLocalTime())
+                    && mejorSolucion.getSistemaPLG().getTurnosFin().get(turnoidx).isAfter(inicioAveria.toLocalTime())){
+                a.setFechaHoraInicio(inicioAveria); // la averia se efectua
+                a.determinarFechaFin(mejorSolucion.getSistemaPLG());
+                cam.setEstado(EstadoCamion.AVERIADO);
+                //replanificación por averia
+                mejorSolucion.getSistemaPLG().estadoDePedidosALas(inicioAveria); // estado de pedidos actualizados
+                List<Pedido>afectados=new ArrayList<>();
+                for(Pedido p : mejorSolucion.getSistemaPLG().getPedidos()){
+                    if(p.getEstado()==EstadoPedido.PENDIENTE)afectados.add(p);
+                }
+                replanificado.setFlota(new ArrayList<>());
+                replanificado.setPedidos(afectados);
+                replanificado.getCamionesAveriados().add(cam);
+                replanificado.setFechaHoraInicio(inicioAveria);
+                replanificado.setCamionCausanteReplan(cam);
+                cam.getAverias().add(a);
                 Replanficacion origenReplan = new Replanficacion();
-                origenReplan.setUbicacion(mejorSolucion.getSistemaPLG().getFlota().get(i).calcularUbicacion(request.getFechaHoraInicioAveria()));
-                if(nuevoCamion.getId()==camion.getId()) { // no considera averias de camiones que estan sin pedidos asignados
-                    origenReplan.setFechaHoraSalida(averia.getFechaHoraFin());
-                    nuevoCamion.setEstado(EstadoCamion.AVERIADO);
-                    nuevoCamion.getAverias().add(averia);
-                    replanificado.setCamionCausanteReplan(nuevoCamion);
-                    if(averia.getTipo().getId()==1){ // para el tipo 1 y 2
-                        nuevoCamion.setEstado(EstadoCamion.EN_RETORNO);
-                        for(Pedido ped : camion.getPedidosAsignados()){
-                            if(ped.getEstado()==EstadoPedido.PENDIENTE){
-                                ped.setEstado(EstadoPedido.ASIGNADO);
-                                nuevoCamion.getPedidosAsignados().add(ped);
-                            }
+                origenReplan.setUbicacion(mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).calcularUbicacion(inicioAveria));
+                origenReplan.setFechaHoraLlegada(inicioAveria);
+                origenReplan.setFechaHoraSalida(inicioAveria);
+                origenReplan.setGLPOperacion(0.0);
+                Destino destActuAveriado = mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getDestinos()
+                        .get(cam.getIdxDestinoEnCurso());
+                origenReplan.setSaldoGLPCamion(destActuAveriado.getSaldoGLPCamion());
+                origenReplan.setSaldoCombustibleCamion(cam.getCombustibleActual());
+                if(destActuAveriado.getEstadoCamion()!=EstadoCamion.EN_RUTA){
+                    cam.getDestinos().add(destActuAveriado);
+                }else cam.getDestinos().add(origenReplan);
+                if(a.getTipo().getId()==1){
+                    cam.setPedidosAsignados(new ArrayList<>());
+                    for(Pedido p : mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getPedidosAsignados()){
+                        if(p.getEstado()==EstadoPedido.PENDIENTE){
+                            p.setEstado(EstadoPedido.ASIGNADO);//no pasan a replanificaion
+                            cam.getPedidosAsignados().add(p);
                         }
                     }
                 }
-                else origenReplan.setFechaHoraSalida(request.getFechaHoraInicioAveria());
-                origenReplan.setGLPOperacion(0.0);
-                origenReplan.setSaldoGLPCamion(mejorSolucion.getSistemaPLG().calcularGLPActual(nuevoCamion.getId(), averia.getFechaHoraInicio()));
-                origenReplan.setSaldoCombustibleCamion(nuevoCamion.getCombustibleActual());
-                nuevoCamion.getDestinos().add(origenReplan);
+                else{//caso 2 y 3 donde no atiende sino se va
+                    cam.setPedidosAsignados(new ArrayList<>());
+
+                }
+                //caso 2 y 3
+                for(int i = 0; i < mejorSolucion.getSistemaPLG().getFlota().size(); i++){
+                    //si el camion no tiene registro de atenciones en la planificaicon
+                    if(mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().isEmpty()){
+                        //dar origen en cisterna principal
+                        continue;
+                    }
+                    if(i==a.getIdCamion()){
+                        continue;
+                    }
+                    Camion nuevoCamion = mejorSolucion.getSistemaPLG().getCamionEnInstante(i+1, inicioAveria);
+                    nuevoCamion.setCargasGLP(new ArrayList<>());
+                    nuevoCamion.setDestinos(new ArrayList<>());
+                    Destino destinoActual = mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos()
+                            .get(nuevoCamion.getIdxDestinoEnCurso());
+                    if(destinoActual.getEstadoCamion()!=EstadoCamion.EN_RUTA){//despachando o recargando
+                        nuevoCamion.getDestinos().add(destinoActual); //inicio, no es modificable en la construccion de rutas
+                    }else{
+                        origenReplan = new Replanficacion();
+                        origenReplan.setUbicacion(mejorSolucion.getSistemaPLG().getFlota().get(i).calcularUbicacion(inicioAveria));
+                        origenReplan.setFechaHoraLlegada(inicioAveria);
+                        origenReplan.setFechaHoraSalida(inicioAveria);
+                        origenReplan.setGLPOperacion(0.0);
+                        origenReplan.setSaldoGLPCamion(destinoActual.getSaldoGLPCamion());
+                        origenReplan.setSaldoCombustibleCamion(nuevoCamion.getCombustibleActual());
+                        nuevoCamion.getDestinos().add(origenReplan);
+                    }
+                    replanificado.getFlota().add(nuevoCamion);
+                }
+                Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
+                mejorSolucion = ga2.ejecutar(2, replanificado);
+                mejorSolucion.getSistemaPLG().imprimirPlanificacion();
+
             }
-            replanificado.getFlota().add(nuevoCamion);
+
+
+
         }
 
-        Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
-        mejorSolucion = ga2.ejecutar(2, replanificado);
-
-        for(Camion camion1 : mejorSolucion.getSistemaPLG().getFlota()){
-
-            System.out.println("******************Camion: " + camion1.getId() + " Placa: " +camion1.getPlaca());
-            System.out.println("Cantidad de gasolina empleada TOTAL CAMION: " + camion1.getCombustibleEmpleado());
-            System.out.println("Cantidad de gasolina FINAL: " + camion1.getCombustibleActual());
-            System.out.println("Cantidad de GLP FINAL: " + camion1.getCargaGLPActual());
-            for(Destino destino : camion1.getDestinos()){
-                destino.imprimir();
-
-                System.out.println("Cantidad de gasolina empleada en ruta: " + destino.getRuta().getConsumoCombustible());
-                System.out.println("Llegada: " + destino.getFechaHoraLlegada());
-                System.out.println("Salida: " + destino.getFechaHoraSalida());
-                if(destino instanceof EntregaPedido)
-                    System.out.println("Entregas hasta las : " + destino.getPedido().getFechaHoraMaxEntrega());
-                //if(destino.getRuta().getNodos() == null)System.out.println("Nodo inicial del camión");
-                //else System.out.println("Ruta: " + destino.getRuta().getNodos());
-                System.out.println("-------------------------------------------------------------------------");
-
-            }
-        }
-
-        System.out.println("----------------------------Cisternas----------------------------");
-        for (Cisterna c : mejorSolucion.getSistemaPLG().getCisternas()){
-            if(c.getOperacionesGLPCisterna()==null)continue;
-            System.out.println("************************Cisterna en" + c.getUbicacion());
-            System.out.println("SALDO FINAL DE GLP" + c.getCargaGLPActual());
-            for(OperacionesGLPCisterna op : c.getOperacionesGLPCisterna()){
-                System.out.println("fecha Operacion:"+op.getFechaHoraOperacion());
-                System.out.println("GLP Saldo"+op.getSaldoGLP());
-                System.out.println("Camion ID:"+op.getCamion().getId());
-                System.out.println("----------------------------------");
-            }
-        }*/
     }
 }

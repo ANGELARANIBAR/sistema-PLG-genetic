@@ -24,6 +24,7 @@ public class Trasvase extends Destino{
         this.setNumeroOrden(otro.getNumeroOrden());
         this.setIdDestino(otro.getIdDestino());
         this.setRuta(new Ruta(otro.getRuta()));
+        this.setEstadoCamion(otro.getEstadoCamion());
         this.id = otro.id;
         this.camionTrasvase = otro.camionTrasvase;
     }

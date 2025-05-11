@@ -84,12 +84,6 @@ public class Individuo {
         sistemaPLG.setCisternas(cisternas);
         sistemaPLG.setPedidos(pedidos);
         sistemaPLG.setFlota(flota);
-        List<Pedido>asignacionesAveriadoTipo1=new ArrayList<>();
-        if(sistema.getCamionCausanteReplan()!=null){
-            if(sistema.getCamionCausanteReplan().getAverias().getLast().getTipo().getId()==1){
-                asignacionesAveriadoTipo1 = sistema.getCamionCausanteReplan().getPedidosAsignados();
-            }
-        }
         for (Camion camion : sistema.getFlota()) {
             Camion c;
             c = new Camion(camion);
@@ -104,7 +98,7 @@ public class Individuo {
             }else if (code==2){
                 if(sistema.getCamionCausanteReplan()!=null) {
                     if (sistema.getCamionCausanteReplan().getAverias().getLast().getTipo().getId() == 1) {
-                        c.setPedidosAsignados(asignacionesAveriadoTipo1);
+                        c.setPedidosAsignados(sistema.getCamionCausanteReplan().getPedidosAsignados());
                     }
                 }
             }
@@ -137,11 +131,13 @@ public class Individuo {
         for (Map.Entry<Integer, List<Integer>> entry : asignacion.entrySet()) {
             int camionIdx = entry.getKey();
             List<Integer> pedidosAsignados = entry.getValue();
-            if (sistemaPLG.getCamionCausanteReplan() != null){
-                if (pedidosAsignados.isEmpty() &&
-                        sistemaPLG.getCamionCausanteReplan().getId()!=(camionIdx-1)) continue;
+            if(sistemaPLG.getCamionCausanteReplan() != null && camionIdx!=sistemaPLG.getCamionCausanteReplan().getId()){
+                if(sistemaPLG.getCamionCausanteReplan().getAverias().getLast().getTipo().getId() == 1)
+                    for(Pedido pedAsig : sistemaPLG.getCamionCausanteReplan().getPedidosAsignados())
+                        pedidosAsignados.add(pedAsig.getId());
             }
             else if (pedidosAsignados.isEmpty()) continue;
+
 
             Camion camion = flota.get(camionIdx-1);
             camion.setEstado(EstadoCamion.EN_RUTA);
@@ -160,7 +156,7 @@ public class Individuo {
             retorno.setCisterna(cisternas.get(0));
             retorno.setUbicacion(cisternas.get(0).getUbicacion());
             retorno.setGLPOperacion(0.0);
-            camion.getDestinos().add(retorno);
+            camion.getDestinos().add(retorno); // para los camiones averiados inclusive
 
             camion.setCargasGLP(pedidosXcargasGLP.get(camionIdx));
             double GLPInicial=0.0;
@@ -191,14 +187,21 @@ public class Individuo {
                 origen.setSaldoCombustibleCamion(camion.getCombustibleActual());
             }
             else if(code==2){
-                if(sistema.getFlota().get(camion.getId()-1).getDestinos().get(0)!=null){
-                    camion.getDestinos().add(0, new Replanficacion((Replanficacion)sistema.getFlota().get(camion.getId()-1).getDestinos().get(0)));
+                List<Destino> destinos = sistema.getFlota().get(camion.getId()-1).getDestinos();
+                if(destinos!=null){
+                    if(destinos.size()==0)
+                        System.out.println("ASDASD");
+                    camion.getDestinos().add(0, destinos.get(0));
                     camion.setCargaGLPActual(sistema.getFlota().get(camion.getId()-1).getCargaGLPActual());
+                    camion.setCombustibleActual(sistema.getFlota().get(camion.getId()-1).getCombustibleActual());
                     if(camion.getCargaGLPActual()<GLPInicial){
                         fitness = 0.0;
                         return;
                     }
                     camion.setCombustibleActual(sistema.getFlota().get(camion.getId()-1).getCombustibleActual());
+                }
+                else {
+                    System.out.println("No hay destinos");
                 }
             }
 

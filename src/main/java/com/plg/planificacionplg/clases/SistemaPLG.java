@@ -2,6 +2,7 @@ package com.plg.planificacionplg.clases;
 
 import lombok.Data;
 
+import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -124,9 +125,11 @@ public class SistemaPLG {
             if(estaEnDestino){
                 // hora de salida de replanificaicon es cuando acabes de entregar el pedido
                 d = c.getDestinos().get(i);
-                if(d instanceof EntregaPedido)
+                if(d instanceof EntregaPedido){
                     ((EntregaPedido)d).getPedido().setEstado(EstadoPedido.DESPACHANDO);
+                }
             }
+            c.setIdxDestinoEnCurso(i);
             for(int j = 0; j<i; j++){
                 d = c.getDestinos().get(j);
                 if(d instanceof EntregaPedido)
@@ -172,6 +175,7 @@ public class SistemaPLG {
             camion.setCombustibleActual(anterior.getSaldoCombustibleCamion());
             camion.setCargaGLPActual(anterior.getSaldoGLPCamion());
             camion.setUbicacionActual(anterior.getUbicacion());
+            camion.setIdxDestinoEnCurso(0);
             return camion;
         }
         int i=0;
@@ -183,6 +187,10 @@ public class SistemaPLG {
                         .getVelocidadPromedio())*distanciaManzana*c.calcularPesoTotal()/180.0);
                 camion.setCargaGLPActual(anterior.getSaldoGLPCamion());
                 camion.setUbicacionActual(d.getRuta().getNodos().get((int)(Math.abs(tiempoEnRuta)*c.getTipo().getVelocidadPromedio())));
+                if(i==c.getDestinos().size()-1){
+                    camion.setEstado(EstadoCamion.EN_RETORNO);
+                }else camion.setEstado(EstadoCamion.EN_RUTA);
+                camion.setIdxDestinoEnCurso(i);
                 return camion;
             }
             else{
@@ -190,7 +198,16 @@ public class SistemaPLG {
                     camion.setCombustibleActual(d.getSaldoCombustibleCamion());
                     camion.setCargaGLPActual(d.getSaldoGLPCamion());
                     camion.setUbicacionActual(d.getUbicacion());
-                    d.getSaldoGLPCamion();
+                    if(d instanceof EntregaPedido)
+                        camion.setEstado(EstadoCamion.DESPACHANDO);
+                    else if (d instanceof Reabastecimiento) {
+                        if(d.getGLPOperacion()>0.001)camion.setEstado(EstadoCamion.EN_RECARGA_GLP);
+                        else camion.setEstado(EstadoCamion.EN_RECARGA_COMBUSTIBLE);
+                    }
+                    else{// trasvase
+                        camion.setEstado(EstadoCamion.EN_RECARGA_GLP);
+                    }
+                    camion.setIdxDestinoEnCurso(i);
                     return camion;
                 }
             }
@@ -201,8 +218,7 @@ public class SistemaPLG {
 
 
     public List<Camion> cargarMantenimientos(String rutaArchivo, LocalTime horaIni, LocalTime horaFin) {
-        List<Camion> flota = new ArrayList<>();
-
+        //List<Camion> flota = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(rutaArchivo))) {
             String linea;
             while ((linea = br.readLine()) != null) {
@@ -215,6 +231,7 @@ public class SistemaPLG {
                 m.setTipo(Mantenimiento.TipoMantenimiento.PREVENTIVO);
                 int idxCamion = buscarIdCamionPorCodigo(codigoCamion);
                 if(idxCamion != -1){
+                    if(flota.get(idxCamion).getMantenimientos()==null)flota.get(idxCamion).setMantenimientos(new ArrayList<>());
                     flota.get(idxCamion).getMantenimientos().add(m);
                 }
             }
@@ -273,6 +290,47 @@ public class SistemaPLG {
         }
 
     }
+    public void cargarAverias(String rutaArchivo) {
+        TipoAveria tipoAveria1 = new TipoAveria();
+        tipoAveria1.setId(1);
+        tipoAveria1.setTiempoInmovilizado(2);
+        tipoAveria1.setRegresaAlmacen(false);
+        TipoAveria tipoAveria2 = new TipoAveria();
+        tipoAveria2.setId(2);
+        tipoAveria2.setTiempoInmovilizado(2);
+        tipoAveria2.setRegresaAlmacen(true);
+        TipoAveria tipoAveria3 = new TipoAveria();
+        tipoAveria3.setId(3);
+        tipoAveria3.setTiempoInmovilizado(4);
+        tipoAveria3.setRegresaAlmacen(true);
+        List<TipoAveria> tipos = new ArrayList<>();
+        tipos.add(tipoAveria1);
+        tipos.add(tipoAveria2);
+        tipos.add(tipoAveria3);
+        try (BufferedReader br = new BufferedReader(new FileReader(rutaArchivo))) {
+            if(averias==null)averias=new ArrayList<>();
+            String linea;
+            while ((linea = br.readLine()) != null) {
+                String[] partes = linea.split("_");
+                int idAveria = Integer.parseInt(partes[0].replace("T", ""));
+                int turno = Integer.parseInt(partes[2].replace("TI", ""));
+                String codigoCamion = partes[1];
+                Averia averiaNueva = new Averia();
+                averiaNueva.setId(averias.size()+1);
+                averiaNueva.setTipo(tipos.get(idAveria-1));
+                averiaNueva.setTurnoOcurrencia(turno);
+                int idxCamion = buscarIdCamionPorCodigo(codigoCamion);
+                if(idxCamion != -1){
+                    averiaNueva.setIdCamion(idxCamion);
+                    flota.get(idxCamion).getAverias().add(averiaNueva);
+                    averias.add(averiaNueva);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error al leer el archivo: " + e.getMessage());
+        }
+
+    }
     public Boolean puedeCargar(int idxcamion, Map<Integer, List<Integer>> asignacion, int ini, int fin){
         double cargaPorPedidos = 0.0;
         for(int i=ini; i<fin; i++){
@@ -281,5 +339,40 @@ public class SistemaPLG {
         }
         return cargaPorPedidos < flota.get(idxcamion).getTipo().getCargaGLPMax() ||
                 Math.abs(cargaPorPedidos - flota.get(idxcamion).getTipo().getCargaGLPMax()) < 0.001;
+    }
+    public void imprimirPlanificacion(){
+        for(Camion camion1 : getFlota()){
+
+            System.out.println("******************Camion: " + camion1.getId() + " Placa: " +camion1.getPlaca());
+            System.out.println("Cantidad de gasolina empleada TOTAL CAMION: " + camion1.getCombustibleEmpleado());
+            System.out.println("Cantidad de gasolina FINAL: " + camion1.getCombustibleActual());
+            System.out.println("Cantidad de GLP FINAL: " + camion1.getCargaGLPActual());
+            for(Destino destino : camion1.getDestinos()){
+                destino.imprimir();
+
+                System.out.println("Cantidad de gasolina empleada en ruta: " + destino.getRuta().getConsumoCombustible());
+                System.out.println("Llegada: " + destino.getFechaHoraLlegada());
+                System.out.println("Salida: " + destino.getFechaHoraSalida());
+                if(destino instanceof EntregaPedido)
+                    System.out.println("Entregas hasta las : " + destino.getPedido().getFechaHoraMaxEntrega());
+                //if(destino.getRuta().getNodos() == null)System.out.println("Nodo inicial del camión");
+                //else System.out.println("Ruta: " + destino.getRuta().getNodos());
+                System.out.println("-------------------------------------------------------------------------");
+
+            }
+        }
+
+        System.out.println("----------------------------Cisternas----------------------------");
+        for (Cisterna cis : getCisternas()){
+            if(cis.getOperacionesGLPCisterna()==null)continue;
+            System.out.println("************************Cisterna en" + cis.getUbicacion());
+            System.out.println("SALDO FINAL DE GLP" + cis.getCargaGLPActual());
+            for(OperacionesGLPCisterna op : cis.getOperacionesGLPCisterna()){
+                System.out.println("fecha Operacion:"+op.getFechaHoraOperacion());
+                System.out.println("GLP Saldo"+op.getSaldoGLP());
+                System.out.println("Camion ID:"+op.getCamion().getId());
+                System.out.println("----------------------------------");
+            }
+        }
     }
 }

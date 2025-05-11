@@ -10,6 +10,7 @@ public class Averia {
     private int id;
     private LocalDateTime fechaHoraInicio, fechaHoraFin;
     private TipoAveria tipo;
+    private int idCamion;
     private double tiempoInoperativo;
     private int turnoOcurrencia;
     public void determinarFechaFin(SistemaPLG sistemaPLG){

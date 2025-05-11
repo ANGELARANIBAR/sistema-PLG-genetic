@@ -29,6 +29,7 @@ public class EntregaPedido extends Destino{
         this.setNumeroOrden(otro.getNumeroOrden());
         this.setIdDestino(otro.getIdDestino());
         this.setRuta(new Ruta(otro.getRuta()));
+        this.setEstadoCamion(otro.getEstadoCamion());
 
     }
     @Override

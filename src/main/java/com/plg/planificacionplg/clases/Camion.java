@@ -22,7 +22,7 @@ public class Camion {
     private List<Pedido> pedidosAsignados;
     private List<Destino> destinos;
     private Nodo ubicacionActual;
-    private Nodo destinoEnCurso;
+    private int idxDestinoEnCurso;
     private List<Mantenimiento> mantenimientos;
     private List<Averia> averias;
     private List<Integer> cargasGLP;
@@ -48,7 +48,7 @@ public class Camion {
         this.pedidosAsignados = new ArrayList<>();
         this.destinos = new ArrayList<>();
         this.ubicacionActual = otro.ubicacionActual;
-        this.destinoEnCurso = otro.destinoEnCurso;
+        this.idxDestinoEnCurso = otro.idxDestinoEnCurso;
         this.mantenimientos = otro.mantenimientos;
         this.averias = new ArrayList<>();
         this.cargasGLP = otro.cargasGLP;
@@ -121,8 +121,6 @@ public class Camion {
     public int construirRutaHaciaPedido(SistemaPLG sistemaPLG) {
         Destino destinoInicial = destinos.get(0);
         int pedidosCant = destinos.size();
-        /*if(destinos.get(pedidosCant-1).getUbicacion().getPosX()==20 && destinos.get(pedidosCant-1).getUbicacion().getPosY()==20)
-            System.out.println(destinoInicial.getUbicacion());*/
         int cantNodosInicial=pedidosCant, index = 0;
 
         for (int i = 1; i < pedidosCant; i++) {
@@ -269,8 +267,10 @@ public class Camion {
             if(elegido instanceof Reabastecimiento){
                 sistemaPLG.getCisternas().get(mejorCisterna).registrarRetiroGLP(end.getFechaHoraLlegada(),
                         faltanteGLP, this);
+                elegido.setEstadoCamion(EstadoCamion.EN_RECARGA_GLP);
             }else{
                 sistemaPLG.getFlota().get(((Trasvase)elegido).getCamionTrasvase().getId()-1).setCargaGLPActual(faltanteGLP);
+                elegido.setEstadoCamion(EstadoCamion.EN_RECARGA_GLP);
             }
             end.setSaldoGLPCamion(cargaGLPActual);
             end.setSaldoCombustibleCamion(combustibleActual);
@@ -348,7 +348,7 @@ public class Camion {
                     cargaGLPActual += mejorReabastecimiento.operacionCargaGLP();
                     mejorReabastecimiento.setSaldoGLPCamion(cargaGLPActual);
                     mejorReabastecimiento.setSaldoCombustibleCamion(combustibleActual);
-
+                    mejorReabastecimiento.setEstadoCamion(EstadoCamion.EN_RECARGA_COMBUSTIBLE);
                     destinos.add(indexEnd, mejorReabastecimiento);
                     combustibleActual = tipo.getCapCombustibleMax(); //llenar combusitible
                     mejorReabastecimiento.setSaldoCombustibleCamion(combustibleActual);
@@ -424,6 +424,7 @@ public class Camion {
                     camion.cargaGLPActual += mejorReabastecimiento.operacionCargaGLP();
                     mejorReabastecimiento.setSaldoGLPCamion(camion.getCargaGLPActual());
                     mejorReabastecimiento.setSaldoCombustibleCamion(camion.getCombustibleActual());
+                    mejorReabastecimiento.setEstadoCamion(EstadoCamion.EN_RECARGA_COMBUSTIBLE);
                     destinos.add(mejorReabastecimiento);
                     return buscarDestinosIntermediosCargaCombustible(destinos, mejorReabastecimiento, end, sistemaPLG, camion);
                 }
@@ -442,6 +443,7 @@ public class Camion {
             camion.cargaGLPActual += end.operacionCargaGLP();
             end.setSaldoGLPCamion(camion.getCargaGLPActual());
             end.setSaldoCombustibleCamion(camion.combustibleActual);
+            end.setEstadoCamion(EstadoCamion.EN_RECARGA_COMBUSTIBLE);
             destinos.add(end);
             return 1;
         }
