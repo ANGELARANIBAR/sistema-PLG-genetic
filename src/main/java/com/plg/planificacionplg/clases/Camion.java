@@ -149,7 +149,8 @@ public class Camion {
 
             destinoInicial = destinoFinal;
         }
-
+        destinos.getLast().setFechaHoraSalida(destinos.getLast().getFechaHoraLlegada().plusMinutes(15));
+        destinos.getLast().setEstadoCamion(EstadoCamion.EN_MANTENIMIENTO);
         return 0; // se puede completar la ruta
     }
 

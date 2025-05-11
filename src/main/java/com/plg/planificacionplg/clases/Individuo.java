@@ -189,8 +189,6 @@ public class Individuo {
             else if(code==2){
                 List<Destino> destinos = sistema.getFlota().get(camion.getId()-1).getDestinos();
                 if(destinos!=null){
-                    if(destinos.size()==0)
-                        System.out.println("ASDASD");
                     camion.getDestinos().add(0, destinos.get(0));
                     camion.setCargaGLPActual(sistema.getFlota().get(camion.getId()-1).getCargaGLPActual());
                     camion.setCombustibleActual(sistema.getFlota().get(camion.getId()-1).getCombustibleActual());

@@ -10,7 +10,7 @@ public class Mantenimiento {
     private String descripcion;
     private TipoMantenimiento tipo;
     public enum TipoMantenimiento{
-        PREVENTIVO, POST_SALIDA
+        PREVENTIVO, POST_SALIDA, CORRECTIVO
     }
 }
 

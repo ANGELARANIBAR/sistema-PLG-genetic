@@ -176,34 +176,6 @@ public class PlanificacionPlgApplication {
                 LocalTime.MIN, LocalTime.MAX
         );
 
-
-        SistemaPLG sistema = mejorSolucion.getSistemaPLG();
-        Camion camion = sistema.getFlota().stream()
-                .filter(c -> c.getId() == 2)
-                .findFirst()
-                .orElse(null);
-
-        if (camion == null) {
-            return;
-        }
-
-        TipoAveria tipoAveria1 = new TipoAveria();
-        tipoAveria1.setId(1);
-        tipoAveria1.setTiempoInmovilizado(2);
-        tipoAveria1.setRegresaAlmacen(false);
-        TipoAveria tipoAveria2 = new TipoAveria();
-        tipoAveria2.setId(2);
-        tipoAveria2.setTiempoInmovilizado(2);
-        tipoAveria2.setRegresaAlmacen(true);
-        TipoAveria tipoAveria3 = new TipoAveria();
-        tipoAveria3.setId(3);
-        tipoAveria3.setTiempoInmovilizado(4);
-        tipoAveria3.setRegresaAlmacen(true);
-        List<TipoAveria> tipos = new ArrayList<>();
-        tipos.add(tipoAveria1);
-        tipos.add(tipoAveria2);
-        tipos.add(tipoAveria3);
-
         mejorSolucion.getSistemaPLG().cargarAverias("src/main/java/com/plg/planificacionplg/test/averias.txt");
         SistemaPLG replanificado = new SistemaPLG(mejorSolucion.getSistemaPLG());
 
@@ -297,9 +269,6 @@ public class PlanificacionPlgApplication {
                 mejorSolucion.getSistemaPLG().imprimirPlanificacion();
 
             }
-
-
-
         }
 
     }
