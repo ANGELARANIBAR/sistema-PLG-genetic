@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 import lombok.Data;
+import org.springframework.cglib.core.Local;
+
 @Data
 public class Ruta {
     private int id;
@@ -26,7 +28,7 @@ public class Ruta {
         return Math.abs(a.getPosX() - b.getPosX()) + Math.abs(a.getPosY() - b.getPosY()); // Manhattan
     }
 
-    public List<Nodo> aStar(Nodo origen, Nodo destino, SistemaPLG sistemaPLG, double velocidadCamion) {
+    public List<Nodo> aStar(Nodo origen, Nodo destino, SistemaPLG sistemaPLG, double velocidadCamion, LocalDateTime fechaSalida) {
         Map<Nodo, Double> gScore = new HashMap<>();
         Map<Nodo, Double> fScore = new HashMap<>();
         Map<Nodo, Nodo> cameFrom = new HashMap<>();
@@ -40,7 +42,7 @@ public class Ruta {
 
         while (!abiertos.isEmpty()) {
             Nodo actual = abiertos.poll();
-            if (actual.equals(destino)) {
+            if (actual.sonIguales(destino)) {
                 this.distanciaTotal = gScore.get(destino);
                 nodos = reconstruirCamino(cameFrom, actual);
                 tiempoEmpleado = this.distanciaTotal / velocidadCamion;
@@ -49,11 +51,12 @@ public class Ruta {
 
             for (Nodo vecino : obtenerVecinos(actual, sistemaPLG.getDistanciaManzana(),
                     sistemaPLG.getMaxXmapa(), sistemaPLG.getMaxYmapa())) {
-                double tentativeG = gScore.get(actual) + 1;
+                double tentativeG = gScore.get(actual) + sistemaPLG.getDistanciaManzana();
                 double tiempoLlegada = tentativeG / velocidadCamion;
-                // Ahora pasamos el tiempo estimado de llegada
-                if (estaBloqueado(vecino, sistemaPLG, (long)tiempoLlegada)) continue;
+                //if (estaTramoBloqueado(actual, vecino, sistemaPLG, tiempoLlegada)) continue;
 
+                if (estaBloqueado(vecino, fechaSalida, sistemaPLG, tiempoLlegada)) continue;
+                vecino.setLlegada(sistemaPLG.getFechaHoraInicio().plusSeconds((long)tiempoLlegada*60));
                 if (tentativeG < gScore.getOrDefault(vecino, Double.MAX_VALUE)) {
                     cameFrom.put(vecino, actual);
                     gScore.put(vecino, tentativeG);
@@ -86,23 +89,24 @@ public class Ruta {
     }
 
     // Simulación de bloqueo entre nodos (puedes cambiar según tus datos)
-    private boolean estaBloqueado(Nodo a, SistemaPLG sistemaPLG, long tiempoLlegada) {
+    private boolean estaBloqueado(Nodo a, LocalDateTime fechaHoraSalida, SistemaPLG sistemaPLG, double tiempoLlegada) {
+        LocalDateTime llegada = fechaHoraSalida.plusSeconds((long)(tiempoLlegada * 60));
         for (Bloqueo bloqueo : sistemaPLG.getBloqueos()) {
-
-
-            if (bloqueo.getFechaHoraInicio().isBefore(LocalDateTime.now().plusMinutes(tiempoLlegada)) &&
-                    bloqueo.getFechaHoraFin().isAfter(LocalDateTime.now().plusMinutes(tiempoLlegada))) {
-
-                //System.out.println("Bloqueo está activo ahora.");
+            //System.out.println("Para llegar a "+a+" en tiempo d "+tiempoLlegada);
+            if (bloqueo.getFechaHoraInicio().isBefore(llegada) &&
+                    bloqueo.getFechaHoraFin().isAfter(llegada)) {
 
                 if (bloqueo.getRutasBloqueadas().size() >= 2) {
                     Nodo nodo1 = bloqueo.getRutasBloqueadas().get(0);
 
                     for (int i = 1; i < bloqueo.getRutasBloqueadas().size(); i += 1) {
                         Nodo nodo2 = bloqueo.getRutasBloqueadas().get(i);
-                        //System.out.println("Procesando: " + nodo1 + " y " + nodo2);
 
-                        if (a.estaEntre(nodo1, nodo2)) return true;
+                        if (a.estaEntre(nodo1, nodo2)){
+
+                            //System.out.println("Esta bloqueado entre: " + nodo1 + " y " + nodo2 + " a las " + llegada);
+                            return true;
+                        }
                         nodo1 = nodo2;
                     }
                 }
@@ -124,36 +128,60 @@ public class Ruta {
         return camino;
     }
 
+    private boolean estaTramoBloqueado(Nodo origen, Nodo destino, SistemaPLG sistemaPLG, double tiempoLlegada) {
+        LocalDateTime llegada = sistemaPLG.getFechaHoraInicio().plusSeconds((long)(tiempoLlegada * 60));
 
-        public static void main(String[] args) {
+        for (Bloqueo bloqueo : sistemaPLG.getBloqueos()) {
+            if (bloqueo.getFechaHoraInicio().isBefore(llegada) &&
+                    bloqueo.getFechaHoraFin().isAfter(llegada)) {
+                List<Nodo> bloqueados = bloqueo.getRutasBloqueadas();
+                for (int i = 0; i < bloqueados.size() - 1; i++) {
+                    Nodo a = bloqueados.get(i);
+                    Nodo b = bloqueados.get(i + 1);
+
+                    if ((origen.estaEntre(a, b) && destino.estaEntre(a, b)) ||
+                            (origen.equals(a) && destino.equals(b)) ||
+                            (origen.equals(b) && destino.equals(a))) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+
+
+    public static void main(String[] args) {
             // Crear nodos de origen y destino
-            Nodo origen = new Nodo(2, 2);
-            Nodo destino = new Nodo(2, 2);
+            Nodo origen = new Nodo(0, 0);
+            Nodo destino = new Nodo(19, 19);
 
             // Crear sistema con dimensiones y distancia entre manzanas
             SistemaPLG sistemaPLG = new SistemaPLG();
+            sistemaPLG.setFechaHoraInicio(LocalDateTime.now());
             sistemaPLG.setDistanciaManzana(1);
-            sistemaPLG.setMaxXmapa(5);
-            sistemaPLG.setMaxYmapa(5);
+            sistemaPLG.setMaxXmapa(20);
+            sistemaPLG.setMaxYmapa(20);
 
             // Crear un bloqueo en el camino entre (1,0) y (1,1)
-            Nodo bloqueado1 = new Nodo(1, 0);
-            Nodo bloqueado2 = new Nodo(1, 1);
-            Nodo bloqueado3 = new Nodo(1, 3);
+            Nodo bloqueado1 = new Nodo(2, 0);
+            Nodo bloqueado2 = new Nodo(2, 1);
+            Nodo bloqueado3 = new Nodo(1, 1);
 
             Bloqueo bloqueo = new Bloqueo();
             bloqueo.setFechaHoraInicio(LocalDateTime.now().minusMinutes(10));
-            bloqueo.setFechaHoraFin(LocalDateTime.now().plusMinutes(10));
+            bloqueo.setFechaHoraFin(LocalDateTime.now().plusMinutes(2));
             bloqueo.setRutasBloqueadas(Arrays.asList(bloqueado1, bloqueado2, bloqueado3));
 
-            //sistemaPLG.setBloqueos(Arrays.asList(bloqueo));
-            sistemaPLG.setBloqueos(new ArrayList<>());
+            sistemaPLG.setBloqueos(Arrays.asList(bloqueo));
+            //sistemaPLG.setBloqueos(new ArrayList<>());
 
             // Ejecutar A*
             Ruta ruta = new Ruta();
             //System.out.println("Calculando ruta evitando nodos bloqueados...");
 
-            var resultado = ruta.aStar(origen, destino, sistemaPLG, 2);// con 0.05 u/min, el bloqueo ya no esta activo
+            var resultado = ruta.aStar(origen, destino, sistemaPLG, 1, sistemaPLG.getFechaHoraInicio());// con 0.05 u/min, el bloqueo ya no esta activo
 
             if (resultado != null) {
                 System.out.println("Ruta encontrada:" + ruta.getDistanciaTotal() + " tiempo empleado: " + ruta.getTiempoEmpleado());

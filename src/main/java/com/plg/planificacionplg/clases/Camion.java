@@ -300,7 +300,7 @@ public class Camion {
         if (start.getUbicacion().sonIguales(end.getUbicacion())) {
             return -1;
         }
-        end.getRuta().aStar(start.getUbicacion(), end.getUbicacion(), sistemaPLG, tipo.getVelocidadPromedio());
+        end.getRuta().aStar(start.getUbicacion(), end.getUbicacion(), sistemaPLG, tipo.getVelocidadPromedio(), start.getFechaHoraSalida());
         //decidir si va a Cistenna intermedia, a trasvase, directamene a entregar el pedido
         if(end.getRuta().getNodos()==null)return -1;
         double distMax = calcularDistanciaMaxima();
@@ -332,7 +332,7 @@ public class Camion {
                 Reabastecimiento mejorReabastecimiento = new Reabastecimiento();
                 mejorReabastecimiento.setCisterna(sistemaPLG.getCisternas().get(idCisterna));
                 mejorReabastecimiento.setUbicacion(sistemaPLG.getCisternas().get(idCisterna).getUbicacion());
-                mejorReabastecimiento.getRuta().aStar(start.getUbicacion(), mejorReabastecimiento.getUbicacion(), sistemaPLG, tipo.getVelocidadPromedio());
+                mejorReabastecimiento.getRuta().aStar(start.getUbicacion(), mejorReabastecimiento.getUbicacion(), sistemaPLG, tipo.getVelocidadPromedio(), start.getFechaHoraSalida());
                 if(mejorReabastecimiento.getRuta().getNodos()!=null){
                     double combustibleEmpleadoRuta = mejorReabastecimiento.getRuta().getDistanciaTotal() * getPesoTotal() / 180;
                     mejorReabastecimiento.getRuta().setConsumoCombustible(combustibleEmpleadoRuta);
@@ -377,7 +377,7 @@ public class Camion {
                                                            Destino end, SistemaPLG sistemaPLG,
                                                             Camion camion){
         if(start.getUbicacion().sonIguales(end.getUbicacion())){return -1;}
-        end.getRuta().aStar(start.getUbicacion(), end.getUbicacion(), sistemaPLG, camion.tipo.getVelocidadPromedio());
+        end.getRuta().aStar(start.getUbicacion(), end.getUbicacion(), sistemaPLG, camion.tipo.getVelocidadPromedio(), start.getFechaHoraSalida());
         if(end.getRuta().getNodos()==null)return -1;
 
         //decidir si va a Cistenna intermedia, a trasvase, directamene a entregar el pedido
@@ -409,7 +409,7 @@ public class Camion {
                 Reabastecimiento mejorReabastecimiento = new Reabastecimiento();
                 mejorReabastecimiento.setCisterna(sistemaPLG.getCisternas().get(idCisterna));
                 mejorReabastecimiento.setUbicacion(sistemaPLG.getCisternas().get(idCisterna).getUbicacion());
-                mejorReabastecimiento.getRuta().aStar(start.getUbicacion(), mejorReabastecimiento.getUbicacion(), sistemaPLG, tipo.getVelocidadPromedio());
+                mejorReabastecimiento.getRuta().aStar(start.getUbicacion(), mejorReabastecimiento.getUbicacion(), sistemaPLG, tipo.getVelocidadPromedio(), start.getFechaHoraSalida());
                 if(mejorReabastecimiento.getRuta().getNodos()!=null){
                     double combustibleEmpleadoRuta = camion.getPesoTotal()*mejorReabastecimiento.getRuta().getDistanciaTotal()/180;
                     mejorReabastecimiento.getRuta().setConsumoCombustible(combustibleEmpleadoRuta);

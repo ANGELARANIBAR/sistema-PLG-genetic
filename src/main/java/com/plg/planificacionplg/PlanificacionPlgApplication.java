@@ -147,8 +147,8 @@ public class PlanificacionPlgApplication {
         bloqueo.setFechaHoraFin(LocalDateTime.now().plusMinutes(100));
         bloqueo.setRutasBloqueadas(Arrays.asList(bloqueado1, bloqueado2, bloqueado3));
 
-        //sistemaPLG.setBloqueos(Arrays.asList(bloqueo));
-        sistemaPLG.setBloqueos(new ArrayList<>());
+        sistemaPLG.setBloqueos(Arrays.asList(bloqueo));
+        //sistemaPLG.setBloqueos(new ArrayList<>());
         sistemaPLG.setCamionesAveriados(new ArrayList<>());
 
 

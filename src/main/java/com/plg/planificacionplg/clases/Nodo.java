@@ -2,13 +2,16 @@ package com.plg.planificacionplg.clases;
 
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Data
 public class Nodo {
     private int id;
     private double posX, posY;
+    private LocalDateTime llegada;
     public Nodo(double posX, double posY){
         this.posX = posX;
         this.posY = posY;
@@ -37,6 +40,17 @@ public class Nodo {
         return false;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null || getClass() != obj.getClass()) return false;
+        if (this.sonIguales((Nodo)obj)) return true;
+        else return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(posX, posY); // usa los mismos atributos que en equals
+    }
 
         public static void main(String[] args) {
             // Crear nodos de prueba
