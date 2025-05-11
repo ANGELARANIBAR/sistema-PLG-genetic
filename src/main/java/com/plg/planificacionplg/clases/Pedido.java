@@ -10,6 +10,7 @@ import java.util.List;
 @Data
 public class Pedido{
     private int id;
+    private int idCliente;
     private String numeroPedido;
     private double volumenGLP;
     private double volumenGLPEntregado;

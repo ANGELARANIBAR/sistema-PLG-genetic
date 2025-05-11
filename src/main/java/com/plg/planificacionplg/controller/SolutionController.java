@@ -222,7 +222,8 @@ public class SolutionController {
         if (pedido == null) {
             return;
         }
-        pedido.setEstado(EstadoPedido.valueOf(nuevoEstado)); // 🔹 Actualiza el estado del pedido
+        System.out.println(nuevoEstado);
+        //pedido.setEstado(EstadoPedido.valueOf(nuevoEstado)); // 🔹 Actualiza el estado del pedido
     }
 
     @GetMapping("/start-time")

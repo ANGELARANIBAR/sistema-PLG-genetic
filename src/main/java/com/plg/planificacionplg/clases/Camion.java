@@ -14,6 +14,7 @@ import java.util.Map;
 @Data
 public class Camion {
     private int id;
+    private int idxPorTipo;
     private String codigo, placa;
     private TipoCamion tipo;
     private double combustibleActual, cargaGLPActual, pesoTotal, combustibleEmpleado, distanciaTotal;
@@ -80,7 +81,8 @@ public class Camion {
 
 
     public Nodo calcularUbicacion(LocalDateTime fechahora) {
-        if(destinos.isEmpty())return null;
+
+        if(destinos.isEmpty())return new Nodo(0, 0);
         Destino anterior = destinos.get(0);
         if(fechahora.isBefore(anterior.getFechaHoraSalida()))return anterior.getUbicacion();
         if(anterior.getFechaHoraSalida().equals(fechahora)) {return anterior.getUbicacion();}
@@ -135,9 +137,9 @@ public class Camion {
 
             int resultadoNodosIntermedios = insertarNodosIntermediosCargaGLP(destinoInicial, destinoFinal, sistemaPLG);
             if (resultadoNodosIntermedios == 1) {//caso en que no necesitas GLP, y puede que necesitss gasolina
-                if(insertarNodosIntermediosCargaCombustible(destinoInicial, destinoFinal, sistemaPLG)==-1)return -1;
+                if(insertarNodosIntermediosCargaCombustible(destinoInicial, destinoFinal, sistemaPLG)==-1)return -4;
             } else if (resultadoNodosIntermedios == -1) {
-                return -1; // no se puede llegar a pedidoDestino solucion No Valida
+                return -3; // no se puede llegar a pedidoDestino solucion No Valida
             }
 
             if(destinoFinal instanceof EntregaPedido &&
@@ -145,12 +147,12 @@ public class Camion {
                             .isAfter(destinoFinal.getPedido().getFechaHoraMaxEntrega())){
                 return -1;
             }
-            if(destinoFinal.getRuta().getNodos()==null)return -1;
+            if(destinoFinal.getRuta().getNodos()==null)return -2;
 
             destinoInicial = destinoFinal;
         }
 
-        return 1; // se puede completar la ruta
+        return 0; // se puede completar la ruta
     }
 
     //verificando si existe una cisterna que te de el GLP qeu quieres
@@ -445,4 +447,5 @@ public class Camion {
         }
         return 1;
     }
+
 }

@@ -7,6 +7,7 @@ import java.util.*;
 
 @Data
 public class Individuo {
+    private static int nIndividuo = 0;
     private Map<Integer, List<Integer>> asignacion; // camión -> lista ordenada de pedidos
     private Map<Integer, List<Integer>> pedidosXcargasGLP; // camión -> buscar carga de GLP deacuerdo a atencion de pedidos
 
@@ -22,44 +23,57 @@ public class Individuo {
         for (int i = 1; i < numCamiones; i++) {
             asignacion.put(i, new ArrayList<>());
         }
-
         // Asignar pedidos aleatoriamente a camiones (no necesariamente todos los camiones activos)
         List<Integer> pedidos = new ArrayList<>();
 
         for (int i = 1; i < numPedidos; i++) pedidos.add(i);
         Collections.shuffle(pedidos);
-
-        Random rand = new Random();
-        for (int pedido : pedidos) {
-            int camion=1+rand.nextInt(numCamiones-1);
-            if(sistema.getCamionCausanteReplan()!=null){
-                //Averia averiaActual = sistema.getCamionCausanteReplan().getAverias().getLast();
-                while(sistema.getCamionCausanteReplan().getId()==(camion-1))camion = 1+rand.nextInt(numCamiones-1);
-            }
-
-            asignacion.get(camion).add(pedido);
-        }
-        if(sistema.getCamionCausanteReplan()!=null){
-            for(Pedido ped : sistema.getCamionCausanteReplan().getPedidosAsignados()){
-                if(ped.getEstado()==EstadoPedido.PENDIENTE){
-                    asignacion.get(sistema.getCamionCausanteReplan().getId()).add(ped.getId());
+        if(nIndividuo<3)
+            asignarEquitativamente(numCamiones, pedidos, sistema);
+        else{
+            Random rand = new Random();
+            for (int pedido : pedidos) {
+                int camion=1+rand.nextInt(numCamiones-1);
+                while((sistema.getCamionCausanteReplan()!=null && sistema.getCamionCausanteReplan().getId()==(camion-1)) ||
+                        sistema.getFlota().get(camion-1).getTipo().getCargaGLPMax()<sistema.getPedidos().get(pedido-1).getVolumenGLP()){
+                    //Averia averiaActual = sistema.getCamionCausanteReplan().getAverias().getLast();
+                    camion = 1+rand.nextInt(numCamiones-1);
                 }
+                asignacion.get(camion).add(pedido);
+            }
+        }
+
+        if(sistema.getCamionCausanteReplan()!=null){
+            if(sistema.getCamionCausanteReplan().getAverias()
+                    .getLast().getId()==1){
+                for(Pedido ped : sistema.getCamionCausanteReplan().getPedidosAsignados()){
+                    if(ped.getEstado()==EstadoPedido.PENDIENTE){
+                        asignacion.get(sistema.getCamionCausanteReplan().getId()).add(ped.getId());
+                    }
+                }
+            }
+            else{
+                //directo a inicio
             }
         }
         for (int i = 1; i < numCamiones; i++) {
-
+            int ini=0;
             List<Integer> cargasGLP = new ArrayList<>();
             Random randCargaGLP = new Random();
             int cantPedRestantes = asignacion.get(i).size(), acc = 0;
             while(cantPedRestantes > 0){
                 int cantPedObjetivos = 1+randCargaGLP.nextInt(cantPedRestantes); //minimo 1
+                if(cargasGLP.isEmpty())ini=0;
+                else ini = cargasGLP.size()-1;
+                while(!sistema.puedeCargar(i-1, asignacion, ini, cantPedObjetivos))
+                    cantPedObjetivos = 1+randCargaGLP.nextInt(cantPedRestantes); //minimo 1
                 acc += cantPedObjetivos;
                 cargasGLP.add(acc);
                 cantPedRestantes -= cantPedObjetivos;
             }
             pedidosXcargasGLP.put(i, cargasGLP);
         }
-
+        nIndividuo++;
     }
 
     private void inicializarSistemaPLG(int code, SistemaPLG sistema) {
@@ -188,9 +202,10 @@ public class Individuo {
                 }
             }
 
-
-            if (camion.construirRutaHaciaPedido(sistemaPLG) == -1) {
+            int resultado = camion.construirRutaHaciaPedido(sistemaPLG);
+            if (resultado != 0) {
                 fitness = 0.0;
+                //System.out.println("Problema: " + resultado);
                 return;
             }
         }
@@ -236,4 +251,66 @@ public class Individuo {
             }
         }
     }
+
+    public void asignarEquitativamente(int numCamiones, List<Integer> pedidos, SistemaPLG sistema){
+        //System.out.println("ASIGNACION EQUITATIVA LOL++++++++++++++++++++++++++++++++++++++++++++asignarEquitativamente");
+        // Paso 1: Ordenar camiones por capacidad descendente
+        List<Camion> camionesOrdenados = new ArrayList<>(sistema.getFlota());
+        camionesOrdenados.sort((c1, c2) -> Double.compare(
+                c2.getTipo().getCargaGLPMax(), c1.getTipo().getCargaGLPMax()
+        ));
+
+        // Paso 2: Ordenar pedidos por volumen descendente
+        List<Integer> pedidosOrdenados = new ArrayList<>(pedidos); // copia del array original
+        pedidosOrdenados.sort((p1, p2) -> Double.compare(
+                sistema.getPedidos().get(p2 - 1).getVolumenGLP(),
+                sistema.getPedidos().get(p1 - 1).getVolumenGLP()
+        ));
+
+        // Map para guardar asignaciones
+        //Map<Integer, List<Integer>> asignacion = new HashMap<>();
+        Map<Integer, Double> capacidadRestante = new HashMap<>();
+
+        // Inicializar asignación y capacidad restante
+        for (int i = 0; i < camionesOrdenados.size(); i++) {
+            asignacion.put(camionesOrdenados.get(i).getId() + 1, new ArrayList<>());
+            capacidadRestante.put(camionesOrdenados.get(i).getId(), camionesOrdenados.get(i).getTipo().getCargaGLPMax());
+        }
+
+        // Paso 3: Asignación primaria - llenar con los pedidos más grandes que quepan
+        Iterator<Integer> itPedidos = pedidosOrdenados.iterator();
+        while (itPedidos.hasNext()) {
+            int pedidoId = itPedidos.next();
+            double volumen = sistema.getPedidos().get(pedidoId - 1).getVolumenGLP();
+
+            for (Camion camion : camionesOrdenados) {
+                int idCamion = camion.getId();
+                if (sistema.getCamionCausanteReplan() != null && sistema.getCamionCausanteReplan().getId() == idCamion)
+                    continue;
+
+                if (capacidadRestante.get(idCamion) >= volumen) {
+                    asignacion.get(idCamion).add(pedidoId);
+                    capacidadRestante.put(idCamion, capacidadRestante.get(idCamion) - volumen);
+                    itPedidos.remove();
+                    break;
+                }
+            }
+        }
+
+        // Paso 4: Asignación secundaria - insertar pedidos pequeños en espacios sobrantes
+        for (int pedidoId : pedidosOrdenados) {
+            double volumen = sistema.getPedidos().get(pedidoId - 1).getVolumenGLP();
+            for (Camion camion : camionesOrdenados) {
+                int idCamion = camion.getId();
+                if (capacidadRestante.get(idCamion) >= volumen) {
+                    asignacion.get(idCamion + 1).add(pedidoId);
+                    capacidadRestante.put(idCamion, capacidadRestante.get(idCamion) - volumen);
+                    break;
+                }
+            }
+        }
+
+
+    }
+
 }

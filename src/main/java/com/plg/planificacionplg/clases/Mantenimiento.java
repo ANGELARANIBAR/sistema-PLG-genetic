@@ -7,6 +7,10 @@ import java.time.LocalDateTime;
 public class Mantenimiento {
     private int id;
     private LocalDateTime fechaHoraInicio, fechaHoraFin;
-    private String tipo, descripcion;
+    private String descripcion;
+    private TipoMantenimiento tipo;
+    public enum TipoMantenimiento{
+        PREVENTIVO, POST_SALIDA
+    }
 }
 

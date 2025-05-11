@@ -5,6 +5,6 @@ import lombok.Data;
 @Data
 public class TipoCamion {
     private int idTipoCamion;
-    private String tipo;
+    private String codigo;
     private double tara, pesoGLPMax, capCombustibleMax, velocidadPromedio, cargaGLPMax;
 }

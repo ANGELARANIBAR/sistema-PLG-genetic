@@ -2,17 +2,24 @@ package com.plg.planificacionplg.clases;
 
 import lombok.Data;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class SistemaPLG {
     private List<Cisterna> cisternas;
     private List<Camion> flota;
     private List<Bloqueo> bloqueos;
+    private double tiempoEntregaMin;
     private double maxXmapa;
     private double maxYmapa;
     private List<Pedido> pedidos;
@@ -192,4 +199,87 @@ public class SistemaPLG {
         return camion;
     }
 
+
+    public List<Camion> cargarMantenimientos(String rutaArchivo, LocalTime horaIni, LocalTime horaFin) {
+        List<Camion> flota = new ArrayList<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(rutaArchivo))) {
+            String linea;
+            while ((linea = br.readLine()) != null) {
+                String[] partes = linea.split(":");
+                LocalDate fecha = LocalDate.parse(partes[0], java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+                String codigoCamion = partes[1];
+                Mantenimiento m = new Mantenimiento();
+                m.setFechaHoraInicio(LocalDateTime.of(fecha, horaIni));
+                m.setFechaHoraFin(LocalDateTime.of(fecha, horaFin));
+                m.setTipo(Mantenimiento.TipoMantenimiento.PREVENTIVO);
+                int idxCamion = buscarIdCamionPorCodigo(codigoCamion);
+                if(idxCamion != -1){
+                    flota.get(idxCamion).getMantenimientos().add(m);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error al leer el archivo: " + e.getMessage());
+        }
+
+        return flota;
+    }
+    private int buscarIdCamionPorCodigo(String codigoCamion) {
+        for (int i = 0; i < flota.size(); i++) {
+            if (flota.get(i).getCodigo().equals(codigoCamion)) {
+                return i; // 🔹 Retorna índice correcto
+            }
+        }
+        return -1;
+    }
+
+
+    public void cargarPedidos(String rutaArchivo) {
+
+        try (BufferedReader br = new BufferedReader(new FileReader(rutaArchivo))) {
+            if(pedidos==null)pedidos=new ArrayList<>();
+            String linea;
+            while ((linea = br.readLine()) != null) {
+                String[] partes = linea.split(":");
+                String[] tiempoPartes = partes[0].replace("d", " ").replace("h", " ").replace("m", " ").split(" ");
+
+                double tiempoSolicitud = Double.parseDouble(tiempoPartes[0]) * 1440 + // Días a minutos
+                        Double.parseDouble(tiempoPartes[1]) * 60 +  // Horas a minutos
+                        Double.parseDouble(tiempoPartes[2]);        // Minutos
+
+                String[] datos = partes[1].split(",");
+                double x = Double.parseDouble(datos[0]);
+                double y = Double.parseDouble(datos[1]);
+                int idCliente = Integer.parseInt(datos[2].replace("c-", ""));
+                double volumen = Double.parseDouble(datos[3].replace("m3", ""));
+                double tiempoMaxEntrega = Double.parseDouble(datos[4].replace("h", "")) * 60; // Horas a minutos
+                Pedido pedidoNuevo = new Pedido();
+                pedidoNuevo.setId(pedidos.size()+1);
+                pedidoNuevo.setIdCliente(idCliente);
+                pedidoNuevo.setNumeroPedido("PED-00"+pedidos.size());
+                pedidoNuevo.setVolumenGLP(volumen);
+                pedidoNuevo.setUbicacion(new Nodo(x, y)); // Suponiendo que Nodo tiene un constructor
+                pedidoNuevo.setFechaHoraRegistro(fechaHoraInicio.plusMinutes((long)(tiempoSolicitud)));
+                pedidoNuevo.setTiempoMaxEntrega(tiempoMaxEntrega);
+                pedidoNuevo.setFechaHoraMaxEntrega(fechaHoraInicio.plusMinutes((long)(pedidoNuevo.getTiempoMaxEntrega()+tiempoSolicitud)));
+                pedidoNuevo.setEstado(EstadoPedido.PENDIENTE); // Suponiendo que EstadoPedido es un enum
+                pedidoNuevo.setCompletado(false);
+                pedidoNuevo.setCamiones(new ArrayList<>());
+                pedidoNuevo.setConsumoCombustibleTotal(0);
+                pedidos.add(pedidoNuevo);
+            }
+        } catch (IOException e) {
+            System.out.println("Error al leer el archivo: " + e.getMessage());
+        }
+
+    }
+    public Boolean puedeCargar(int idxcamion, Map<Integer, List<Integer>> asignacion, int ini, int fin){
+        double cargaPorPedidos = 0.0;
+        for(int i=ini; i<fin; i++){
+            int idped = asignacion.get(idxcamion+1).get(i);
+            cargaPorPedidos += pedidos.get(idped-1).getVolumenGLP();
+        }
+        return cargaPorPedidos < flota.get(idxcamion).getTipo().getCargaGLPMax() ||
+                Math.abs(cargaPorPedidos - flota.get(idxcamion).getTipo().getCargaGLPMax()) < 0.001;
+    }
 }

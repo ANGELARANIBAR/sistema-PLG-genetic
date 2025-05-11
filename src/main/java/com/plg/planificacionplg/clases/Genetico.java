@@ -1,5 +1,7 @@
 package com.plg.planificacionplg.clases;
 
+import lombok.Getter;
+
 import java.util.*;
 
 public class Genetico {
@@ -8,6 +10,8 @@ public class Genetico {
     private final double probCruce;
     private final double probMutacion;
     private final double porcentajeElite;
+    @Getter
+    private List<Double> resultados;
 
     public Genetico(int tamPoblacion, int generaciones, double probCruce, double probMutacion, double porcentajeElite) {
         this.tamPoblacion = tamPoblacion;
@@ -15,6 +19,7 @@ public class Genetico {
         this.probCruce = probCruce;
         this.probMutacion = probMutacion;
         this.porcentajeElite = porcentajeElite;
+        resultados = new ArrayList<>();
     }
 
     public Individuo ejecutar(int code, SistemaPLG sistema) {
@@ -28,6 +33,9 @@ public class Genetico {
         for (int i = 0; i < tamPoblacion; i++) {
             Individuo ind = new Individuo(numPedidos, numCamiones, sistema, code);
             ind.evaluar(code, sistema);
+            /*System.out.println(ind.getAsignacion());
+            System.out.println(ind.getPedidosXcargasGLP());
+            System.out.println("***************************************************************************************");*/
             poblacion.add(ind);
         }
 
@@ -70,6 +78,7 @@ public class Genetico {
             }
 
             System.out.println("Gen " + gen + " - Fitness: " + mejorSolucion.getFitness());
+            resultados.add(mejorSolucion.getFitness());
         }
 
         return mejorSolucion;
