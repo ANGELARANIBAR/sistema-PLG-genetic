@@ -34,7 +34,7 @@ public class Individuo {
             Random rand = new Random();
             for (int pedido : pedidos) {
                 int camion=1+rand.nextInt(numCamiones-1);
-                while((sistema.getCamionCausanteReplan()!=null && sistema.getCamionCausanteReplan().getId()==(camion-1)) ||
+                while((sistema.getCamionCausanteReplan()!=null && sistema.getCamionCausanteReplan().getId()==(camion)) ||
                         sistema.getFlota().get(camion-1).getTipo().getCargaGLPMax()<sistema.getPedidos().get(pedido-1).getVolumenGLP()){
                     //Averia averiaActual = sistema.getCamionCausanteReplan().getAverias().getLast();
                     camion = 1+rand.nextInt(numCamiones-1);
@@ -47,7 +47,7 @@ public class Individuo {
             if(sistema.getCamionCausanteReplan().getAverias()
                     .getLast().getId()==1){
                 for(Pedido ped : sistema.getCamionCausanteReplan().getPedidosAsignados()){
-                    if(ped.getEstado()==EstadoPedido.PENDIENTE){
+                    if(ped.getEstado()==EstadoPedido.ASIGNADO){
                         asignacion.get(sistema.getCamionCausanteReplan().getId()).add(ped.getId());
                     }
                 }
@@ -201,6 +201,9 @@ public class Individuo {
                 }
             }
             entregasTardias = 0;
+
+            if(considerarMantenimiento(camion)==-1) return;
+
             int resultado = camion.construirRutaHaciaPedido(sistemaPLG);
             if (resultado != 0) {
                 fitness = 0.0;
@@ -313,6 +316,33 @@ public class Individuo {
         }
 
 
+    }
+
+    private int considerarMantenimiento(Camion camion){
+        // mantenimiento antes de planificacion
+        if(camion.getMantenimientos()!=null){
+            LocalDateTime fechasalida = camion.getDestinos().get(0).getFechaHoraSalida();
+            // implementar Map instead of List
+            for(Mantenimiento m : camion.getMantenimientos()){
+                if(m.getFechaHoraInicio().isBefore(fechasalida) &&
+                        m.getFechaHoraFin().isAfter(fechasalida)){
+                    List<Pedido>pedidosCam = camion.getPedidosAsignados();
+
+                    // descartar si la hora de entrega esta antes de hora entrega sale
+                    if (!pedidosCam.isEmpty()) {
+                        Pedido pedidoMinimo = pedidosCam.stream()
+                                .min(Comparator.comparing(Pedido::getFechaHoraMaxEntrega))
+                                .get();
+                        if(pedidoMinimo.getFechaHoraMaxEntrega().isBefore(m.getFechaHoraFin())){
+                            //no se cumplio con un pedido
+                            fitness = 0.0;
+                            return -1;
+                        }
+                    }
+                }
+            }
+        }
+        return 1;
     }
 
 }

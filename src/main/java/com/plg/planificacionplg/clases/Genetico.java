@@ -33,9 +33,9 @@ public class Genetico {
         for (int i = 0; i < tamPoblacion; i++) {
             Individuo ind = new Individuo(numPedidos, numCamiones, sistema, code);
             ind.evaluar(code, sistema);
-            System.out.println(ind.getAsignacion());
+            /*System.out.println(ind.getAsignacion());
             System.out.println(ind.getPedidosXcargasGLP());
-            System.out.println("***************************************************************************************");
+            System.out.println("***************************************************************************************");*/
             poblacion.add(ind);
         }
 

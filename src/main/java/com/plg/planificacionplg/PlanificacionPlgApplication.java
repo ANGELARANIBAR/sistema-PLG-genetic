@@ -24,7 +24,7 @@ public class PlanificacionPlgApplication {
     }
 
     public static void main(String[] args) {
-        //SpringApplication.run(PlanificacionPlgApplication.class, args);
+        SpringApplication.run(PlanificacionPlgApplication.class, args);
 
         List<Cisterna> cisternas = new ArrayList<>();
         Cisterna principal = new Cisterna();
@@ -94,7 +94,7 @@ public class PlanificacionPlgApplication {
         tipoCamion4.setVelocidadPromedio(velocidadPromedio);//unidad distancia / minuto
         tipoCamion4.setPesoGLPMax(2.5);
         tipoCamion4.setCargaGLPMax(5);
-        tipoCamion2.setCodigo("TD");
+        tipoCamion4.setCodigo("TD");
         int cantCamionesInicial=0;
         for(int i=1; i<3; i++){
             Camion camion = new Camion();   // Cisterna media
