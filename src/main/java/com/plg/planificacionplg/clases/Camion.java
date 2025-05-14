@@ -50,7 +50,7 @@ public class Camion {
         this.ubicacionActual = otro.ubicacionActual;
         this.idxDestinoEnCurso = otro.idxDestinoEnCurso;
         this.mantenimientos = otro.mantenimientos;
-        this.averias = new ArrayList<>();
+        this.averias = otro.averias;
         this.cargasGLP = otro.cargasGLP;
 
     }
@@ -84,6 +84,7 @@ public class Camion {
 
         if(destinos.isEmpty())return new Nodo(0, 0);
         Destino anterior = destinos.get(0);
+        if(anterior.getFechaHoraSalida()==null)return new Nodo(0, 0);
         if(fechahora.isBefore(anterior.getFechaHoraSalida()))return anterior.getUbicacion();
         if(anterior.getFechaHoraSalida().equals(fechahora)) {return anterior.getUbicacion();}
         ubicacionActual = anterior.getUbicacion();
@@ -164,13 +165,25 @@ public class Camion {
             double mejorDistancia = Double.MAX_VALUE;
             double faltanteGLP = end.getGLPOperacion() - cargaGLPActual;
             Destino mejorEnd=null, elegido=null;
-            indicePedidoActual++;
             faltanteGLP = -cargaGLPActual;
-            if(indicePedidoActual==cargasGLP.size())
-                System.out.println("");
-            for(int j=cargasGLP.get(indicePedidoActual-1); j<cargasGLP.get(indicePedidoActual); j++){
-                faltanteGLP += getPedidosAsignados().get(j).getVolumenGLP();
+            indicePedidoActual++;
+            if(!(start instanceof Reabastecimiento) && indicePedidoActual == 1){
+                for(int j=0; j<cargasGLP.get(0); j++){
+                    faltanteGLP += getPedidosAsignados().get(j).getVolumenGLP();
+                }
+                indicePedidoActual = 0;
             }
+            else{
+                if(indicePedidoActual>0){
+                    if(indicePedidoActual == cargasGLP.size()){
+                        System.out.println();
+                    }
+                    for(int j=cargasGLP.get(indicePedidoActual-1); j<cargasGLP.get(indicePedidoActual); j++){
+                        faltanteGLP += getPedidosAsignados().get(j).getVolumenGLP();
+                    }
+                }
+            }
+
             if(tipo.getCargaGLPMax()<faltanteGLP){return -1;}
             double combustibleEmpleadoMejorDist = 0.0;
             List<List<Destino>> canditatos = new ArrayList<>();
@@ -215,6 +228,7 @@ public class Camion {
                 Trasvase trasvase = new Trasvase();
                 int resultadoNodosIntermedios, idxCamPrueba = j+mejorCisterna+1;
                 Camion camionAveriado = sistemaPLG.getCamionesAveriados().get(j);
+                camionAveriado = sistemaPLG.getCamionCausanteReplan();
                 if(faltanteGLP>camionAveriado.getCargaGLPActual()){continue;}
                 trasvase.setCamionTrasvase(camionAveriado);
                 trasvase.setUbicacion(camionAveriado.getUbicacionActual());
@@ -390,7 +404,7 @@ public class Camion {
                 cisternasVisitadas.put(((Reabastecimiento) start).getCisterna().getId(), 0);
             }
             int indexEnd = 0;
-            while ( !destinos.isEmpty() && destinos.get(indexEnd)!=null && destinos.get(indexEnd) instanceof Reabastecimiento) {
+            while ( indexEnd < destinos.size() && !destinos.isEmpty() && destinos.get(indexEnd)!=null && destinos.get(indexEnd) instanceof Reabastecimiento) {
                 cisternasVisitadas.put(((Reabastecimiento) destinos.get(indexEnd++)).getCisterna().getId(), 0);
             }
             for(int i = 0; i < sistemaPLG.getCisternas().size(); i++) {

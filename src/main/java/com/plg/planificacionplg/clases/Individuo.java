@@ -26,7 +26,9 @@ public class Individuo {
         // Asignar pedidos aleatoriamente a camiones (no necesariamente todos los camiones activos)
         List<Integer> pedidos = new ArrayList<>();
 
-        for (int i = 1; i < numPedidos; i++) pedidos.add(i);
+        for (int i = 1; i < numPedidos; i++){
+            if(sistema.getPedidos().get(i-1).getEstado()==EstadoPedido.PENDIENTE) pedidos.add(i);
+        }
         Collections.shuffle(pedidos);
         if(nIndividuo<3)
             asignarEquitativamente(numCamiones, pedidos, sistema);
@@ -43,7 +45,7 @@ public class Individuo {
             }
         }
 
-        if(sistema.getCamionCausanteReplan()!=null){
+        if(sistema.getCamionCausanteReplan()!=null && numCamiones>1){
             if(sistema.getCamionCausanteReplan().getAverias()
                     .getLast().getId()==1){
                 for(Pedido ped : sistema.getCamionCausanteReplan().getPedidosAsignados()){
@@ -87,27 +89,20 @@ public class Individuo {
         for (Camion camion : sistema.getFlota()) {
             Camion c;
             c = new Camion(camion);
-            if(code==1){
-                c.setPedidosAsignados(new ArrayList<>());
-                c.setDestinos(new ArrayList<>());
-                c.setCombustibleEmpleado(0);
-                c.setDistanciaTotal(0);
-                c.setCargaGLPActual(0);
-                c.setEstado(EstadoCamion.DISPONIBLE);
-                c.setCombustibleActual(c.getTipo().getCapCombustibleMax());
-            }else if (code==2){
-                if(sistema.getCamionCausanteReplan()!=null) {
-                    if (sistema.getCamionCausanteReplan().getAverias().getLast().getTipo().getId() == 1) {
-                        c.setPedidosAsignados(sistema.getCamionCausanteReplan().getPedidosAsignados());
-                    }
-                }
-            }
+
+            c.setPedidosAsignados(new ArrayList<>());
+            c.setDestinos(new ArrayList<>());
+            c.setCombustibleEmpleado(0);
+            c.setDistanciaTotal(0);
+            c.setCargaGLPActual(0);
+            c.setEstado(EstadoCamion.DISPONIBLE);
+            c.setCombustibleActual(c.getTipo().getCapCombustibleMax());
+
             flota.add(c);
         }
         for(Pedido pedido: sistema.getPedidos()){
             Pedido p = new Pedido(pedido);
             pedidos.add(p);
-            p.setEstado(EstadoPedido.PENDIENTE);
             p.setFechaHoraEntrega(null);
             p.setCamiones(new ArrayList<>());
             p.setCompletado(false);
@@ -145,7 +140,6 @@ public class Individuo {
                 EntregaPedido entrega = new EntregaPedido();
                 entrega.setId(pedidoIdx);
                 entrega.setVolumenGLPEntregado(0.0);
-
                 entrega.setPedido(pedidos.get(pedidoIdx - 1));
                 entrega.setUbicacion(pedidos.get(pedidoIdx - 1).getUbicacion());
                 camion.getPedidosAsignados().add(pedidos.get(pedidoIdx - 1));
@@ -191,7 +185,14 @@ public class Individuo {
                     camion.getDestinos().add(0, destinos.get(0));
                     camion.setCargaGLPActual(sistema.getFlota().get(camion.getId() - 1).getCargaGLPActual());
                     camion.setCombustibleActual(sistema.getFlota().get(camion.getId() - 1).getCombustibleActual());
-                    if (camion.getCargaGLPActual() < GLPInicial) {
+                    if(destinos.get(0) instanceof Reabastecimiento){
+                        cisternas.get(0).registrarRetiroGLP(sistemaPLG.getFechaHoraInicio(),
+                                GLPInicial, camion);
+                        camion.setCargaGLPActual(GLPInicial);
+                        camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());
+
+                    }
+                    if (camion.getTipo().getCargaGLPMax() < GLPInicial) {
                         fitness = 0.0;
                         return;
                     }
@@ -207,7 +208,7 @@ public class Individuo {
             int resultado = camion.construirRutaHaciaPedido(sistemaPLG);
             if (resultado != 0) {
                 fitness = 0.0;
-                //System.out.println("Problema: " + resultado);
+                /*System.out.println("Problema: " + resultado);*/
                 return;
             }
         }

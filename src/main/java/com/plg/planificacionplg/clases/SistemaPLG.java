@@ -43,7 +43,11 @@ public class SistemaPLG {
             this.flota.add(new Camion(camion));
         }
 
-        this.camionesAveriados = otro.camionesAveriados;
+        if(otro.camionesAveriados!=null){
+            this.camionesAveriados = new ArrayList<>();
+            for(Camion camion : otro.camionesAveriados)
+                this.camionesAveriados.add(new Camion(camion));
+        }
         this.bloqueos = otro.bloqueos;
         this.maxXmapa = otro.maxXmapa;
         this.maxYmapa = otro.maxYmapa;
@@ -55,7 +59,9 @@ public class SistemaPLG {
         this.fechaHoraInicio = otro.fechaHoraInicio;
         this.turnosFin = otro.turnosFin;
         this.averias = otro.averias;
-        this.camionCausanteReplan = otro.camionCausanteReplan;
+        if(otro.camionCausanteReplan != null) {
+            this.camionCausanteReplan = new Camion(otro.camionCausanteReplan);
+        }
     }
     public List<Nodo> encontrarTramo(Nodo start, Nodo end) {
         List<Nodo> lista = new ArrayList<Nodo>();
@@ -102,7 +108,9 @@ public class SistemaPLG {
         Boolean estaEnDestino = false;
         for(Camion c : flota){
             if(c.getDestinos().isEmpty())continue;
+
             Destino anterior = c.getDestinos().get(0), d;
+            if(anterior.getFechaHoraSalida()==null)return;
             if(anterior.getFechaHoraSalida().isAfter(fecha)){
                 return;
             }
@@ -275,11 +283,11 @@ public class SistemaPLG {
                 pedidoNuevo.setIdCliente(idCliente);
                 pedidoNuevo.setNumeroPedido("PED-00"+pedidos.size());
                 pedidoNuevo.setVolumenGLP(volumen);
-                pedidoNuevo.setUbicacion(new Nodo(x, y)); // Suponiendo que Nodo tiene un constructor
+                pedidoNuevo.setUbicacion(new Nodo(x, y));
                 pedidoNuevo.setFechaHoraRegistro(fechaHoraInicio.plusMinutes((long)(tiempoSolicitud)));
                 pedidoNuevo.setTiempoMaxEntrega(tiempoMaxEntrega);
                 pedidoNuevo.setFechaHoraMaxEntrega(fechaHoraInicio.plusMinutes((long)(pedidoNuevo.getTiempoMaxEntrega()+tiempoSolicitud)));
-                pedidoNuevo.setEstado(EstadoPedido.PENDIENTE); // Suponiendo que EstadoPedido es un enum
+                pedidoNuevo.setEstado(EstadoPedido.PENDIENTE);
                 pedidoNuevo.setCompletado(false);
                 pedidoNuevo.setCamiones(new ArrayList<>());
                 pedidoNuevo.setConsumoCombustibleTotal(0);
@@ -335,6 +343,8 @@ public class SistemaPLG {
         double cargaPorPedidos = 0.0;
         for(int i=ini; i<fin; i++){
             int idped = asignacion.get(idxcamion+1).get(i);
+            if(pedidos.isEmpty())
+                System.out.println("ADASD");
             cargaPorPedidos += pedidos.get(idped-1).getVolumenGLP();
         }
         return cargaPorPedidos < flota.get(idxcamion).getTipo().getCargaGLPMax() ||
