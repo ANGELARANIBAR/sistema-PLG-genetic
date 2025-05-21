@@ -154,49 +154,56 @@ public class Individuo {
 
             camion.setCargasGLP(pedidosXcargasGLP.get(camionIdx));
             double GLPInicial = 0.0;
-            camion.setIndicePedidoActual(0);
             if (pedidosXcargasGLP.get(camionIdx).isEmpty()) {
                 continue;
             }
             for (int i = 0; i < pedidosXcargasGLP.get(camionIdx).get(0); i++) {
                 GLPInicial += camion.getPedidosAsignados().get(i).getVolumenGLP();
             }
+            GLPInicial -= camion.getCargaGLPActual();
             if (camion.getTipo().getCargaGLPMax() < GLPInicial) {
                 fitness = 0.0;
                 return;
             }
-            //camion.setCargaGLPActual(camion.getDestinos().get(1).getPedido().getVolumenGLP());
+            camion.setIndicePedidoActual(0); // se pudo recargar GLP en el origen
             if (code == 1) {
                 Reabastecimiento origen = new Reabastecimiento();
                 origen.setCisterna(cisternas.get(0));
                 origen.setUbicacion(cisternas.get(0).getUbicacion());
                 origen.setFechaHoraSalida(sistema.getFechaHoraInicio()); //primera solucion a evaluar
-
-                cisternas.get(0).registrarRetiroGLP(sistemaPLG.getFechaHoraInicio(),
-                        GLPInicial, camion);
-                camion.setCargaGLPActual(GLPInicial);
-                camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());
+                if(cisternas.get(0).puedeRetirarGLP(sistemaPLG.getFechaHoraInicio(), GLPInicial)){
+                    camion.setIndicePedidoActual(1); // se pudo recargar GLP en el origen
+                    cisternas.get(0).registrarRetiroGLP(sistemaPLG.getFechaHoraInicio(),
+                            GLPInicial, camion);
+                    camion.setCargaGLPActual(GLPInicial);
+                    origen.setSaldoGLPCamion(GLPInicial);
+                    camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());
+                }
                 camion.getDestinos().add(0, origen);
-                origen.setSaldoGLPCamion(GLPInicial);
                 origen.setSaldoCombustibleCamion(camion.getCombustibleActual());
             } else if (code == 2) {
                 List<Destino> destinos = sistema.getFlota().get(camion.getId() - 1).getDestinos();
                 if (destinos != null) {
-                    camion.getDestinos().add(0, destinos.get(0));
-                    camion.setCargaGLPActual(sistema.getFlota().get(camion.getId() - 1).getCargaGLPActual());
-                    camion.setCombustibleActual(sistema.getFlota().get(camion.getId() - 1).getCombustibleActual());
-                    if(destinos.get(0) instanceof Reabastecimiento){
-                        cisternas.get(0).registrarRetiroGLP(sistemaPLG.getFechaHoraInicio(),
-                                GLPInicial, camion);
-                        camion.setCargaGLPActual(GLPInicial);
-                        camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());
-
-                    }
                     if (camion.getTipo().getCargaGLPMax() < GLPInicial) {
                         fitness = 0.0;
                         return;
                     }
+                    camion.getDestinos().add(0, destinos.get(0));
+                    camion.setCargaGLPActual(sistema.getFlota().get(camion.getId() - 1).getCargaGLPActual());
                     camion.setCombustibleActual(sistema.getFlota().get(camion.getId() - 1).getCombustibleActual());
+                    if(destinos.get(0) instanceof Reabastecimiento){
+                        if(((Reabastecimiento)destinos.get(0)).getCisterna().puedeRetirarGLP(sistemaPLG.getFechaHoraInicio(), GLPInicial)){
+                            camion.setIndicePedidoActual(1); // se pudo recargar GLP en el origen
+                            ((Reabastecimiento)destinos.get(0)).getCisterna().registrarRetiroGLP(sistemaPLG.getFechaHoraInicio(),
+                                    GLPInicial, camion);
+                            camion.setCargaGLPActual(GLPInicial);
+                            camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());
+                        }
+                    }
+                    else{
+
+                        camion.setCombustibleActual(sistema.getFlota().get(camion.getId() - 1).getCombustibleActual());
+                    }
                 } else {
                     System.out.println("No hay destinos");
                 }
@@ -208,7 +215,7 @@ public class Individuo {
             int resultado = camion.construirRutaHaciaPedido(sistemaPLG);
             if (resultado != 0) {
                 fitness = 0.0;
-                /*System.out.println("Problema: " + resultado);*/
+                System.out.println("Problema: " + resultado);
                 return;
             }
         }
@@ -228,7 +235,7 @@ public class Individuo {
 
         //fitness = totalDistancia / (totalCombustible + 1e-5); // evitar división por cero
         //fitness = 10000 / (totalCombustible + 1e-5); // evitar división por cero
-        fitness = 1.0 / (0.4 * totalCombustible + 0.1 * totalTiempo + 0.5 * entregasTardias * 1000 + 1e-5);
+        fitness = 1.0 / (0.4 * totalCombustible + 0.1 * totalTiempo + entregasTardias * 500 + 1e-5);
 
     }
 

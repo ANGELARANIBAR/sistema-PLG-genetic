@@ -34,7 +34,20 @@ public class Trasvase extends Destino{
     }
     @Override
     public Destino copiar(){
-        Destino destino = this;
+        Trasvase destino = new Trasvase();
+        destino.setIdDestino(this.getIdDestino());
+        destino.setNumeroOrden(this.getNumeroOrden());
+        destino.setUbicacion(this.getUbicacion());
+        destino.setPedido(this.getPedido());
+        destino.setGLPOperacion(this.getGLPOperacion());
+        destino.setFechaHoraLlegada(this.getFechaHoraLlegada());
+        destino.setFechaHoraSalida(this.getFechaHoraSalida());
+        destino.setTiempoOperacion(this.getTiempoOperacion());
+        destino.setSaldoGLPCamion(this.getSaldoGLPCamion());
+        destino.setSaldoCombustibleCamion(this.getSaldoCombustibleCamion());
+        destino.setEstadoCamion(this.getEstadoCamion());
+        destino.setRuta(this.getRuta());
+        destino.setId(this.getId());
         destino.setUbicacion(camionTrasvase.getUbicacionActual());
         return destino;
     }

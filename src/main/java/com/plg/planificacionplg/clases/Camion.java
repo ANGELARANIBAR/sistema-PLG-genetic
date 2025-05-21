@@ -27,6 +27,7 @@ public class Camion {
     private List<Averia> averias;
     private List<Integer> cargasGLP;
     private Integer indicePedidoActual;
+    private Destino destinoEnCurso;
 
     public Camion() {
         averias = new ArrayList<>();
@@ -52,6 +53,8 @@ public class Camion {
         this.mantenimientos = otro.mantenimientos;
         this.averias = otro.averias;
         this.cargasGLP = otro.cargasGLP;
+        if(otro.destinoEnCurso != null)
+            this.destinoEnCurso = otro.destinoEnCurso.copiar();
 
     }
 
@@ -166,23 +169,17 @@ public class Camion {
             double faltanteGLP = end.getGLPOperacion() - cargaGLPActual;
             Destino mejorEnd=null, elegido=null;
             faltanteGLP = -cargaGLPActual;
-            indicePedidoActual++;
-            if(!(start instanceof Reabastecimiento) && indicePedidoActual == 1){
+            if(indicePedidoActual == 0){
                 for(int j=0; j<cargasGLP.get(0); j++){
                     faltanteGLP += getPedidosAsignados().get(j).getVolumenGLP();
                 }
-                indicePedidoActual = 0;
             }
             else{
-                if(indicePedidoActual>0){
-                    if(indicePedidoActual == cargasGLP.size()){
-                        System.out.println();
-                    }
-                    for(int j=cargasGLP.get(indicePedidoActual-1); j<cargasGLP.get(indicePedidoActual); j++){
-                        faltanteGLP += getPedidosAsignados().get(j).getVolumenGLP();
-                    }
+                for(int j=cargasGLP.get(indicePedidoActual-1); j<cargasGLP.get(indicePedidoActual); j++){
+                    faltanteGLP += getPedidosAsignados().get(j).getVolumenGLP();
                 }
             }
+            indicePedidoActual++;
 
             if(tipo.getCargaGLPMax()<faltanteGLP){return -1;}
             double combustibleEmpleadoMejorDist = 0.0;
@@ -224,12 +221,14 @@ public class Camion {
                 }
             }
 
+            int idxCamTPrueba = 0, idxCamPrueba;
             for(int j=0; j<sistemaPLG.getCamionesAveriados().size(); j++){
                 Trasvase trasvase = new Trasvase();
-                int resultadoNodosIntermedios, idxCamPrueba = j+mejorCisterna+1;
+                int resultadoNodosIntermedios;
                 Camion camionAveriado = sistemaPLG.getCamionesAveriados().get(j);
-                camionAveriado = sistemaPLG.getCamionCausanteReplan();
                 if(faltanteGLP>camionAveriado.getCargaGLPActual()){continue;}
+                idxCamPrueba = idxCamTPrueba+mejorCisterna+1;
+                idxCamTPrueba++;
                 trasvase.setCamionTrasvase(camionAveriado);
                 trasvase.setUbicacion(camionAveriado.getUbicacionActual());
                 trasvase.setGLPOperacion(faltanteGLP);

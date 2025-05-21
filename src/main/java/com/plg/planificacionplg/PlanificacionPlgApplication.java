@@ -177,12 +177,13 @@ public class PlanificacionPlgApplication {
         );
 
         mejorSolucion.getSistemaPLG().cargarAverias("src/main/java/com/plg/planificacionplg/test/averias.txt");
-        SistemaPLG replanificado = new SistemaPLG(mejorSolucion.getSistemaPLG());
 
         double min = 0.35;
         double max = 0.75;
 
         for(Averia a : mejorSolucion.getSistemaPLG().getAverias()){
+            SistemaPLG replanificado = new SistemaPLG(mejorSolucion.getSistemaPLG());
+            replanificado.setCisternas(mejorSolucion.getSistemaPLG().getCisternas());
             Camion c = mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion());
             double random = min + (Math.random() * ((max - min) + Double.MIN_VALUE));
             double tiempoAveria = c.getDistanciaTotal()*random/c.getTipo().getVelocidadPromedio();
@@ -191,10 +192,10 @@ public class PlanificacionPlgApplication {
             LocalTime turnoini;
             if(turnoiniidx < 0){turnoini = LocalTime.MIN;}
             else turnoini = mejorSolucion.getSistemaPLG().getTurnosFin().get(turnoiniidx);
+            if(mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getDestinos().size()<2)continue;
             Camion cam = mejorSolucion.getSistemaPLG().getCamionEnInstante(a.getIdCamion()+1, inicioAveria);
             if(cam!=null && cam.getEstado()==EstadoCamion.EN_RETORNO)continue;
-            if(mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getDestinos().size()==1)continue;
-            if((turnoini.isBefore(inicioAveria.toLocalTime())
+            if(true || (turnoini.isBefore(inicioAveria.toLocalTime())
                     && mejorSolucion.getSistemaPLG().getTurnosFin().get(turnoidx).isAfter(inicioAveria.toLocalTime()))){
                 a.setFechaHoraInicio(inicioAveria); // la averia se efectua
                 a.determinarFechaFin(mejorSolucion.getSistemaPLG());
@@ -264,8 +265,17 @@ public class PlanificacionPlgApplication {
                     Camion nuevoCamion = mejorSolucion.getSistemaPLG().getCamionEnInstante(i+1, inicioAveria);
                     nuevoCamion.setCargasGLP(new ArrayList<>());
                     nuevoCamion.setDestinos(new ArrayList<>());
-                    Destino destinoActual = mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos()
-                            .get(nuevoCamion.getIdxDestinoEnCurso());
+                    if(mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().size()-1<nuevoCamion.getIdxDestinoEnCurso()){
+                        System.out.println("!@#!3");
+
+                    }
+                    Destino destinoActual = nuevoCamion.getDestinoEnCurso();
+                    if(destinoActual==null){
+                        //System.out.println();
+                        //caso de los camiones que terminaron su ruta antes de la averia
+                        destinoActual = mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().getLast().copiar();
+                    }
+
                     if(destinoActual.getEstadoCamion()!=EstadoCamion.EN_RUTA){//despachando o recargando
                         nuevoCamion.getDestinos().add(destinoActual); //inicio, no es modificable en la construccion de rutas
                     }else{

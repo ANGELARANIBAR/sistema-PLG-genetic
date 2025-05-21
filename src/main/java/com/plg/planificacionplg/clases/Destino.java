@@ -24,7 +24,9 @@ public abstract class Destino {
 
     public void setPedido(Pedido pedido){
         this.pedido = pedido;
-        GLPOperacion = pedido.getVolumenGLP();
+        if(pedido != null){
+            GLPOperacion = pedido.getVolumenGLP();
+        }
     }
     public abstract void imprimir();
 }

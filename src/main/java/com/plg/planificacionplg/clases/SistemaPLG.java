@@ -177,13 +177,16 @@ public class SistemaPLG {
     public Camion getCamionEnInstante(int idCamion, LocalDateTime fecha){
         Camion c = flota.get(idCamion-1);
         Camion camion = new Camion(c);
-        if(camion.getDestinos().isEmpty())return camion;
+        if(c.getDestinos().isEmpty())return camion;
         Destino anterior = c.getDestinos().get(0), d;
+        if(anterior.getFechaHoraSalida()==null)
+            System.out.println();
         if(anterior.getFechaHoraSalida().isAfter(fecha)){
             camion.setCombustibleActual(anterior.getSaldoCombustibleCamion());
             camion.setCargaGLPActual(anterior.getSaldoGLPCamion());
             camion.setUbicacionActual(anterior.getUbicacion());
             camion.setIdxDestinoEnCurso(0);
+            camion.setDestinoEnCurso(anterior);
             return camion;
         }
         int i=0;
@@ -199,6 +202,7 @@ public class SistemaPLG {
                     camion.setEstado(EstadoCamion.EN_RETORNO);
                 }else camion.setEstado(EstadoCamion.EN_RUTA);
                 camion.setIdxDestinoEnCurso(i);
+                camion.setDestinoEnCurso(d);
                 return camion;
             }
             else{
@@ -216,11 +220,13 @@ public class SistemaPLG {
                         camion.setEstado(EstadoCamion.EN_RECARGA_GLP);
                     }
                     camion.setIdxDestinoEnCurso(i);
+                    camion.setDestinoEnCurso(d);
                     return camion;
                 }
             }
             anterior = d;
         }
+        camion.setEstado(EstadoCamion.DISPONIBLE);
         return camion;
     }
 

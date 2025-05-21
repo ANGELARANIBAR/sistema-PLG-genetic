@@ -38,8 +38,22 @@ public class EntregaPedido extends Destino{
     }
     @Override
     public Destino copiar(){
-        Destino destino = this;
-        destino.setUbicacion(getPedido().getUbicacion());
+        EntregaPedido destino = new EntregaPedido();
+        destino.setIdDestino(this.getIdDestino());
+        destino.setNumeroOrden(this.getNumeroOrden());
+        destino.setPedido(this.getPedido());
+        if (getPedido()!=null)
+            destino.setUbicacion(getPedido().getUbicacion());
+        destino.setGLPOperacion(this.getGLPOperacion());
+        destino.setFechaHoraLlegada(this.getFechaHoraLlegada());
+        destino.setFechaHoraSalida(this.getFechaHoraSalida());
+        destino.setTiempoOperacion(this.getTiempoOperacion());
+        destino.setSaldoGLPCamion(this.getSaldoGLPCamion());
+        destino.setSaldoCombustibleCamion(this.getSaldoCombustibleCamion());
+        destino.setEstadoCamion(this.getEstadoCamion());
+        destino.setRuta(this.getRuta());
+        destino.setId(this.getId());
+        destino.setVolumenGLPEntregado(this.volumenGLPEntregado);
         return destino;
     }
     @Override
