@@ -6,6 +6,7 @@ import java.util.List;
 public class TruckRouteDTO {
     private int truckId;
     private String plate;
+    private String codigo;
     private double fuelConsumed;
     private double currentFuel;
     private double currentGLP;
@@ -18,6 +19,13 @@ public class TruckRouteDTO {
 
     public void setTruckId(int truckId) {
         this.truckId = truckId;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+    public void setCodigo(String codigo) {
+        this.codigo = codigo;
     }
 
     public String getPlate() {

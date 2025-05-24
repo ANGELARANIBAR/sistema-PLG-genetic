@@ -180,7 +180,7 @@ public class PlanificacionPlgApplication {
         double min = 0.35;
         double max = 0.75;
 
-        // Process averias
+        // Procesar averias
         for(Averia a : mejorSolucion.getSistemaPLG().getAverias()) {
             SistemaPLG replanificado = new SistemaPLG(mejorSolucion.getSistemaPLG());
             replanificado.setCisternas(mejorSolucion.getSistemaPLG().getCisternas());
@@ -195,7 +195,7 @@ public class PlanificacionPlgApplication {
             if(mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getDestinos().size()<2)continue;
             Camion cam = mejorSolucion.getSistemaPLG().getCamionEnInstante(a.getIdCamion()+1, inicioAveria);
             if(cam!=null && cam.getEstado()==EstadoCamion.EN_RETORNO)continue;
-            if(false && (turnoini.isBefore(inicioAveria.toLocalTime())
+            if((turnoini.isBefore(inicioAveria.toLocalTime())
                     && mejorSolucion.getSistemaPLG().getTurnosFin().get(turnoidx).isAfter(inicioAveria.toLocalTime()))) {
                 // Set replanning flag and averia start time at the start of this specific averia's replanification
                 mejorSolucion.getSistemaPLG().setReplanning(true);

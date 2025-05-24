@@ -12,6 +12,7 @@ public class SistemaPLGDTO {
     private double maxXmapa;
     private double maxYmapa;
     private LocalDateTime fechaHoraInicio;
+    private LocalDateTime averiaStartTime;
 
     // Getters and Setters
     public List<TruckRouteDTO> getFlota() {
@@ -76,5 +77,12 @@ public class SistemaPLGDTO {
 
     public void setFechaHoraInicio(LocalDateTime fechaHoraInicio) {
         this.fechaHoraInicio = fechaHoraInicio;
+    }
+    public LocalDateTime getAveriaStartTime() {
+        return averiaStartTime;
+    }
+
+    public void setAveriaStartTime(LocalDateTime averiaStartTime) {
+        this.averiaStartTime = averiaStartTime;
     }
 } 

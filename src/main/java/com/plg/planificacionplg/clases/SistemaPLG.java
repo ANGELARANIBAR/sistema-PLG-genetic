@@ -215,8 +215,11 @@ public class SistemaPLG {
                     if(d instanceof EntregaPedido)
                         camion.setEstado(EstadoCamion.DESPACHANDO);
                     else if (d instanceof Reabastecimiento) {
-                        if(d.getGLPOperacion()>0.001)camion.setEstado(EstadoCamion.EN_RECARGA_GLP);
-                        else camion.setEstado(EstadoCamion.EN_RECARGA_COMBUSTIBLE);
+                        if(i==c.getDestinos().size()-1){camion.setEstado(EstadoCamion.EN_MANTENIMIENTO);}
+                        else{
+                            if(d.getGLPOperacion()>0.001)camion.setEstado(EstadoCamion.EN_RECARGA_GLP);
+                            else camion.setEstado(EstadoCamion.EN_RECARGA_COMBUSTIBLE);
+                        }
                     }
                     else{// trasvase
                         camion.setEstado(EstadoCamion.EN_RECARGA_GLP);
