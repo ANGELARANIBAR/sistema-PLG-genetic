@@ -113,13 +113,14 @@ public class SolutionController {
         return currentFuel;
     }
 
-    @PostMapping("/{truckId}/registrarAveria")
-    public void registrarAveria(
+    @GetMapping("/truck-glp/{truckId}")
+    public double getTruckGLP(
             @PathVariable int truckId,
-            @RequestBody AveriaRequest request) { // 🔹 Se recibe el nuevo estado en el cuerpo de la petición
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime time) {
+
         Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
         if (mejorSolucion == null) {
-            return;
+            return 0.0;
         }
 
         SistemaPLG sistema = mejorSolucion.getSistemaPLG();
@@ -129,68 +130,95 @@ public class SolutionController {
                 .orElse(null);
 
         if (camion == null) {
+            return 0.0;
+        }
+
+        double currentGLP = sistema.calcularGLPActual(truckId, time);
+        return currentGLP;
+    }
+
+    @PostMapping("/{truckId}/registrarAveria")
+    public void registrarAveria(
+            @PathVariable int truckId,
+            @RequestBody AveriaRequest request) {
+        Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
+        if (mejorSolucion == null) {
             return;
         }
 
-        TipoAveria tipoAveria1 = new TipoAveria();
-        tipoAveria1.setId(1);
-        tipoAveria1.setTiempoInmovilizado(2);
-        tipoAveria1.setRegresaAlmacen(false);
-        TipoAveria tipoAveria2 = new TipoAveria();
-        tipoAveria2.setId(2);
-        tipoAveria2.setTiempoInmovilizado(2);
-        tipoAveria2.setRegresaAlmacen(true);
-        TipoAveria tipoAveria3 = new TipoAveria();
-        tipoAveria3.setId(3);
-        tipoAveria3.setTiempoInmovilizado(4);
-        tipoAveria3.setRegresaAlmacen(true);
-        List<TipoAveria> tipos = new ArrayList<>();
-        tipos.add(tipoAveria1);
-        tipos.add(tipoAveria2);
-        tipos.add(tipoAveria3);
-        Averia averia = new Averia();
-        averia.setTipo(tipos.get(request.getTipoAveria()-1));
-        averia.setFechaHoraInicio(request.getFechaHoraInicioAveria());
-        averia.determinarFechaFin(mejorSolucion.getSistemaPLG());
-        camion.getAverias().add(averia);
-        List<Pedido>afectados=new ArrayList<>();
-        for(Pedido p : mejorSolucion.getSistemaPLG().getPedidos()){
-            if(p.getEstado()==EstadoPedido.PENDIENTE)afectados.add(p);
-        }
-        SistemaPLG replanificado = new SistemaPLG(mejorSolucion.getSistemaPLG());
-        replanificado.setFlota(new ArrayList<>());
-        replanificado.setPedidos(afectados);
-        replanificado.getCamionesAveriados().add(camion);
-        for(int i = 0; i < mejorSolucion.getSistemaPLG().getFlota().size(); i++){
-            Camion nuevoCamion = new Camion(mejorSolucion.getSistemaPLG().getFlota().get(i));
-            nuevoCamion.setCargasGLP(new ArrayList<>()); //reasignaciones de pedidos
-            nuevoCamion.setDestinos(new ArrayList<>());
-            if(mejorSolucion.getSistemaPLG().getFlota().get(nuevoCamion.getId()-1).getPedidosAsignados()!=null){
-                Replanficacion origenReplan = new Replanficacion();
-                origenReplan.setUbicacion(nuevoCamion.calcularUbicacion(request.getFechaHoraInicioAveria()));
-                if(nuevoCamion.getId()==camion.getId()) { // no considera averias de camiones que estan sin pedidos asignados
-                    origenReplan.setFechaHoraSalida(averia.getFechaHoraFin());
-                }
-                else origenReplan.setFechaHoraSalida(request.getFechaHoraInicioAveria());
-                origenReplan.setGLPOperacion(0.0);
-                origenReplan.setSaldoGLPCamion(camion.getCargaGLPActual());
-                origenReplan.setSaldoCombustibleCamion(camion.getCombustibleActual());
-                nuevoCamion.getDestinos().add(origenReplan);
+        SistemaPLG sistema = mejorSolucion.getSistemaPLG();
+        sistema.setReplanning(true);
+
+        try {
+            Camion camion = sistema.getFlota().stream()
+                    .filter(c -> c.getId() == truckId)
+                    .findFirst()
+                    .orElse(null);
+
+            if (camion == null) {
+                return;
             }
-            replanificado.getFlota().add(nuevoCamion);
+
+            TipoAveria tipoAveria1 = new TipoAveria();
+            tipoAveria1.setId(1);
+            tipoAveria1.setTiempoInmovilizado(2);
+            tipoAveria1.setRegresaAlmacen(false);
+            TipoAveria tipoAveria2 = new TipoAveria();
+            tipoAveria2.setId(2);
+            tipoAveria2.setTiempoInmovilizado(2);
+            tipoAveria2.setRegresaAlmacen(true);
+            TipoAveria tipoAveria3 = new TipoAveria();
+            tipoAveria3.setId(3);
+            tipoAveria3.setTiempoInmovilizado(4);
+            tipoAveria3.setRegresaAlmacen(true);
+            List<TipoAveria> tipos = new ArrayList<>();
+            tipos.add(tipoAveria1);
+            tipos.add(tipoAveria2);
+            tipos.add(tipoAveria3);
+            Averia averia = new Averia();
+            averia.setTipo(tipos.get(request.getTipoAveria()-1));
+            averia.setFechaHoraInicio(request.getFechaHoraInicioAveria());
+            averia.determinarFechaFin(mejorSolucion.getSistemaPLG());
+            camion.getAverias().add(averia);
+            List<Pedido>afectados=new ArrayList<>();
+            for(Pedido p : mejorSolucion.getSistemaPLG().getPedidos()){
+                if(p.getEstado()==EstadoPedido.PENDIENTE)afectados.add(p);
+            }
+            SistemaPLG replanificado = new SistemaPLG(mejorSolucion.getSistemaPLG());
+            replanificado.setFlota(new ArrayList<>());
+            replanificado.setPedidos(afectados);
+            replanificado.getCamionesAveriados().add(camion);
+            for(int i = 0; i < mejorSolucion.getSistemaPLG().getFlota().size(); i++){
+                Camion nuevoCamion = new Camion(mejorSolucion.getSistemaPLG().getFlota().get(i));
+                nuevoCamion.setCargasGLP(new ArrayList<>()); //reasignaciones de pedidos
+                nuevoCamion.setDestinos(new ArrayList<>());
+                if(mejorSolucion.getSistemaPLG().getFlota().get(nuevoCamion.getId()-1).getPedidosAsignados()!=null){
+                    Replanficacion origenReplan = new Replanficacion();
+                    origenReplan.setUbicacion(nuevoCamion.calcularUbicacion(request.getFechaHoraInicioAveria()));
+                    if(nuevoCamion.getId()==camion.getId()) { // no considera averias de camiones que estan sin pedidos asignados
+                        origenReplan.setFechaHoraSalida(averia.getFechaHoraFin());
+                    }
+                    else origenReplan.setFechaHoraSalida(request.getFechaHoraInicioAveria());
+                    origenReplan.setGLPOperacion(0.0);
+                    origenReplan.setSaldoGLPCamion(camion.getCargaGLPActual());
+                    origenReplan.setSaldoCombustibleCamion(camion.getCombustibleActual());
+                    nuevoCamion.getDestinos().add(origenReplan);
+                }
+                replanificado.getFlota().add(nuevoCamion);
+            }
+            int tamPoblacion = 50;
+            int generaciones = 10;
+            double probCruce = 0.3;
+            double probMutacion = 0.5;
+            double porcentajeElite = 0.3;
+
+            Genetico ga = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
+            Individuo solReplanificado = ga.ejecutar(2, replanificado);
+
+            PlanificacionPlgApplication.setMejorSolucion(solReplanificado);
+        } finally {
+            sistema.setReplanning(false);
         }
-        int tamPoblacion = 50;
-        int generaciones = 10;
-        double probCruce = 0.3;
-        double probMutacion = 0.5;
-        double porcentajeElite = 0.3;
-
-        Genetico ga = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
-        Individuo solReplanificado = ga.ejecutar(2, replanificado);
-
-        PlanificacionPlgApplication.setMejorSolucion(solReplanificado);
-
-
     }
     @PostMapping("/{truckId}/{pedidoId}/change-state")
     public void cambiarEstadoPedido(
@@ -230,6 +258,12 @@ public class SolutionController {
     public LocalDateTime getStartTime() {
         Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
         return mejorSolucion != null ? mejorSolucion.getSistemaPLG().getFechaHoraInicio() : null;
+    }
+
+    @GetMapping("/is-replanning")
+    public boolean isReplanning() {
+        Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
+        return mejorSolucion != null && mejorSolucion.getSistemaPLG().isReplanning();
     }
 
     private TruckRouteDTO convertToTruckRouteDTO(Camion camion) {

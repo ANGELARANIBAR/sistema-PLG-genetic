@@ -31,6 +31,8 @@ public class SistemaPLG {
     private List<Camion> camionesAveriados;
     private List<Averia> averias;
     private Camion camionCausanteReplan;
+    private boolean replanning = false;
+    private LocalDateTime averiaStartTime = null;
 
     public SistemaPLG() {}
     public SistemaPLG(SistemaPLG otro) {
@@ -180,7 +182,7 @@ public class SistemaPLG {
         if(c.getDestinos().isEmpty())return camion;
         Destino anterior = c.getDestinos().get(0), d;
         if(anterior.getFechaHoraSalida()==null)
-            System.out.println();
+            return camion;
         if(anterior.getFechaHoraSalida().isAfter(fecha)){
             camion.setCombustibleActual(anterior.getSaldoCombustibleCamion());
             camion.setCargaGLPActual(anterior.getSaldoGLPCamion());
@@ -390,5 +392,21 @@ public class SistemaPLG {
                 System.out.println("----------------------------------");
             }
         }
+    }
+
+    public boolean isReplanning() {
+        return replanning;
+    }
+
+    public void setReplanning(boolean replanning) {
+        this.replanning = replanning;
+    }
+
+    public LocalDateTime getAveriaStartTime() {
+        return averiaStartTime;
+    }
+
+    public void setAveriaStartTime(LocalDateTime averiaStartTime) {
+        this.averiaStartTime = averiaStartTime;
     }
 }

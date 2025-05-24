@@ -24,7 +24,7 @@ public class PlanificacionPlgApplication {
     }
 
     public static void main(String[] args) {
-        //SpringApplication.run(PlanificacionPlgApplication.class, args);
+        SpringApplication.run(PlanificacionPlgApplication.class, args);
 
         List<Cisterna> cisternas = new ArrayList<>();
         Cisterna principal = new Cisterna();
@@ -64,7 +64,7 @@ public class PlanificacionPlgApplication {
         sistemaPLG.setTurnosFin(List.of(
                 LocalTime.of(8, 0),
                 LocalTime.of(16, 0),
-                LocalTime.MAX // Representa 23:59:59.999999999
+                LocalTime.MAX
         ));
         double velocidadPromedio = 5.0/6.0;
         TipoCamion tipoCamion1 = new TipoCamion();
@@ -165,23 +165,23 @@ public class PlanificacionPlgApplication {
         double probMutacion = 0.8;
         double porcentajeElite = 0.3;
 
+        // Initial planification
         Genetico ga = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
         mejorSolucion = ga.ejecutar(1, sistemaPLG);
-
         mejorSolucion.getSistemaPLG().imprimirPlanificacion();
 
-
+        // Load maintenance and averias
         mejorSolucion.getSistemaPLG().cargarMantenimientos(
                 "src/main/java/com/plg/planificacionplg/test/planmantenimiento.txt",
                 LocalTime.MIN, LocalTime.MAX
         );
-
         mejorSolucion.getSistemaPLG().cargarAverias("src/main/java/com/plg/planificacionplg/test/averias.txt");
 
         double min = 0.35;
         double max = 0.75;
 
-        for(Averia a : mejorSolucion.getSistemaPLG().getAverias()){
+        // Process averias
+        for(Averia a : mejorSolucion.getSistemaPLG().getAverias()) {
             SistemaPLG replanificado = new SistemaPLG(mejorSolucion.getSistemaPLG());
             replanificado.setCisternas(mejorSolucion.getSistemaPLG().getCisternas());
             Camion c = mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion());
@@ -195,13 +195,18 @@ public class PlanificacionPlgApplication {
             if(mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getDestinos().size()<2)continue;
             Camion cam = mejorSolucion.getSistemaPLG().getCamionEnInstante(a.getIdCamion()+1, inicioAveria);
             if(cam!=null && cam.getEstado()==EstadoCamion.EN_RETORNO)continue;
-            if(true || (turnoini.isBefore(inicioAveria.toLocalTime())
-                    && mejorSolucion.getSistemaPLG().getTurnosFin().get(turnoidx).isAfter(inicioAveria.toLocalTime()))){
-                a.setFechaHoraInicio(inicioAveria); // la averia se efectua
+            if(false && (turnoini.isBefore(inicioAveria.toLocalTime())
+                    && mejorSolucion.getSistemaPLG().getTurnosFin().get(turnoidx).isAfter(inicioAveria.toLocalTime()))) {
+                // Set replanning flag and averia start time at the start of this specific averia's replanification
+                mejorSolucion.getSistemaPLG().setReplanning(true);
+                mejorSolucion.getSistemaPLG().setAveriaStartTime(inicioAveria);
+                
+                a.setFechaHoraInicio(inicioAveria);
                 a.determinarFechaFin(mejorSolucion.getSistemaPLG());
                 cam.setEstado(EstadoCamion.AVERIADO);
-                //replanificación por averia
-                mejorSolucion.getSistemaPLG().estadoDePedidosALas(inicioAveria); // estado de pedidos actualizados
+                
+                // Replanification process
+                mejorSolucion.getSistemaPLG().estadoDePedidosALas(inicioAveria);
                 replanificado.setFlota(new ArrayList<>());
                 replanificado.setPedidos(new ArrayList<>(mejorSolucion.getSistemaPLG().getPedidos()));
                 replanificado.getCamionesAveriados().add(cam);
@@ -214,7 +219,12 @@ public class PlanificacionPlgApplication {
                 origenReplan.setFechaHoraLlegada(inicioAveria);
                 origenReplan.setFechaHoraSalida(inicioAveria);
                 origenReplan.setGLPOperacion(0.0);
-                if(mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getDestinos().isEmpty()) continue; //camion no salio en planificacion
+                if(mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getDestinos().isEmpty()) {
+                    // Clear replanning flag if we need to skip this replanification
+                    mejorSolucion.getSistemaPLG().setReplanning(false);
+                    mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
+                    continue;
+                }
                 Destino destActuAveriado = mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getDestinos()
                         .get(cam.getIdxDestinoEnCurso());
                 origenReplan.setSaldoGLPCamion(destActuAveriado.getSaldoGLPCamion());
@@ -233,9 +243,6 @@ public class PlanificacionPlgApplication {
                 }
                 else cam.setPedidosAsignados(new ArrayList<>());//caso 2 y 3 donde no atiende sino se va
 
-                /*for(Pedido p : mejorSolucion.getSistemaPLG().getPedidos()){
-                    if(p.getEstado()==EstadoPedido.PENDIENTE)afectados.add(p);// pedidos en cola por replanificacion
-                }*/
                 for(int i = 0; i < mejorSolucion.getSistemaPLG().getFlota().size(); i++){
                     //si el camion no tiene registro de atenciones en la planificaicon
                     if(mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().size()<2){
@@ -265,10 +272,6 @@ public class PlanificacionPlgApplication {
                     Camion nuevoCamion = mejorSolucion.getSistemaPLG().getCamionEnInstante(i+1, inicioAveria);
                     nuevoCamion.setCargasGLP(new ArrayList<>());
                     nuevoCamion.setDestinos(new ArrayList<>());
-                    if(mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().size()-1<nuevoCamion.getIdxDestinoEnCurso()){
-                        System.out.println("!@#!3");
-
-                    }
                     Destino destinoActual = nuevoCamion.getDestinoEnCurso();
                     if(destinoActual==null){
                         //System.out.println();
@@ -290,10 +293,13 @@ public class PlanificacionPlgApplication {
                     }
                     replanificado.getFlota().add(nuevoCamion);
                 }
-                Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
+                Genetico ga2 = new Genetico(tamPoblacion*2, generaciones, probCruce, 0.9, porcentajeElite);
                 mejorSolucion = ga2.ejecutar(2, replanificado);
                 mejorSolucion.getSistemaPLG().imprimirPlanificacion();
-
+                
+                // Clear replanning flag at the end of this specific averia's replanification
+                mejorSolucion.getSistemaPLG().setReplanning(false);
+                mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
             }
         }
 

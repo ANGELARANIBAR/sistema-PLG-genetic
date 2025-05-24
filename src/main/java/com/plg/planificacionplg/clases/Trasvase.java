@@ -48,7 +48,8 @@ public class Trasvase extends Destino{
         destino.setEstadoCamion(this.getEstadoCamion());
         destino.setRuta(this.getRuta());
         destino.setId(this.getId());
-        destino.setUbicacion(camionTrasvase.getUbicacionActual());
+        if(camionTrasvase!=null)
+            destino.setUbicacion(camionTrasvase.getUbicacionActual());
         return destino;
     }
     @Override

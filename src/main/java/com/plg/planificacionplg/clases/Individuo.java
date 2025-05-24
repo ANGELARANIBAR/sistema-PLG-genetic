@@ -201,7 +201,6 @@ public class Individuo {
                         }
                     }
                     else{
-
                         camion.setCombustibleActual(sistema.getFlota().get(camion.getId() - 1).getCombustibleActual());
                     }
                 } else {
@@ -215,7 +214,7 @@ public class Individuo {
             int resultado = camion.construirRutaHaciaPedido(sistemaPLG);
             if (resultado != 0) {
                 fitness = 0.0;
-                System.out.println("Problema: " + resultado);
+                //System.out.println("Problema: " + resultado);
                 return;
             }
         }

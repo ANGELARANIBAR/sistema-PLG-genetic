@@ -62,14 +62,15 @@ public class Camion {
         int distanciaManzana = 1;
         if(destinos.isEmpty())return getCombustibleActual();
         Destino anterior = destinos.get(0);
+        if(anterior.getFechaHoraSalida()==null)return 0.0;//camion no salio
         if(fechahora.isBefore(anterior.getFechaHoraSalida()))return 0.0;
         if(anterior.getFechaHoraSalida().equals(fechahora)) {return anterior.getSaldoCombustibleCamion();}
         for(int i=1; i<destinos.size(); i++) {
             Destino destino = destinos.get(i);
             if(destino.getFechaHoraLlegada().isAfter(fechahora)) {
                 //calcular con ruta
-                long tiempoEnRuta = Duration.between(anterior.getFechaHoraSalida(), fechahora).toMinutes();
-                return anterior.getSaldoCombustibleCamion()-(int)(Math.abs(tiempoEnRuta)*tipo.getVelocidadPromedio())*distanciaManzana*calcularPesoTotal()/180.0;
+                double tiempoEnRuta = Duration.between(anterior.getFechaHoraSalida(), fechahora).toSeconds();
+                return anterior.getSaldoCombustibleCamion()-(int)(Math.abs(tiempoEnRuta/60.0)*tipo.getVelocidadPromedio())*distanciaManzana*calcularPesoTotal()/180.0;
             }
             else{
                 if(destino.getFechaHoraSalida().isAfter(fechahora) ||
@@ -80,6 +81,30 @@ public class Camion {
             anterior = destino;
         }
         return getCombustibleActual();
+    }
+
+    public double calcularGLPActual(LocalDateTime fechahora) {
+        if(destinos.isEmpty())return getCargaGLPActual();
+        Destino anterior = destinos.get(0);
+        if(anterior.getFechaHoraSalida()==null)return getCargaGLPActual();//camion no salio
+        if(fechahora.isBefore(anterior.getFechaHoraSalida()))return 0.0;
+        if(anterior.getFechaHoraSalida().equals(fechahora)) {return anterior.getSaldoCombustibleCamion();}
+        for(int i=1; i<destinos.size(); i++) {
+            Destino destino = destinos.get(i);
+            if(destino.getFechaHoraLlegada().isAfter(fechahora)) {
+                //calcular con ruta
+                //double tiempoEnRuta = Duration.between(anterior.getFechaHoraSalida(), fechahora).toSeconds();
+                return anterior.getSaldoGLPCamion();
+            }
+            else{
+                if(destino.getFechaHoraSalida().isAfter(fechahora) ||
+                        destino.getFechaHoraLlegada().isEqual(fechahora)){
+                    return destino.getSaldoGLPCamion();
+                }
+            }
+            anterior = destino;
+        }
+        return getCargaGLPActual();
     }
 
 
