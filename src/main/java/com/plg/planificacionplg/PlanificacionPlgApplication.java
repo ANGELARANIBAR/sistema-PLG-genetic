@@ -170,6 +170,7 @@ public class PlanificacionPlgApplication {
         mejorSolucion = ga.ejecutar(1, sistemaPLG);
         mejorSolucion.getSistemaPLG().imprimirPlanificacion();
 
+
         // Load maintenance and averias
         mejorSolucion.getSistemaPLG().cargarMantenimientos(
                 "src/main/java/com/plg/planificacionplg/test/planmantenimiento.txt",
@@ -195,7 +196,7 @@ public class PlanificacionPlgApplication {
             if(mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getDestinos().size()<2)continue;
             Camion cam = mejorSolucion.getSistemaPLG().getCamionEnInstante(a.getIdCamion()+1, inicioAveria);
             if(cam!=null && cam.getEstado()==EstadoCamion.EN_RETORNO)continue;
-            if((turnoini.isBefore(inicioAveria.toLocalTime())
+            if(false && (turnoini.isBefore(inicioAveria.toLocalTime())
                     && mejorSolucion.getSistemaPLG().getTurnosFin().get(turnoidx).isAfter(inicioAveria.toLocalTime()))) {
                 // Set replanning flag and averia start time at the start of this specific averia's replanification
                 mejorSolucion.getSistemaPLG().setReplanning(true);
@@ -296,8 +297,6 @@ public class PlanificacionPlgApplication {
                 Genetico ga2 = new Genetico(tamPoblacion*2, generaciones, probCruce, 0.9, porcentajeElite);
                 mejorSolucion = ga2.ejecutar(2, replanificado);
                 mejorSolucion.getSistemaPLG().imprimirPlanificacion();
-                
-                // Clear replanning flag at the end of this specific averia's replanification
                 mejorSolucion.getSistemaPLG().setReplanning(false);
                 mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
             }

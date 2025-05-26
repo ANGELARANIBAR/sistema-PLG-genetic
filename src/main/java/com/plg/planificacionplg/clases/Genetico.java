@@ -63,7 +63,7 @@ public class Genetico {
                 if (rand.nextDouble() < probMutacion) {
                     mutar(hijo, numCamiones);
                 }
-
+                //System.out.println(hijo.getAsignacion());
                 hijo.evaluar(code, sistema);
                 if (hijo.getFitness() > 0) {
                     nuevaGeneracion.add(hijo);
@@ -123,9 +123,13 @@ public class Genetico {
 
         // Reparar pedidos faltantes
         List<Integer> todosPedidos = new ArrayList<>();
-        for (int i = 1; i < padre1.getAsignacion().values().stream().mapToInt(List::size).sum(); i++) {
-            todosPedidos.add(i);
+        for (List<Integer> pedidos : padre1.getAsignacion().values()) {
+            todosPedidos.addAll(pedidos);
         }
+        for (List<Integer> pedidos : padre2.getAsignacion().values()) {
+            todosPedidos.addAll(pedidos);
+        }
+
 
         for (Integer faltante : todosPedidos) {
             if (!asignados.contains(faltante)) {
@@ -169,8 +173,7 @@ public class Genetico {
         for (List<Integer> pedidos : asignacion.values()) todosPedidos.addAll(pedidos);
         if (todosPedidos.isEmpty()) return;
 
-        int pedido = 0;
-        while (pedido==0) pedido = todosPedidos.get(rand.nextInt(todosPedidos.size()));
+        int pedido = todosPedidos.get(1+rand.nextInt(todosPedidos.size()-1));
 
         // Remover de su camión actual
         for (List<Integer> pedidos : asignacion.values()) {
@@ -178,8 +181,7 @@ public class Genetico {
         }
 
         // Reasignar aleatoriamente
-        int nuevoCamion = 0;
-        while(nuevoCamion == 0) nuevoCamion = rand.nextInt(numCamiones);
+        int nuevoCamion = 1 + rand.nextInt(numCamiones-1);
         asignacion.computeIfAbsent(nuevoCamion, k -> new ArrayList<>()).add(pedido);
 
         // Regenerar cargasGLP después de la mutación

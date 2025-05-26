@@ -112,10 +112,10 @@ public class SistemaPLG {
             if(c.getDestinos().isEmpty())continue;
 
             Destino anterior = c.getDestinos().get(0), d;
-            if(anterior.getFechaHoraSalida()==null)return;
-            if(anterior.getFechaHoraSalida().isAfter(fecha)){
-                return;
-            }
+            if(anterior.getFechaHoraSalida()==null)continue;
+
+            if(anterior.getFechaHoraSalida().isAfter(fecha))continue;
+
             int i=0;
             for(i = 1; i<c.getDestinos().size(); i++){
                 d = c.getDestinos().get(i);
@@ -157,6 +157,7 @@ public class SistemaPLG {
         Camion c = flota.get(idCamion-1);
         if(c.getDestinos().isEmpty())return 0.0;
         Destino anterior = c.getDestinos().get(0), d;
+        if(anterior.getFechaHoraSalida()==null)return 0.0;
         if(anterior.getFechaHoraSalida().isAfter(fecha)){
             return anterior.getSaldoGLPCamion();
         }
@@ -195,7 +196,7 @@ public class SistemaPLG {
         for(i = 1; i<c.getDestinos().size(); i++){
             d = c.getDestinos().get(i);
             if(d.getFechaHoraLlegada().isAfter(fecha)){
-                long tiempoEnRuta = Duration.between(anterior.getFechaHoraSalida(), fecha).toMinutes();
+                double tiempoEnRuta = Duration.between(anterior.getFechaHoraSalida(), fecha).toMinutes();
                 camion.setCombustibleActual(anterior.getSaldoCombustibleCamion()-(int)(Math.abs(tiempoEnRuta)*c.getTipo()
                         .getVelocidadPromedio())*distanciaManzana*c.calcularPesoTotal()/180.0);
                 camion.setCargaGLPActual(anterior.getSaldoGLPCamion());
@@ -355,7 +356,7 @@ public class SistemaPLG {
         for(int i=ini; i<fin; i++){
             int idped = asignacion.get(idxcamion+1).get(i);
             if(pedidos.isEmpty())
-                System.out.println("ADASD");
+                System.out.println("no hay pedidos.");
             cargaPorPedidos += pedidos.get(idped-1).getVolumenGLP();
         }
         return cargaPorPedidos < flota.get(idxcamion).getTipo().getCargaGLPMax() ||

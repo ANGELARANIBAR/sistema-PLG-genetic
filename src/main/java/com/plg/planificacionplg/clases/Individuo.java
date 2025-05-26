@@ -25,13 +25,14 @@ public class Individuo {
         }
         // Asignar pedidos aleatoriamente a camiones (no necesariamente todos los camiones activos)
         List<Integer> pedidos = new ArrayList<>();
-
         for (int i = 1; i < numPedidos; i++){
-            if(sistema.getPedidos().get(i-1).getEstado()==EstadoPedido.PENDIENTE) pedidos.add(i);
+            if(sistema.getPedidos().get(i-1).getEstado()==EstadoPedido.PENDIENTE) pedidos.add(sistema.getPedidos().get(i-1).getId());
         }
         Collections.shuffle(pedidos);
-        if(nIndividuo<3)
+        if(nIndividuo<3){
             asignarEquitativamente(numCamiones, pedidos, sistema);
+
+        }
         else{
             Random rand = new Random();
             for (int pedido : pedidos) {
@@ -67,8 +68,9 @@ public class Individuo {
                 int cantPedObjetivos = 1+randCargaGLP.nextInt(cantPedRestantes); //minimo 1
                 if(cargasGLP.isEmpty())ini=0;
                 else ini = cargasGLP.size()-1;
-                while(!sistema.puedeCargar(i-1, asignacion, ini, cantPedObjetivos))
+                while(!sistema.puedeCargar(i-1, asignacion, ini, cantPedObjetivos)){
                     cantPedObjetivos = 1+randCargaGLP.nextInt(cantPedRestantes); //minimo 1
+                }
                 acc += cantPedObjetivos;
                 cargasGLP.add(acc);
                 cantPedRestantes -= cantPedObjetivos;
@@ -89,7 +91,6 @@ public class Individuo {
         for (Camion camion : sistema.getFlota()) {
             Camion c;
             c = new Camion(camion);
-
             c.setPedidosAsignados(new ArrayList<>());
             c.setDestinos(new ArrayList<>());
             c.setCombustibleEmpleado(0);
@@ -188,7 +189,7 @@ public class Individuo {
                         fitness = 0.0;
                         return;
                     }
-                    camion.getDestinos().add(0, destinos.get(0));
+                    camion.getDestinos().add(0, destinos.get(0).copiar());
                     camion.setCargaGLPActual(sistema.getFlota().get(camion.getId() - 1).getCargaGLPActual());
                     camion.setCombustibleActual(sistema.getFlota().get(camion.getId() - 1).getCombustibleActual());
                     if(destinos.get(0) instanceof Reabastecimiento){
@@ -239,7 +240,7 @@ public class Individuo {
     }
 
     public Individuo clonar(int code) {
-        Individuo copia = new Individuo(0, 0, sistemaPLG, code);
+        Individuo copia = new Individuo(0, 0, this.sistemaPLG, code);
         Map<Integer, List<Integer>> nuevaAsignacion = new HashMap<>();
         for (Map.Entry<Integer, List<Integer>> entry : asignacion.entrySet()) {
             nuevaAsignacion.put(entry.getKey(), new ArrayList<>(entry.getValue()));
@@ -264,66 +265,77 @@ public class Individuo {
         }
     }
 
-    public void asignarEquitativamente(int numCamiones, List<Integer> pedidos, SistemaPLG sistema){
-        //System.out.println("ASIGNACION EQUITATIVA LOL++++++++++++++++++++++++++++++++++++++++++++asignarEquitativamente");
-        // Paso 1: Ordenar camiones por capacidad descendente
+    public void asignarEquitativamente(int numCamiones, List<Integer> pedidos, SistemaPLG sistema) {
+        // Aleatorizar camiones y pedidos
         List<Camion> camionesOrdenados = new ArrayList<>(sistema.getFlota());
-        camionesOrdenados.sort((c1, c2) -> Double.compare(
-                c2.getTipo().getCargaGLPMax(), c1.getTipo().getCargaGLPMax()
-        ));
+        Collections.shuffle(camionesOrdenados);
 
-        // Paso 2: Ordenar pedidos por volumen descendente
-        List<Integer> pedidosOrdenados = new ArrayList<>(pedidos); // copia del array original
-        pedidosOrdenados.sort((p1, p2) -> Double.compare(
-                sistema.getPedidos().get(p2 - 1).getVolumenGLP(),
-                sistema.getPedidos().get(p1 - 1).getVolumenGLP()
-        ));
+        List<Integer> pedidosOrdenados = new ArrayList<>(pedidos);
+        Collections.shuffle(pedidosOrdenados);
 
-        // Map para guardar asignaciones
-        //Map<Integer, List<Integer>> asignacion = new HashMap<>();
         Map<Integer, Double> capacidadRestante = new HashMap<>();
 
-        // Inicializar asignación y capacidad restante
-        for (int i = 0; i < camionesOrdenados.size(); i++) {
-            asignacion.put(camionesOrdenados.get(i).getId() + 1, new ArrayList<>());
-            capacidadRestante.put(camionesOrdenados.get(i).getId(), camionesOrdenados.get(i).getTipo().getCargaGLPMax());
+        // Inicializar asignación y capacidades
+        for (Camion camion : camionesOrdenados) {
+            int id = camion.getId();
+            asignacion.put(id, new ArrayList<>());
+            capacidadRestante.put(id, camion.getTipo().getCargaGLPMax());
         }
 
-        // Paso 3: Asignación primaria - llenar con los pedidos más grandes que quepan
-        Iterator<Integer> itPedidos = pedidosOrdenados.iterator();
-        while (itPedidos.hasNext()) {
-            int pedidoId = itPedidos.next();
+        for (int pedidoId : pedidosOrdenados) {
+            if (sistema.getPedidos().get(pedidoId - 1).getEstado() != EstadoPedido.PENDIENTE) continue;
             double volumen = sistema.getPedidos().get(pedidoId - 1).getVolumenGLP();
 
+            // Verificar si existe al menos un camión capaz de transportar el pedido
+            boolean pedidoInvalido = true;
             for (Camion camion : camionesOrdenados) {
+                if (camion.getTipo().getCargaGLPMax() >= volumen) {
+                    pedidoInvalido = false;
+                    break;
+                }
+            }
+            if (pedidoInvalido) {
+                System.out.println("⚠️ Pedido " + pedidoId + " es demasiado grande para cualquier camión. Se omite.");
+                continue; // No se puede asignar este pedido
+            }
+
+            // Intentar asignar al azar considerando capacidad disponible
+            List<Camion> copiaCamiones = new ArrayList<>(camionesOrdenados);
+            Collections.shuffle(copiaCamiones);
+
+            boolean asignado = false;
+            for (Camion camion : copiaCamiones) {
                 int idCamion = camion.getId();
-                if (sistema.getCamionCausanteReplan() != null && sistema.getCamionCausanteReplan().getId() == idCamion)
-                    continue;
+
+                if (sistema.getCamionCausanteReplan() != null &&
+                        sistema.getCamionCausanteReplan().getId() == idCamion) continue;
 
                 if (capacidadRestante.get(idCamion) >= volumen) {
                     asignacion.get(idCamion).add(pedidoId);
                     capacidadRestante.put(idCamion, capacidadRestante.get(idCamion) - volumen);
-                    itPedidos.remove();
+                    asignado = true;
                     break;
                 }
             }
-        }
 
-        // Paso 4: Asignación secundaria - insertar pedidos pequeños en espacios sobrantes
-        for (int pedidoId : pedidosOrdenados) {
-            double volumen = sistema.getPedidos().get(pedidoId - 1).getVolumenGLP();
-            for (Camion camion : camionesOrdenados) {
-                int idCamion = camion.getId();
-                if (capacidadRestante.get(idCamion) >= volumen) {
-                    asignacion.get(idCamion + 1).add(pedidoId);
-                    capacidadRestante.put(idCamion, capacidadRestante.get(idCamion) - volumen);
-                    break;
+            // Si no fue posible por capacidad restante, forzar en uno que sí tenga capacidad total suficiente
+            if (!asignado) {
+                for (Camion camion : camionesOrdenados) {
+                    int idCamion = camion.getId();
+                    double capacidadTotal = camion.getTipo().getCargaGLPMax();
+
+                    if (volumen <= capacidadTotal) {
+                        asignacion.get(idCamion).add(pedidoId);
+                        capacidadRestante.put(idCamion, capacidadRestante.get(idCamion) - volumen);
+                        break;
+                    }
                 }
             }
         }
-
-
     }
+
+
+
 
     private int considerarMantenimiento(Camion camion){
         // mantenimiento antes de planificacion
