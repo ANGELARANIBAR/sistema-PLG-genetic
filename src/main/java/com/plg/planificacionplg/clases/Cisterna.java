@@ -28,6 +28,16 @@ public class Cisterna {
         horaAbastecimento = otro.getHoraAbastecimento();
         ubicacion = otro.getUbicacion();
         operacionesGLPCisterna = otro.getOperacionesGLPCisterna();
+        /*operacionesGLPCisterna = new ArrayList<>();
+        for(OperacionesGLPCisterna op : otro.operacionesGLPCisterna){
+            OperacionesGLPCisterna nuevaOp = new OperacionesGLPCisterna();
+            operacionesGLPCisterna.add(nuevaOp);
+            nuevaOp.setCantSalidaGLP(op.getCantSalidaGLP());
+            nuevaOp.setFechaHoraOperacion(op.getFechaHoraOperacion());
+            nuevaOp.setSaldoGLP(op.getSaldoGLP());
+            nuevaOp.setCisterna(op.getCisterna());
+            nuevaOp.setCamion(op.getCamion());
+        }*/
     }
     public boolean registrarRetiroGLP(LocalDateTime fechaHora, double cantidadSolicitada, Camion camion) {
         //rango de fechas sin abastecimento

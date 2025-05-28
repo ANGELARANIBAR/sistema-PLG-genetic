@@ -208,7 +208,7 @@ public class SolutionController {
             Destino destActuAveriado = mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getDestinos()
                     .get(cam.getIdxDestinoEnCurso());
 
-            origenReplan.setSaldoGLPCamion(destActuAveriado.getSaldoGLPCamion());
+            origenReplan.setSaldoGLPCamion(cam.calcularGLPActual(inicioAveria));
             origenReplan.setSaldoCombustibleCamion(cam.getCombustibleActual());
             if (cam.getEstado() != EstadoCamion.EN_RUTA) {
                 cam.getDestinos().add(destActuAveriado);

@@ -27,8 +27,10 @@ public class Pedido{
     }
     public Pedido(Pedido otro){
         this.id = otro.getId();
+        this.idCliente = otro.getIdCliente();
         this.numeroPedido = otro.getNumeroPedido();
         this.volumenGLP = otro.getVolumenGLP();
+        this.volumenGLPEntregado = otro.getVolumenGLPEntregado();
         this.ubicacion = otro.getUbicacion();
         this.fechaHoraRegistro = otro.getFechaHoraRegistro();
         this.fechaHoraEntrega = otro.getFechaHoraEntrega();

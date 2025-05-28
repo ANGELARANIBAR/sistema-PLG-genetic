@@ -47,8 +47,9 @@ public class Individuo {
         }
 
         if(sistema.getCamionCausanteReplan()!=null && numCamiones>1){
+
             if(sistema.getCamionCausanteReplan().getAverias()
-                    .getLast().getId()==1){
+                    .getLast().getTipo().getId()==1){
                 for(Pedido ped : sistema.getCamionCausanteReplan().getPedidosAsignados()){
                     if(ped.getEstado()==EstadoPedido.ASIGNADO){
                         asignacion.get(sistema.getCamionCausanteReplan().getId()).add(ped.getId());
@@ -85,6 +86,16 @@ public class Individuo {
         List<Pedido> pedidos = new ArrayList<>();
         List<Cisterna> cisternas = new ArrayList<>();
         sistemaPLG = new SistemaPLG(sistema);
+        if(code == 2){
+            if(sistema.getCamionCausanteReplan()!=null &&
+                    sistema.getCamionCausanteReplan().getAverias()
+                            .getLast().getTipo().getId()==1){
+                sistemaPLG.getCamionCausanteReplan().getPedidosAsignados()
+                        .addAll(sistema.getCamionCausanteReplan().getPedidosAsignados());
+            }
+            sistemaPLG.getCamionCausanteReplan().getDestinos()
+                    .add(sistema.getCamionCausanteReplan().getDestinos().get(0).copiar());
+        }
         sistemaPLG.setCisternas(cisternas);
         sistemaPLG.setPedidos(pedidos);
         sistemaPLG.setFlota(flota);
@@ -96,7 +107,7 @@ public class Individuo {
             c.setCombustibleEmpleado(0);
             c.setDistanciaTotal(0);
             c.setCargaGLPActual(0);
-            c.setEstado(EstadoCamion.DISPONIBLE);
+            if(code==1) c.setEstado(EstadoCamion.DISPONIBLE);
             c.setCombustibleActual(c.getTipo().getCapCombustibleMax());
 
             flota.add(c);
@@ -104,6 +115,7 @@ public class Individuo {
         for(Pedido pedido: sistema.getPedidos()){
             Pedido p = new Pedido(pedido);
             pedidos.add(p);
+            p.setEstado(pedido.getEstado());
             p.setFechaHoraEntrega(null);
             p.setCamiones(new ArrayList<>());
             p.setCompletado(false);
@@ -128,12 +140,7 @@ public class Individuo {
         for (Map.Entry<Integer, List<Integer>> entry : asignacion.entrySet()) {
             int camionIdx = entry.getKey();
             List<Integer> pedidosAsignados = entry.getValue();
-            if (sistemaPLG.getCamionCausanteReplan() != null && camionIdx != sistemaPLG.getCamionCausanteReplan().getId()) {
-                if (sistemaPLG.getCamionCausanteReplan().getAverias().getLast().getTipo().getId() == 1)
-                    for (Pedido pedAsig : sistemaPLG.getCamionCausanteReplan().getPedidosAsignados())
-                        pedidosAsignados.add(pedAsig.getId());
-            } else if (pedidosAsignados.isEmpty()) continue;
-
+            if (pedidosAsignados.isEmpty()) continue;
 
             Camion camion = flota.get(camionIdx - 1);
             camion.setEstado(EstadoCamion.EN_RUTA);

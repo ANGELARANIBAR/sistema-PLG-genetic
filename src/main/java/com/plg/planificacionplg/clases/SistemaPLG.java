@@ -62,7 +62,7 @@ public class SistemaPLG {
         this.turnosFin = otro.turnosFin;
         this.averias = otro.averias;
         if(otro.camionCausanteReplan != null) {
-            this.camionCausanteReplan = new Camion(otro.camionCausanteReplan);
+            this.camionCausanteReplan = this.flota.get(otro.camionCausanteReplan.getId()-1);
         }
     }
     public List<Nodo> encontrarTramo(Nodo start, Nodo end) {
@@ -153,11 +153,10 @@ public class SistemaPLG {
         }
     }
     public double calcularGLPActual(int idCamion, LocalDateTime fecha){
-        Boolean estaEnDestino = false;
         Camion c = flota.get(idCamion-1);
         if(c.getDestinos().isEmpty())return 0.0;
         Destino anterior = c.getDestinos().get(0), d;
-        if(anterior.getFechaHoraSalida()==null)return 0.0;
+        if(anterior.getFechaHoraSalida()==null)return anterior.getSaldoGLPCamion();
         if(anterior.getFechaHoraSalida().isAfter(fecha)){
             return anterior.getSaldoGLPCamion();
         }

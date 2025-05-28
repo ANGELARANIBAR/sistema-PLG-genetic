@@ -33,7 +33,20 @@ public class Replanficacion extends Destino{
     }
     @Override
     public Destino copiar(){
-        Destino destino = this;
+        Replanficacion destino = new Replanficacion();
+        destino.setIdDestino(this.getIdDestino());
+        destino.setNumeroOrden(this.getNumeroOrden());
+        destino.setUbicacion(this.getUbicacion());
+        destino.setPedido(this.getPedido());
+        destino.setGLPOperacion(this.getGLPOperacion());
+        destino.setFechaHoraLlegada(this.getFechaHoraLlegada());
+        destino.setFechaHoraSalida(this.getFechaHoraSalida());
+        destino.setTiempoOperacion(this.getTiempoOperacion());
+        destino.setSaldoGLPCamion(this.getSaldoGLPCamion());
+        destino.setSaldoCombustibleCamion(this.getSaldoCombustibleCamion());
+        destino.setEstadoCamion(this.getEstadoCamion());
+        destino.setRuta(this.getRuta());
+        destino.setId(this.getId());
         return destino;
     }
     @Override
