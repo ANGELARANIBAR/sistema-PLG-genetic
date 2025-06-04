@@ -261,11 +261,13 @@ public class Camion {
                 canditatos.add(idxCamPrueba*2+1, new ArrayList<>());//trasvase a end
                 camionesPrueba.add(idxCamPrueba, new Camion(this));
                 camionesPrueba.get(idxCamPrueba).setDistanciaTotal(0.0);
-                resultadoNodosIntermedios = buscarDestinosIntermediosCargaCombustible(canditatos.get(idxCamPrueba * 2), start, trasvase, sistemaPLG, camionesPrueba.get(idxCamPrueba));//start a cisterna
+                resultadoNodosIntermedios = buscarDestinosIntermediosCargaCombustible(
+                        canditatos.get(idxCamPrueba * 2), start, trasvase, sistemaPLG, camionesPrueba.get(idxCamPrueba));//start a cisterna
                 if (resultadoNodosIntermedios == -1) continue;
                 if(!camionAveriado.disponibleParaTrasvase(start.getFechaHoraSalida()
                         .plusMinutes((long) (camionesPrueba.get(idxCamPrueba).distanciaTotal / tipo.getVelocidadPromedio())), faltanteGLP))continue;
-                resultadoNodosIntermedios = buscarDestinosIntermediosCargaCombustible(canditatos.get(idxCamPrueba * 2 + 1), trasvase, end, sistemaPLG, camionesPrueba.get(idxCamPrueba));//cisterna a end
+                resultadoNodosIntermedios = buscarDestinosIntermediosCargaCombustible(
+                        canditatos.get(idxCamPrueba * 2 + 1), trasvase, end, sistemaPLG, camionesPrueba.get(idxCamPrueba));//cisterna a end
 
                 if (resultadoNodosIntermedios == -1) continue;
                 if (mejorDistancia > camionesPrueba.get(idxCamPrueba).distanciaTotal) {
@@ -308,7 +310,8 @@ public class Camion {
                         faltanteGLP, this);
                 elegido.setEstadoCamion(EstadoCamion.EN_RECARGA_GLP);
             }else{
-                sistemaPLG.getFlota().get(((Trasvase)elegido).getCamionTrasvase().getId()-1).setCargaGLPActual(faltanteGLP);
+                sistemaPLG.getFlota().get(((Trasvase)elegido).getCamionTrasvase().getId()-1).setCargaGLPActual(
+                        sistemaPLG.getFlota().get(((Trasvase)elegido).getCamionTrasvase().getId()-1).getCargaGLPActual() - faltanteGLP);
                 elegido.setEstadoCamion(EstadoCamion.EN_RECARGA_GLP);
             }
             end.setSaldoGLPCamion(cargaGLPActual);
