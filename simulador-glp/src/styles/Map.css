@@ -1,0 +1,9 @@
+/* src/styles/Map.css */
+.custom-icon {
+    background: none;
+    border: none;
+  }
+  
+  .custom-icon svg {
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+  }
