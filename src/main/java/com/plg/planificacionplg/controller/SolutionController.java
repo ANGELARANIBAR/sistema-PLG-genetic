@@ -261,6 +261,10 @@ public class SolutionController {
                     //caso de los camiones que terminaron su ruta antes de la averia
                     destinoActual = mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().getLast().copiar();
                     nuevoCamion.getDestinos().add(destinoActual);
+                    if(nuevoCamion.getDestinos().get(0).getFechaHoraSalida().isBefore(replanificado.getFechaHoraInicio())) {
+                        // si el camion esta disponible antes del inicio de la averia, entoncs espera a que la averia ocurra
+                        nuevoCamion.getDestinos().get(0).setFechaHoraSalida(replanificado.getFechaHoraInicio());
+                    }
                     replanificado.getFlota().add(nuevoCamion);
                     System.out.println("camion en reposo> "+nuevoCamion.getId());
                     continue;

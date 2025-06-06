@@ -29,7 +29,7 @@ public class Genetico {
 
         List<Individuo> poblacion = new ArrayList<>();
         Random rand = new Random();
-
+        numIndividuosExploratorios = (int)(tamPoblacion*0.7);
         // Inicializar población aleatora controlada
         for (int i = 0; i < tamPoblacion; i++) {
             Individuo ind = new Individuo(numPedidos, numCamiones, sistema, code);
@@ -52,10 +52,9 @@ public class Genetico {
                 nuevaGeneracion.add(poblacion.get(i).clonar(code));
             }
 
-            // Cruce y mutación
             int iter = 0;
             while (nuevaGeneracion.size() < tamPoblacion) { //si no hay pedidos validos se queda
-                if (iter == 50) {
+                if (iter == tamPoblacion/2) {
                     int generados = 0;
                     int intentos = 0;
                     int maxIntentos = 100; // evita bucles infinitos
@@ -64,7 +63,7 @@ public class Genetico {
                         Individuo nuevo = new Individuo(numPedidos, numCamiones, sistema, code);
                         nuevo.evaluar(code, sistema);
                         if (nuevo.getFitness() > 0) {
-                            nuevaGeneracion.add(nuevo);
+                            nuevaGeneracion.add(nuevo); // + exploratorio
                             generados++;
                         }
                         intentos++;
@@ -73,6 +72,7 @@ public class Genetico {
                     iter = 0; // reiniciar el contador de intentos fallidos
                 }
 
+                // Cruce y mutación
                 Individuo padre1 = seleccionarTorneo(poblacion);
                 Individuo padre2 = seleccionarTorneo(poblacion);
 
@@ -83,9 +83,7 @@ public class Genetico {
                 if (rand.nextDouble() < probMutacion) {
                     mutar(hijo, numCamiones);
                 }
-                /*System.out.println(hijo.getAsignacion());
-                System.out.println(hijo.getPedidosXcargasGLP());
-                System.out.println("***************************************************************************************");*/
+
                 hijo.evaluar(code, sistema);
                 if (hijo.getFitness() > 0) {
                     nuevaGeneracion.add(hijo);

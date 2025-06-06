@@ -29,7 +29,7 @@ public class Individuo {
             if(sistema.getPedidos().get(i-1).getEstado()==EstadoPedido.PENDIENTE) pedidos.add(sistema.getPedidos().get(i-1).getId());
         }
         Collections.shuffle(pedidos);
-        if(nIndividuo<30){
+        if(nIndividuo<5){
             asignarEquitativamente(numCamiones, pedidos, sistema);
 
         }
