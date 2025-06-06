@@ -10,6 +10,7 @@ public class Genetico {
     private final double probCruce;
     private final double probMutacion;
     private final double porcentajeElite;
+    private int numIndividuosExploratorios = 15;
     @Getter
     private List<Double> resultados;
 
@@ -52,7 +53,26 @@ public class Genetico {
             }
 
             // Cruce y mutación
+            int iter = 0;
             while (nuevaGeneracion.size() < tamPoblacion) { //si no hay pedidos validos se queda
+                if (iter == 50) {
+                    int generados = 0;
+                    int intentos = 0;
+                    int maxIntentos = 100; // evita bucles infinitos
+
+                    while (generados < numIndividuosExploratorios && intentos < maxIntentos && nuevaGeneracion.size() < tamPoblacion) {
+                        Individuo nuevo = new Individuo(numPedidos, numCamiones, sistema, code);
+                        nuevo.evaluar(code, sistema);
+                        if (nuevo.getFitness() > 0) {
+                            nuevaGeneracion.add(nuevo);
+                            generados++;
+                        }
+                        intentos++;
+                    }
+
+                    iter = 0; // reiniciar el contador de intentos fallidos
+                }
+
                 Individuo padre1 = seleccionarTorneo(poblacion);
                 Individuo padre2 = seleccionarTorneo(poblacion);
 
@@ -70,6 +90,7 @@ public class Genetico {
                 if (hijo.getFitness() > 0) {
                     nuevaGeneracion.add(hijo);
                 }
+                iter = iter+1;
             }
 
             poblacion = nuevaGeneracion;
@@ -173,6 +194,11 @@ public class Genetico {
         hijo.setAsignacion(asignacionHijo);
         hijo.setPedidosXcargasGLP(cargasGLP);
         hijo.setSistemaPLG(padre1.getSistemaPLG());
+        /*
+        System.out.println(hijo.getAsignacion());
+        System.out.println(hijo.getPedidosXcargasGLP());
+        System.out.println("***************************************************************************************");
+        */
         return hijo;
     }
 

@@ -159,11 +159,11 @@ public class PlanificacionPlgApplication {
         sistemaPLG.setCamionesAveriados(new ArrayList<>());
 
 
-        int tamPoblacion = 30;
-        int generaciones = 10;
-        double probCruce = 0.5;
-        double probMutacion = 0.65;
-        double porcentajeElite = 0.2;
+        int tamPoblacion = 50;
+        int generaciones = 15;
+        double probCruce = 0.55;
+        double probMutacion = 0.25;
+        double porcentajeElite = 0.1;
 
         // Initial planification
         Genetico ga = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);

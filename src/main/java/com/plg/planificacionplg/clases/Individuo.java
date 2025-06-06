@@ -29,7 +29,7 @@ public class Individuo {
             if(sistema.getPedidos().get(i-1).getEstado()==EstadoPedido.PENDIENTE) pedidos.add(sistema.getPedidos().get(i-1).getId());
         }
         Collections.shuffle(pedidos);
-        if(nIndividuo<5){
+        if(nIndividuo<30){
             asignarEquitativamente(numCamiones, pedidos, sistema);
 
         }
@@ -220,11 +220,17 @@ public class Individuo {
             if(considerarMantenimiento(camion)==-1) return;
 
             int resultado = camion.construirRutaHaciaPedido(sistemaPLG);
+            /*
+            System.out.println(this.getAsignacion());
+            System.out.println(this.getPedidosXcargasGLP());
+            System.out.println("***************************************************************************************");
+            */
             if (resultado != 0) {
                 fitness = 0.0;
                 //System.out.println("Problema: " + resultado);
                 return;
             }
+
         }
 
         // Evaluar desempeño (ej: eficiencia: distancia/combustible)
