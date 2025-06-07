@@ -225,7 +225,7 @@ public class SolutionController {
 
             for (int i = 0; i < mejorSolucion.getSistemaPLG().getFlota().size(); i++) {
                 //si el camion no tiene registro de atenciones en la planificaicon
-                if (mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().size() < 2) {
+                if (mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().size() < 3) {
                     //dar origen en cisterna principal
                     Camion nuevoCamion = new Camion(mejorSolucion.getSistemaPLG().getFlota().get(i));
                     Reabastecimiento origen = new Reabastecimiento();
@@ -240,7 +240,7 @@ public class SolutionController {
                     origen.setSaldoGLPCamion(0.0);
                     origen.setSaldoCombustibleCamion(nuevoCamion.getCombustibleActual());
                     nuevoCamion.setEstado(EstadoCamion.DISPONIBLE);
-                    nuevoCamion.getDestinos().add(origen);
+                    //nuevoCamion.getDestinos().add(origen);
                     nuevoCamion.setUbicacionActual(origen.getUbicacion());
                     replanificado.getFlota().add(nuevoCamion);
                     System.out.println("camion que no salio> "+nuevoCamion.getId());

@@ -159,8 +159,8 @@ public class PlanificacionPlgApplication {
         sistemaPLG.setCamionesAveriados(new ArrayList<>());
 
 
-        int tamPoblacion = 50;
-        int generaciones = 15;
+        int tamPoblacion = 30;
+        int generaciones = 5;
         double probCruce = 0.55;
         double probMutacion = 0.25;
         double porcentajeElite = 0.1;

@@ -112,7 +112,7 @@ public class SistemaPLG {
             if(c.getDestinos().isEmpty())continue;
 
             Destino anterior = c.getDestinos().get(0), d;
-            if(anterior.getFechaHoraSalida()==null)continue;
+            if(anterior.getFechaHoraSalida()==null || (c.getDestinos().get(1)!=null && c.getDestinos().get(1).getFechaHoraLlegada()==null))continue;
 
             if(anterior.getFechaHoraSalida().isAfter(fecha))continue;
 
@@ -156,7 +156,7 @@ public class SistemaPLG {
         Camion c = flota.get(idCamion-1);
         if(c.getDestinos().isEmpty())return 0.0;
         Destino anterior = c.getDestinos().get(0), d;
-        if(anterior.getFechaHoraSalida()==null)return anterior.getSaldoGLPCamion();
+        if(anterior.getFechaHoraSalida()==null || (c.getDestinos().get(1)!=null && c.getDestinos().get(1).getFechaHoraLlegada()==null))return anterior.getSaldoGLPCamion();
         if(anterior.getFechaHoraSalida().isAfter(fecha)){
             return anterior.getSaldoGLPCamion();
         }
@@ -181,7 +181,7 @@ public class SistemaPLG {
         Camion camion = new Camion(c);
         if(c.getDestinos().isEmpty())return camion;
         Destino anterior = c.getDestinos().get(0), d;
-        if(anterior.getFechaHoraSalida()==null)
+        if(anterior.getFechaHoraSalida()==null || (c.getDestinos().get(1)!=null && c.getDestinos().get(1).getFechaHoraLlegada()==null))
             return camion;
         if(anterior.getFechaHoraSalida().isAfter(fecha)){
             camion.setCombustibleActual(anterior.getSaldoCombustibleCamion());

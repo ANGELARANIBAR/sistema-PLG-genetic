@@ -62,7 +62,7 @@ public class Camion {
         int distanciaManzana = 1;
         if(destinos.isEmpty())return getCombustibleActual();
         Destino anterior = destinos.get(0);
-        if(anterior.getFechaHoraSalida()==null)return 0.0;//camion no salio
+        if(anterior.getFechaHoraSalida()==null || destinos.getLast().getFechaHoraLlegada()==null)return 0.0;//camion no salio
         if(fechahora.isBefore(anterior.getFechaHoraSalida()))return 0.0;
         if(anterior.getFechaHoraSalida().equals(fechahora)) {return anterior.getSaldoCombustibleCamion();}
         for(int i=1; i<destinos.size(); i++) {
@@ -86,7 +86,7 @@ public class Camion {
     public double calcularGLPActual(LocalDateTime fechahora) {
         if(destinos.isEmpty())return getCargaGLPActual();
         Destino anterior = destinos.get(0);
-        if(anterior.getFechaHoraSalida()==null)return getCargaGLPActual();//camion no salio
+        if(anterior.getFechaHoraSalida()==null || destinos.getLast().getFechaHoraLlegada()==null)return getCargaGLPActual();//camion no salio
         if(fechahora.isBefore(anterior.getFechaHoraSalida()))return 0.0;
         if(anterior.getFechaHoraSalida().equals(fechahora)) {return anterior.getSaldoCombustibleCamion();}
         for(int i=1; i<destinos.size(); i++) {
@@ -112,7 +112,7 @@ public class Camion {
 
         if(destinos.isEmpty())return new Nodo(0, 0);
         Destino anterior = destinos.get(0);
-        if(anterior.getFechaHoraSalida()==null)return new Nodo(0, 0);
+        if(anterior.getFechaHoraSalida()==null || destinos.getLast().getFechaHoraLlegada()==null)return new Nodo(0, 0);
         if(fechahora.isBefore(anterior.getFechaHoraSalida()))return anterior.getUbicacion();
         if(anterior.getFechaHoraSalida().equals(fechahora)) {return anterior.getUbicacion();}
         ubicacionActual = anterior.getUbicacion();
@@ -151,8 +151,13 @@ public class Camion {
         Destino destinoInicial = destinos.get(0);
         int pedidosCant = destinos.size();
         int cantNodosInicial=pedidosCant, index = 0;
-
-        for (int i = 1; i < pedidosCant; i++) {
+        if(pedidosCant == 2) {
+            if (destinos.getFirst().getUbicacion().sonIguales(destinos.getLast().getUbicacion())) {
+                return -5;
+            }
+            if(insertarNodosIntermediosCargaCombustible(destinos.getFirst(), destinos.getLast(), sistemaPLG)==-1)return -4;
+        }
+        else for (int i = 1; i < pedidosCant; i++) {
             index=index+destinos.size()-cantNodosInicial+1;
             cantNodosInicial=destinos.size();
             Destino destinoFinal = destinos.get(index);
@@ -166,6 +171,7 @@ public class Camion {
             if (resultadoNodosIntermedios == 1) {//caso en que no necesitas GLP, y puede que necesitss gasolina
                 if(insertarNodosIntermediosCargaCombustible(destinoInicial, destinoFinal, sistemaPLG)==-1)return -4;
             } else if (resultadoNodosIntermedios == -1) {
+                //System.out.println(pedidosCant-2+"?? 1: "+destinoInicial.getUbicacion()+" 2: "+destinoFinal.getUbicacion());
                 return -3; // no se puede llegar a pedidoDestino solucion No Valida
             }
 

@@ -140,7 +140,7 @@ public class Individuo {
         for (Map.Entry<Integer, List<Integer>> entry : asignacion.entrySet()) {
             int camionIdx = entry.getKey();
             List<Integer> pedidosAsignados = entry.getValue();
-            if (pedidosAsignados.isEmpty()) continue;
+            //if (pedidosAsignados.isEmpty()) continue;
 
             Camion camion = flota.get(camionIdx - 1);
             camion.setEstado(EstadoCamion.EN_RUTA);
@@ -162,11 +162,13 @@ public class Individuo {
 
             camion.setCargasGLP(pedidosXcargasGLP.get(camionIdx));
             double GLPInicial = 0.0;
-            if (pedidosXcargasGLP.get(camionIdx).isEmpty()) {
+            if (pedidosXcargasGLP.get(camionIdx).isEmpty() != pedidosAsignados.isEmpty()) {
                 continue;
             }
-            for (int i = 0; i < pedidosXcargasGLP.get(camionIdx).get(0); i++) {
-                GLPInicial += camion.getPedidosAsignados().get(i).getVolumenGLP();
+            if (!pedidosXcargasGLP.get(camionIdx).isEmpty()) {
+                for (int i = 0; i < pedidosXcargasGLP.get(camionIdx).get(0); i++) {
+                    GLPInicial += camion.getPedidosAsignados().get(i).getVolumenGLP();
+                }
             }
             GLPInicial -= camion.getCargaGLPActual();
             if (camion.getTipo().getCargaGLPMax() < GLPInicial) {
@@ -225,6 +227,9 @@ public class Individuo {
             System.out.println(this.getPedidosXcargasGLP());
             System.out.println("***************************************************************************************");
             */
+            if (pedidosXcargasGLP.get(camionIdx).isEmpty() && pedidosAsignados.isEmpty() && (resultado == -3 || resultado == -5)) {
+                continue;
+            }
             if (resultado != 0) {
                 fitness = 0.0;
                 //System.out.println("Problema: " + resultado);
