@@ -281,7 +281,10 @@ public class SolutionController {
                     origenReplan.setFechaHoraLlegada(inicioAveria);
                     origenReplan.setFechaHoraSalida(inicioAveria);
                     origenReplan.setGLPOperacion(0.0);
-                    origenReplan.setSaldoGLPCamion(destinoActual.getSaldoGLPCamion());
+                    Destino anterior = mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinoAnteriorAFechaHora(inicioAveria);
+                    if(anterior != null)
+                        origenReplan.setSaldoGLPCamion(anterior.getSaldoGLPCamion());
+                    else origenReplan.setSaldoGLPCamion(0.0);
                     origenReplan.setSaldoCombustibleCamion(nuevoCamion.getCombustibleActual());
                     nuevoCamion.getDestinos().add(origenReplan);
                     System.out.println("camion en ruta> "+nuevoCamion.getId());
@@ -294,7 +297,7 @@ public class SolutionController {
             double probCruce = 0.3;
             double probMutacion = 0.15;
             double porcentajeElite = 0.2;
-            //replanificado.imprimirPlanificacion();
+            replanificado.imprimirPlanificacion();
             Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
             mejorSolucion = ga2.ejecutar(2, replanificado);
             mejorSolucion.getSistemaPLG().imprimirPlanificacion();

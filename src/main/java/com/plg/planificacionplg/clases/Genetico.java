@@ -54,7 +54,7 @@ public class Genetico {
 
             int iter = 0;
             while (nuevaGeneracion.size() < tamPoblacion) { //si no hay pedidos validos se queda
-                if (iter == tamPoblacion/2) {
+                if (iter > tamPoblacion/2) {
                     int generados = 0;
                     int intentos = 0;
                     int maxIntentos = 100; // evita bucles infinitos

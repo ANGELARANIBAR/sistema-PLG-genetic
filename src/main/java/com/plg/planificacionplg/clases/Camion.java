@@ -106,6 +106,31 @@ public class Camion {
         }
         return getCargaGLPActual();
     }
+    public Destino getDestinoAnteriorAFechaHora(LocalDateTime fechahora) {
+        if(destinos.isEmpty())return null;
+        Destino anterior = destinos.get(0);
+        if(anterior.getFechaHoraSalida()==null
+                || destinos.getLast().getFechaHoraLlegada()==null)
+            return anterior;//camion no salio
+        if(fechahora.isBefore(anterior.getFechaHoraSalida()))return anterior;
+        if(anterior.getFechaHoraSalida().equals(fechahora)) {return anterior;}
+        for(int i=1; i<destinos.size(); i++) {
+            Destino destino = destinos.get(i);
+            if(destino.getFechaHoraLlegada().isAfter(fechahora)) {
+                //calcular con ruta
+                //double tiempoEnRuta = Duration.between(anterior.getFechaHoraSalida(), fechahora).toSeconds();
+                return anterior;
+            }
+            else{
+                if(destino.getFechaHoraSalida().isAfter(fechahora) ||
+                        destino.getFechaHoraLlegada().isEqual(fechahora)){
+                    return destino;
+                }
+            }
+            anterior = destino;
+        }
+        return destinos.getLast();
+    }
 
 
     public Nodo calcularUbicacion(LocalDateTime fechahora) {
@@ -271,8 +296,9 @@ public class Camion {
                 resultadoNodosIntermedios = buscarDestinosIntermediosCargaCombustible(
                         canditatos.get(idxCamPrueba * 2), start, trasvase, sistemaPLG, camionesPrueba.get(idxCamPrueba));//start a cisterna
                 if (resultadoNodosIntermedios == -1) continue;
-                if(!camionAveriado.disponibleParaTrasvase(start.getFechaHoraSalida()
-                        .plusMinutes((long) (camionesPrueba.get(idxCamPrueba).distanciaTotal / tipo.getVelocidadPromedio())), faltanteGLP))continue;
+                trasvase.setFechaHoraTrasvase(start.getFechaHoraSalida()
+                        .plusMinutes((long) (camionesPrueba.get(idxCamPrueba).distanciaTotal / tipo.getVelocidadPromedio())));
+                if(!camionAveriado.disponibleParaTrasvase(trasvase.getFechaHoraTrasvase(), faltanteGLP))continue;
                 resultadoNodosIntermedios = buscarDestinosIntermediosCargaCombustible(
                         canditatos.get(idxCamPrueba * 2 + 1), trasvase, end, sistemaPLG, camionesPrueba.get(idxCamPrueba));//cisterna a end
 
@@ -317,8 +343,13 @@ public class Camion {
                         faltanteGLP, this);
                 elegido.setEstadoCamion(EstadoCamion.EN_RECARGA_GLP);
             }else{
-                sistemaPLG.getFlota().get(((Trasvase)elegido).getCamionTrasvase().getId()-1).setCargaGLPActual(
-                        sistemaPLG.getFlota().get(((Trasvase)elegido).getCamionTrasvase().getId()-1).getCargaGLPActual() - faltanteGLP);
+                Camion camEnSistema = sistemaPLG.getFlota().get(((Trasvase)elegido).getCamionTrasvase().getId()-1);
+                /*camEnSistema.setCargaGLPActual(
+                        camEnSistema.getCargaGLPActual() - faltanteGLP);*/
+                //encontrar el destino y actualzar le saldo GLP en destino
+                Destino anterior = camEnSistema.getDestinoAnteriorAFechaHora(((Trasvase) elegido).getFechaHoraTrasvase());
+                if(anterior==null)return 1;
+                anterior.setSaldoGLPCamion(sistemaPLG.getFlota().get(((Trasvase)elegido).getCamionTrasvase().getId()-1).getCargaGLPActual() - faltanteGLP);
                 elegido.setEstadoCamion(EstadoCamion.EN_RECARGA_GLP);
             }
             end.setSaldoGLPCamion(cargaGLPActual);

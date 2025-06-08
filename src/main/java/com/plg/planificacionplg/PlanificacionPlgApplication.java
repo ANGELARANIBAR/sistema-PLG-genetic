@@ -258,7 +258,6 @@ public class PlanificacionPlgApplication {
                         origen.setSaldoGLPCamion(0.0);
                         origen.setSaldoCombustibleCamion(nuevoCamion.getCombustibleActual());
                         nuevoCamion.setEstado(EstadoCamion.DISPONIBLE);
-                        //nuevoCamion.getDestinos().add(origen);
                         nuevoCamion.setUbicacionActual(origen.getUbicacion());
                         replanificado.getFlota().add(nuevoCamion);
                         System.out.println("camion que no salio> "+nuevoCamion.getId());

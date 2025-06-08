@@ -3,11 +3,14 @@ package com.plg.planificacionplg.clases;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.time.LocalDateTime;
+
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class Trasvase extends Destino{
     private int id;
     private Camion camionTrasvase;
+    private LocalDateTime FechaHoraTrasvase;
 
     public Trasvase() {
         setTiempoOperacion(0.0);
@@ -25,6 +28,7 @@ public class Trasvase extends Destino{
         this.setIdDestino(otro.getIdDestino());
         this.setRuta(new Ruta(otro.getRuta()));
         this.setEstadoCamion(otro.getEstadoCamion());
+        this.setFechaHoraTrasvase(otro.getFechaHoraTrasvase());
         this.id = otro.id;
         this.camionTrasvase = otro.camionTrasvase;
     }
@@ -48,6 +52,7 @@ public class Trasvase extends Destino{
         destino.setEstadoCamion(this.getEstadoCamion());
         destino.setRuta(this.getRuta());
         destino.setId(this.getId());
+        destino.setCamionTrasvase(this.getCamionTrasvase());
         if(camionTrasvase!=null)
             destino.setUbicacion(camionTrasvase.getUbicacionActual());
         return destino;
