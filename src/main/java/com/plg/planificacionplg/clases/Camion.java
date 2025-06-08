@@ -133,6 +133,7 @@ public class Camion {
             }
             anterior = destino;
         }
+        ubicacionActual = destinos.getLast().getUbicacion();
         return ubicacionActual;
     }
 

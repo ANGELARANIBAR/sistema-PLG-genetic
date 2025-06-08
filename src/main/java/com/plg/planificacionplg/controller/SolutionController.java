@@ -289,12 +289,12 @@ public class SolutionController {
                 }
                 replanificado.getFlota().add(nuevoCamion);
             }
-            int tamPoblacion = 50;
-            int generaciones = 10;
-            double probCruce = 0.6;
-            double probMutacion = 0.7;
-            double porcentajeElite = 0.4;
-            replanificado.imprimirPlanificacion();
+            int tamPoblacion = 30;
+            int generaciones = 5;
+            double probCruce = 0.3;
+            double probMutacion = 0.15;
+            double porcentajeElite = 0.2;
+            //replanificado.imprimirPlanificacion();
             Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
             mejorSolucion = ga2.ejecutar(2, replanificado);
             mejorSolucion.getSistemaPLG().imprimirPlanificacion();

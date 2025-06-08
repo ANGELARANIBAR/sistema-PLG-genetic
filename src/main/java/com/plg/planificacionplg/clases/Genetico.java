@@ -98,7 +98,7 @@ public class Genetico {
                 mejorSolucion = mejorGen.clonar(code);
             }
 
-            System.out.println("Gen " + gen + " - Fitness: " + mejorSolucion.getFitness());
+            System.out.println("Gen " + (gen + 1)  + " - Fitness: " + mejorSolucion.getFitness());
             resultados.add(mejorSolucion.getFitness());
         }
 

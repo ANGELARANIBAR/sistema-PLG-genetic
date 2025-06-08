@@ -165,6 +165,7 @@ public class Individuo {
             if (pedidosXcargasGLP.get(camionIdx).isEmpty() != pedidosAsignados.isEmpty()) {
                 continue;
             }
+            camion.setIndicePedidoActual(0); // se pudo recargar GLP en el origen
             if (!pedidosXcargasGLP.get(camionIdx).isEmpty()) {
                 for (int i = 0; i < pedidosXcargasGLP.get(camionIdx).get(0); i++) {
                     GLPInicial += camion.getPedidosAsignados().get(i).getVolumenGLP();
@@ -175,7 +176,6 @@ public class Individuo {
                 fitness = 0.0;
                 return;
             }
-            camion.setIndicePedidoActual(0); // se pudo recargar GLP en el origen
             if (code == 1) {
                 Reabastecimiento origen = new Reabastecimiento();
                 origen.setCisterna(cisternas.get(0));
