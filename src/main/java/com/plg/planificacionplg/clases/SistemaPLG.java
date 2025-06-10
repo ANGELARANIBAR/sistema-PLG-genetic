@@ -189,6 +189,9 @@ public class SistemaPLG {
             camion.setUbicacionActual(anterior.getUbicacion());
             camion.setIdxDestinoEnCurso(0);
             camion.setDestinoEnCurso(anterior);
+            if(anterior.getEstadoCamion()!=null)
+                camion.setEstado(anterior.getEstadoCamion());
+            //else camion.setEstado(EstadoCamion.DISPONIBLE);
             return camion;
         }
         int i=0;
@@ -263,7 +266,7 @@ public class SistemaPLG {
     private int buscarIdCamionPorCodigo(String codigoCamion) {
         for (int i = 0; i < flota.size(); i++) {
             if (flota.get(i).getCodigo().equals(codigoCamion)) {
-                return i; // 🔹 Retorna índice correcto
+                return i;
             }
         }
         return -1;

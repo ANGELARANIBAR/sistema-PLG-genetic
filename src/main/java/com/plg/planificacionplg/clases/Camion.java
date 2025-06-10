@@ -62,8 +62,8 @@ public class Camion {
         int distanciaManzana = 1;
         if(destinos.isEmpty())return getCombustibleActual();
         Destino anterior = destinos.get(0);
-        if(anterior.getFechaHoraSalida()==null || destinos.getLast().getFechaHoraLlegada()==null)return 0.0;//camion no salio
-        if(fechahora.isBefore(anterior.getFechaHoraSalida()))return 0.0;
+        if(anterior.getFechaHoraSalida()==null || destinos.getLast().getFechaHoraLlegada()==null)return anterior.getSaldoCombustibleCamion();//camion no salio
+        if(fechahora.isBefore(anterior.getFechaHoraSalida()))return anterior.getSaldoCombustibleCamion();;
         if(anterior.getFechaHoraSalida().equals(fechahora)) {return anterior.getSaldoCombustibleCamion();}
         for(int i=1; i<destinos.size(); i++) {
             Destino destino = destinos.get(i);
@@ -80,7 +80,7 @@ public class Camion {
             }
             anterior = destino;
         }
-        return getCombustibleActual();
+        return destinos.getLast().getSaldoCombustibleCamion();
     }
 
     public double calcularGLPActual(LocalDateTime fechahora) {
@@ -344,12 +344,11 @@ public class Camion {
                 elegido.setEstadoCamion(EstadoCamion.EN_RECARGA_GLP);
             }else{
                 Camion camEnSistema = sistemaPLG.getFlota().get(((Trasvase)elegido).getCamionTrasvase().getId()-1);
-                /*camEnSistema.setCargaGLPActual(
-                        camEnSistema.getCargaGLPActual() - faltanteGLP);*/
                 //encontrar el destino y actualzar le saldo GLP en destino
                 Destino anterior = camEnSistema.getDestinoAnteriorAFechaHora(((Trasvase) elegido).getFechaHoraTrasvase());
                 if(anterior==null)return 1;
-                anterior.setSaldoGLPCamion(sistemaPLG.getFlota().get(((Trasvase)elegido).getCamionTrasvase().getId()-1).getCargaGLPActual() - faltanteGLP);
+                camEnSistema.setCargaGLPActual(camEnSistema.getDestinos().getFirst().getSaldoGLPCamion() - faltanteGLP);
+                anterior.setSaldoGLPCamion(camEnSistema.getCargaGLPActual());
                 elegido.setEstadoCamion(EstadoCamion.EN_RECARGA_GLP);
             }
             end.setSaldoGLPCamion(cargaGLPActual);
