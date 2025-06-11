@@ -6,10 +6,7 @@ import lombok.Data;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Data
 public class Camion {
@@ -87,8 +84,25 @@ public class Camion {
         if(destinos.isEmpty())return getCargaGLPActual();
         Destino anterior = destinos.get(0);
         if(anterior.getFechaHoraSalida()==null || destinos.getLast().getFechaHoraLlegada()==null)return getCargaGLPActual();//camion no salio
-        if(fechahora.isBefore(anterior.getFechaHoraSalida()))return 0.0;
-        if(anterior.getFechaHoraSalida().equals(fechahora)) {return anterior.getSaldoCombustibleCamion();}
+
+        if(anterior instanceof Replanficacion &&
+                fechahora.isBefore(anterior.getFechaHoraSalida())) {
+            if((((Replanficacion) anterior).getOperaciones()!=null)){
+                List<OperacionesGLPCisterna> operaciones = ((Replanficacion) anterior).getOperaciones();
+                //operaciones.sort(Comparator.comparing(OperacionesGLPCisterna::getFechaHoraOperacion));
+                for(OperacionesGLPCisterna op : operaciones){
+                    if(fechahora.isBefore(op.getFechaHoraOperacion())){
+                        return op.getSaldoGLP() + op.getCantSalidaGLP();
+                    }
+                    if((fechahora.isEqual(op.getFechaHoraOperacion()))){
+                        return op.getSaldoGLP();
+                    }
+                }
+            }
+            return anterior.getSaldoGLPCamion();
+        }
+        if(fechahora.isBefore(anterior.getFechaHoraSalida()))return anterior.getSaldoCombustibleCamion();
+        if(anterior.getFechaHoraSalida().isEqual(fechahora)) return anterior.getSaldoCombustibleCamion();
         for(int i=1; i<destinos.size(); i++) {
             Destino destino = destinos.get(i);
             if(destino.getFechaHoraLlegada().isAfter(fechahora)) {
@@ -283,7 +297,7 @@ public class Camion {
                 Trasvase trasvase = new Trasvase();
                 int resultadoNodosIntermedios;
                 Camion camionAveriado = sistemaPLG.getCamionesAveriados().get(j);
-                if(faltanteGLP>camionAveriado.getCargaGLPActual()){continue;}
+                if(faltanteGLP>camionAveriado.getCargaGLPActual() || !(camionAveriado.getDestinos().getFirst() instanceof Replanficacion)){continue;}
                 idxCamPrueba = idxCamTPrueba+mejorCisterna+1;
                 idxCamTPrueba++;
                 trasvase.setCamionTrasvase(camionAveriado);
@@ -350,6 +364,17 @@ public class Camion {
                 camEnSistema.setCargaGLPActual(camEnSistema.getDestinos().getFirst().getSaldoGLPCamion() - faltanteGLP);
                 anterior.setSaldoGLPCamion(camEnSistema.getCargaGLPActual());
                 elegido.setEstadoCamion(EstadoCamion.EN_RECARGA_GLP);
+                if(camEnSistema.getDestinos().getFirst() instanceof Replanficacion){
+                    OperacionesGLPCisterna op = new OperacionesGLPCisterna();
+                    op.setCantSalidaGLP(elegido.operacionCargaGLP());
+                    op.setFechaHoraOperacion(((Trasvase) elegido).getFechaHoraTrasvase());
+                    op.setCamion(this);
+                    op.setSaldoGLP(camEnSistema.getCargaGLPActual());
+                    if(((Replanficacion) camEnSistema.getDestinos().getFirst()).getOperaciones()==null){
+                        ((Replanficacion) camEnSistema.getDestinos().getFirst()).setOperaciones(new ArrayList<>());
+                    }
+                    ((Replanficacion) camEnSistema.getDestinos().getFirst()).getOperaciones().add(op);
+                }
             }
             end.setSaldoGLPCamion(cargaGLPActual);
             end.setSaldoCombustibleCamion(combustibleActual);

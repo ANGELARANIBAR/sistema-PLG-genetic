@@ -13,7 +13,7 @@ public class Trasvase extends Destino{
     private LocalDateTime FechaHoraTrasvase;
 
     public Trasvase() {
-        setTiempoOperacion(0.0);
+        setTiempoOperacion(15.0);
     }
     public Trasvase(Trasvase otro) {
         this.setPedido(otro.getPedido());

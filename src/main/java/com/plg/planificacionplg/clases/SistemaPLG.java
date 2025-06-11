@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -157,6 +158,22 @@ public class SistemaPLG {
         if(c.getDestinos().isEmpty())return 0.0;
         Destino anterior = c.getDestinos().get(0), d;
         if(anterior.getFechaHoraSalida()==null || (c.getDestinos().get(1)!=null && c.getDestinos().get(1).getFechaHoraLlegada()==null))return anterior.getSaldoGLPCamion();
+        if(anterior instanceof Replanficacion &&
+                fecha.isBefore(anterior.getFechaHoraSalida())) {
+            if((((Replanficacion) anterior).getOperaciones()!=null)){
+                List<OperacionesGLPCisterna> operaciones = ((Replanficacion) anterior).getOperaciones();
+                operaciones.sort(Comparator.comparing(OperacionesGLPCisterna::getFechaHoraOperacion));
+                for(OperacionesGLPCisterna op : operaciones){
+                    if(fecha.isBefore(op.getFechaHoraOperacion())){
+                        return op.getSaldoGLP() + op.getCantSalidaGLP();
+                    }
+                    if((fecha.isEqual(op.getFechaHoraOperacion()))){
+                        return op.getSaldoGLP();
+                    }
+                }
+            }
+            return anterior.getSaldoGLPCamion();
+        }
         if(anterior.getFechaHoraSalida().isAfter(fecha)){
             return anterior.getSaldoGLPCamion();
         }
@@ -173,7 +190,7 @@ public class SistemaPLG {
             }
             anterior = d;
         }
-        return 0.0;
+        return c.getDestinos().getLast().getSaldoGLPCamion();
     }
 
     public Camion getCamionEnInstante(int idCamion, LocalDateTime fecha){

@@ -41,7 +41,7 @@ public class PlanificacionPlgApplication {
         cintermedio1.setCargaGLPActual(cintermedio1.getCapacidadTotal());
         cintermedio1.setUbicacion(new Nodo(42,42));
         cintermedio1.setHoraAbastecimento(LocalTime.MIN);
-        //cisternas.add(cintermedio1);
+        cisternas.add(cintermedio1);
 
         Cisterna cintermedio2 = new Cisterna();
         cintermedio2.setPrincipal(false);
@@ -49,7 +49,7 @@ public class PlanificacionPlgApplication {
         cintermedio2.setCargaGLPActual(cintermedio1.getCapacidadTotal());
         cintermedio2.setUbicacion(new Nodo(63,3));
         cintermedio2.setHoraAbastecimento(LocalTime.MIN);
-        //cisternas.add(cintermedio2);
+        cisternas.add(cintermedio2);
 
         SistemaPLG sistemaPLG = new SistemaPLG();
         sistemaPLG.setFechaHoraInicio(LocalDateTime.now());

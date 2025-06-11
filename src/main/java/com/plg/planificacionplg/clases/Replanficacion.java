@@ -3,11 +3,14 @@ package com.plg.planificacionplg.clases;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class Replanficacion extends Destino{
     private int id;
-
+    private List<OperacionesGLPCisterna> operaciones;
     public Replanficacion() {
 
     }
@@ -24,7 +27,9 @@ public class Replanficacion extends Destino{
         this.setNumeroOrden(otro.getNumeroOrden());
         this.setIdDestino(otro.getIdDestino());
         this.setEstadoCamion(otro.getEstadoCamion());
-
+        if(otro.getOperaciones() != null){
+            this.setOperaciones(new ArrayList<>(otro.getOperaciones()));
+        }
         //this.setRuta(new Ruta(otro.getRuta()));
     }
     @Override
@@ -47,6 +52,9 @@ public class Replanficacion extends Destino{
         destino.setEstadoCamion(this.getEstadoCamion());
         destino.setRuta(this.getRuta());
         destino.setId(this.getId());
+        if(this.getOperaciones() != null){
+            destino.setOperaciones(new ArrayList<>(this.getOperaciones()));
+        }
         return destino;
     }
     @Override
@@ -57,5 +65,12 @@ public class Replanficacion extends Destino{
         if(getRuta().getNodos()!=null)
             System.out.println("Ruta: " + getRuta());
         else System.out.println("No hay ruta.");
+        if(getOperaciones()!=null)
+            for(OperacionesGLPCisterna operacion : getOperaciones()){
+                System.out.println("GLP salida: " + operacion.getCantSalidaGLP());
+                System.out.println("GLP saldo: " + operacion.getSaldoGLP());
+                System.out.println("Fecha Hora trasvase: " + operacion.getFechaHoraOperacion());
+                System.out.println("Camion solicitante: " + operacion.getCamion().getId());
+            }
     }
 }
