@@ -26,6 +26,7 @@ export interface Node {
 }
 
 export interface Cisterna {
+  id: number;
   principal: boolean;
   ubicacion: Node;
   cargaGLPActual: number;

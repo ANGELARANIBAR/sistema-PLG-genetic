@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { SistemaPLG, TruckRoute, Node, Destination } from '../types/route';
-import { fetchSystem, fetchTruckPosition, fetchStartTime, fetchTruckFuel, fetchTruckGLP, changeOrderState, registrarAveria, checkReplanning, fetchTruckDestination, fetchTruckState } from '../services/routeService';
+import { fetchSystem, fetchTruckPosition, fetchStartTime, fetchTruckFuel, fetchTruckGLP, changeOrderState, registrarAveria, checkReplanning, fetchTruckDestination, fetchTruckState, fetchCisternaGLP } from '../services/routeService';
 import '../styles/MapStyles.css';
 
 interface MapVisualizationProps {
@@ -13,6 +13,7 @@ const MapVisualization: React.FC<MapVisualizationProps> = ({ currentTime, onPaus
   const [truckPositions, setTruckPositions] = useState<Map<number, Node>>(new Map());
   const [truckFuels, setTruckFuels] = useState<Map<number, number>>(new Map());
   const [truckGLPs, setTruckGLPs] = useState<Map<number, number>>(new Map());
+  const [cisternaGLPs, setCisternaGLPs] = useState<Map<number, number>>(new Map());
   const [isReplanning, setIsReplanning] = useState<boolean>(false);
   const [averiaStartTime, setAveriaStartTime] = useState<Date | null>(null);
   const [selectedItem, setSelectedItem] = useState<{ type: 'truck' | 'cisterna' | 'pedido', id: number } | null>(null);
@@ -120,6 +121,27 @@ const MapVisualization: React.FC<MapVisualizationProps> = ({ currentTime, onPaus
     };
 
     updateTruckStates();
+  }, [currentTime, system]);
+
+  useEffect(() => {
+    const updateCisternaGLPs = async () => {
+      if (!currentTime || !system) return;
+
+      const newGLPs = new Map<number, number>();
+      for (const cisterna of system.cisternas) {
+        try {
+          const glp = await fetchCisternaGLP(cisterna.id, currentTime);
+          if (glp !== null) {
+            newGLPs.set(cisterna.id, glp);
+          }
+        } catch (error) {
+          console.error(`Error updating cisterna ${cisterna.id} GLP:`, error);
+        }
+      }
+      setCisternaGLPs(newGLPs);
+    };
+
+    updateCisternaGLPs();
   }, [currentTime, system]);
 
   // Add effect to periodically fetch system data
@@ -430,6 +452,7 @@ ${currentDest ? `\nEn: ${currentDest.destinationType}` : ''}`}
         {/* Draw cisternas */}
         {system.cisternas.map((cisterna, index) => {
           const pos = toScreenPosition(cisterna.ubicacion.x, cisterna.ubicacion.y);
+          const currentGLP = cisternaGLPs.get(cisterna.id) ?? cisterna.cargaGLPActual;
           return (
             <div
               key={`cisterna-${index}`}
@@ -453,7 +476,7 @@ ${currentDest ? `\nEn: ${currentDest.destinationType}` : ''}`}
               }}
               onClick={() => setSelectedItem({ type: 'cisterna', id: index })}
               title={`${cisterna.principal ? 'Principal' : 'Secundaria'} Cisterna
-GLP Actual: ${cisterna.cargaGLPActual.toFixed(2)} / ${cisterna.capacidadTotal.toFixed(2)}
+GLP Actual: ${currentGLP.toFixed(2)} / ${cisterna.capacidadTotal.toFixed(2)}
 Hora Abastecimiento: ${cisterna.horaAbastecimento}
 ${cisterna.operacionesGLPCisterna?.length ? `
 Últimas operaciones:
@@ -592,7 +615,7 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
                     <strong>Type:</strong> {system.cisternas[selectedItem.id].principal ? 'Principal' : 'Secundaria'}
                   </div>
                   <div style={{ marginBottom: '5px' }}>
-                    <strong>Current GLP:</strong> {system.cisternas[selectedItem.id].cargaGLPActual.toFixed(2)}
+                    <strong>Current GLP:</strong> {(cisternaGLPs.get(system.cisternas[selectedItem.id].id) ?? system.cisternas[selectedItem.id].cargaGLPActual).toFixed(2)}
                   </div>
                   <div style={{ marginBottom: '5px' }}>
                     <strong>Total Capacity:</strong> {system.cisternas[selectedItem.id].capacidadTotal.toFixed(2)}

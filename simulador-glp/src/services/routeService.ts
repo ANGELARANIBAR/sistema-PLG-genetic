@@ -76,6 +76,17 @@ export const fetchTruckGLP = async (truckId: number, time: Date | null): Promise
   return response.json();
 };
 
+export const fetchCisternaGLP = async (cisternaId: number, time: Date | null): Promise<number | null> => {
+  if (!time) return null;
+  const pad = (num: number) => String(num).padStart(2, '0');
+  const formattedTime = `${time.getFullYear()}-${pad(time.getMonth() + 1)}-${pad(time.getDate())}T${pad(time.getHours())}:${pad(time.getMinutes())}:${pad(time.getSeconds())}.${time.getMilliseconds()}`;
+  const response = await fetch(`${API_BASE_URL}/solution/cisterna-GLP/${cisternaId}?time=${formattedTime}`);
+  if (!response.ok) {
+    return null;
+  }
+  return response.json();
+};
+
 export const registrarAveria = async (
   truckId: number,
   tipoAveria: number,

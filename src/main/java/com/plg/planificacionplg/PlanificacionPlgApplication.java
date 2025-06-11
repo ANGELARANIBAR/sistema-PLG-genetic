@@ -28,6 +28,7 @@ public class PlanificacionPlgApplication {
 
         List<Cisterna> cisternas = new ArrayList<>();
         Cisterna principal = new Cisterna();
+        principal.setId(1);
         principal.setPrincipal(true);
         principal.setCargaGLPActual(MAX_DOUBLE);
         principal.setCapacidadTotal(MAX_DOUBLE);
@@ -36,6 +37,7 @@ public class PlanificacionPlgApplication {
         cisternas.add(principal);
 
         Cisterna cintermedio1 = new Cisterna();
+        cintermedio1.setId(2);
         cintermedio1.setPrincipal(false);
         cintermedio1.setCapacidadTotal(160);
         cintermedio1.setCargaGLPActual(cintermedio1.getCapacidadTotal());
@@ -44,6 +46,7 @@ public class PlanificacionPlgApplication {
         cisternas.add(cintermedio1);
 
         Cisterna cintermedio2 = new Cisterna();
+        cintermedio2.setId(3);
         cintermedio2.setPrincipal(false);
         cintermedio2.setCapacidadTotal(160);
         cintermedio2.setCargaGLPActual(cintermedio1.getCapacidadTotal());

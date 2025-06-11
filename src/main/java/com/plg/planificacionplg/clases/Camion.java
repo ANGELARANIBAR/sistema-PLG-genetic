@@ -353,7 +353,7 @@ public class Camion {
             combustibleActual = canditatos.get(mejorCisterna * 2 + 1).get(canditatos.get(mejorCisterna * 2 + 1).size()-1).getSaldoCombustibleCamion();
             cargaGLPActual = camionesPrueba.get(mejorCisterna).getCargaGLPActual(); // gastado
             if(elegido instanceof Reabastecimiento){
-                sistemaPLG.getCisternas().get(mejorCisterna).registrarRetiroGLP(end.getFechaHoraLlegada(),
+                sistemaPLG.getCisternas().get(mejorCisterna).registrarRetiroGLP(elegido.getFechaHoraLlegada(),
                         faltanteGLP, this);
                 elegido.setEstadoCamion(EstadoCamion.EN_RECARGA_GLP);
             }else{

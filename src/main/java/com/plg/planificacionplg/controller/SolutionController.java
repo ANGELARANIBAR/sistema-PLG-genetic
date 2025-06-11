@@ -468,6 +468,7 @@ public class SolutionController {
 
     private CisternaDTO convertToCisternaDTO(Cisterna cisterna) {
         CisternaDTO dto = new CisternaDTO();
+        dto.setId(cisterna.getId());
         dto.setPrincipal(cisterna.isPrincipal());
         dto.setCargaGLPActual(cisterna.getCargaGLPActual());
         dto.setCapacidadTotal(cisterna.getCapacidadTotal());
@@ -619,5 +620,26 @@ public class SolutionController {
         } finally {
             mejorSolucion.getSistemaPLG().setReplanning(false);
         }
+    }
+    @GetMapping("/cisterna-GLP/{cisternaId}")
+    public double getCisternaGLP(
+            @PathVariable int cisternaId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime time) {
+
+        Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
+        if (mejorSolucion == null) {
+            return 0.0;
+        }
+
+        SistemaPLG sistema = mejorSolucion.getSistemaPLG();
+        Cisterna cisterna = sistema.getCisternas().stream()
+                .filter(c -> c.getId() == cisternaId)
+                .findFirst()
+                .orElse(null);
+
+        if (cisterna == null) {
+            return 0.0;
+        }
+        return cisterna.calcularGLPActual(time);
     }
 } 

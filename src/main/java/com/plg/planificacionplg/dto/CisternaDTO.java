@@ -4,12 +4,21 @@ import java.time.LocalTime;
 import java.util.List;
 
 public class CisternaDTO {
+    private int id;
     private boolean principal;
     private double cargaGLPActual;
     private double capacidadTotal;
     private NodeDTO ubicacion;
     private LocalTime horaAbastecimento;
     private List<OperacionesGLPCisternaDTO> operacionesGLPCisterna;
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int idCisterna) {
+        this.id = idCisterna;
+    }
 
     // Getters and Setters
     public boolean isPrincipal() {
@@ -48,7 +57,8 @@ public class CisternaDTO {
         return horaAbastecimento;
     }
 
-    public void setHoraAbastecimento(LocalTime horaAbastecimento) {
+    public void setHoraAbastecimento(LocalTime horaAbastecimento)
+    {
         this.horaAbastecimento = horaAbastecimento;
     }
 

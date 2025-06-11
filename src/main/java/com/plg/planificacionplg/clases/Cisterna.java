@@ -201,7 +201,24 @@ public class Cisterna {
         return true;
     }
 
-
+    public double calcularGLPActual(LocalDateTime fechaHora){
+        if(operacionesGLPCisterna.isEmpty()){return getCargaGLPActual();}
+        OperacionesGLPCisterna nuevaOp = new OperacionesGLPCisterna();
+        nuevaOp.setFechaHoraOperacion(fechaHora);
+        nuevaOp.setCantSalidaGLP(0.0);
+        int index = Collections.binarySearch(
+                operacionesGLPCisterna,
+                nuevaOp,
+                Comparator.comparing(OperacionesGLPCisterna::getFechaHoraOperacion)
+        );
+        if (index < 0) {
+            index = -index - 1;
+        }
+        if(index==operacionesGLPCisterna.size()){
+            return operacionesGLPCisterna.getLast().getSaldoGLP();
+        }
+        return operacionesGLPCisterna.get(index).getSaldoGLP() + operacionesGLPCisterna.get(index).getCantSalidaGLP();
+    }
 
 
     public static void main(String[] args) {
