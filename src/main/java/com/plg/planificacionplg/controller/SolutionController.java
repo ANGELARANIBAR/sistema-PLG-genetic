@@ -6,6 +6,7 @@ import com.plg.planificacionplg.dto.*;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import org.springframework.cglib.core.Local;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -387,6 +388,16 @@ public class SolutionController {
                 .getCamionEnInstante(truckId, time);
         return camion.getEstado().toString();
     }
+
+    @PostMapping("/ejecutar-simulacion")
+    public ResponseEntity<Individuo> ejecutarAlgoritmo() {
+        new Thread(() -> {
+            PlanificacionPlgApplication.ejecutarAlgoritmo(); // Lógica pesada
+        }).start();
+
+        return ResponseEntity.accepted().build(); // 202 Accepted, sin esperar resultado
+    }
+
 
     private DestinationDTO convertToDestinationDTO(Destino destino) {
         DestinationDTO dto = new DestinationDTO();

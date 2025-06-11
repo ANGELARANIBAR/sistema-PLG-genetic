@@ -11,10 +11,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Data
 public class SistemaPLG {
@@ -370,6 +367,54 @@ public class SistemaPLG {
         }
 
     }
+    public void cargaBloqueos(String rutaArchivo){
+        try (BufferedReader br = new BufferedReader(new FileReader(rutaArchivo))) {
+            String linea;
+            Nodo bloqueado1 = new Nodo(1, 15);
+            Nodo bloqueado2 = new Nodo(14, 15);
+            Nodo bloqueado3 = new Nodo(14, 4);
+
+            Bloqueo bloqueo = new Bloqueo();
+            bloqueo.setFechaHoraInicio(LocalDateTime.now().minusMinutes(10));
+            bloqueo.setFechaHoraFin(LocalDateTime.now().plusMinutes(100));
+            bloqueo.setRutasBloqueadas(Arrays.asList(bloqueado1, bloqueado2, bloqueado3));
+
+            setBloqueos(Arrays.asList(bloqueo));
+            while ((linea = br.readLine()) != null) {
+                if (linea.trim().isEmpty()) continue;
+
+                // Separar tiempo y coordenadas
+                String[] partes = linea.split(":");
+                if (partes.length != 2) continue;
+
+                String tiempo = partes[0];
+                String coordenadasStr = partes[1];
+
+                // Separar inicio y fin
+                String[] rango = tiempo.split("-");
+                if (rango.length != 2) continue;
+
+                String inicioStr = rango[0]; // por ejemplo "01d06h00m"
+                String finStr = rango[1];    // por ejemplo "01d15h00m"
+
+                String[] coordenadas = coordenadasStr.split(",");
+
+                System.out.println("Inicio: " + inicioStr);
+                System.out.println("Fin: " + finStr);
+
+                for (int i = 1; i < coordenadas.length - 1; i += 2) {
+                    String x = coordenadas[i].trim();
+                    String y = coordenadas[i + 1].trim();
+                    System.out.println("Nodo bloqueado: (" + x + ", " + y + ")");
+                }
+
+                System.out.println("-----------");
+            }
+        } catch (IOException e) {
+            System.err.println("Error al leer el archivo: " + e.getMessage());
+        }
+    }
+
     public Boolean puedeCargar(int idxcamion, Map<Integer, List<Integer>> asignacion, int ini, int fin){
         double cargaPorPedidos = 0.0;
         for(int i=ini; i<fin; i++){
