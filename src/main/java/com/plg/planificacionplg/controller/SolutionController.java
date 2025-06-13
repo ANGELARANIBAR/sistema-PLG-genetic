@@ -299,7 +299,7 @@ public class SolutionController {
             double probCruce = 0.3;
             double probMutacion = 0.15;
             double porcentajeElite = 0.2;
-            replanificado.imprimirPlanificacion();
+            //replanificado.imprimirPlanificacion();
             Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
             mejorSolucion = ga2.ejecutar(2, replanificado);
             mejorSolucion.getSistemaPLG().imprimirPlanificacion();

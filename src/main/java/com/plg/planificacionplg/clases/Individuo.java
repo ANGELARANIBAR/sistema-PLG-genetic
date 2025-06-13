@@ -312,7 +312,7 @@ public class Individuo {
             Camion camion = sistemaPLG.getCamionCausanteReplan();
             List<Destino> destinos = sistema.getFlota().get(camion.getId() - 1).getDestinos();
             if(camion.getCargaGLPActual()<sistema.getCamionCausanteReplan().getCargaGLPActual()){
-                camion.setIndicePedidoActual(0); // se pudo recargar GLP en el origen
+                camion.setIndicePedidoActual(0); // se hizo trasvase y recargar GLP en el origen
             }
             if (destinos != null) {
                 double GLPInicial = 0.0;
@@ -328,7 +328,10 @@ public class Individuo {
                     }
                     //GLPInicial -= camion.getCargaGLPActual();
                 }
-                if (destinos.get(0) instanceof Reabastecimiento && GLPInicial > 0.0) {
+                if(GLPInicial < camion.getCargaGLPActual() || Math.abs(GLPInicial - camion.getCargaGLPActual()) < 0.001) { // no es necesario recarga GLP
+                    camion.setIndicePedidoActual(1); // se pudo recargar GLP en el origen
+                }
+                else if (destinos.get(0) instanceof Reabastecimiento && GLPInicial > 0.0) {
                     if (((Reabastecimiento) destinos.get(0)).getCisterna().puedeRetirarGLP(sistemaPLG.getFechaHoraInicio(), GLPInicial)) {
                         ((Reabastecimiento) destinos.get(0)).getCisterna().registrarRetiroGLP(sistemaPLG.getFechaHoraInicio(),
                                 GLPInicial - camion.getCargaGLPActual(), camion);
