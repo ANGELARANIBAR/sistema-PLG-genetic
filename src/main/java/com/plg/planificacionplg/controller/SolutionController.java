@@ -11,9 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -176,11 +174,29 @@ public class SolutionController {
 
             a.setTurnoOcurrencia(2);//no importa
             SistemaPLG replanificado = new SistemaPLG(mejorSolucion.getSistemaPLG());
+            System.out.println("Iniciando Replanificación por Averia");
+            Camion cam = mejorSolucion.getSistemaPLG().getCamionEnInstante(a.getIdCamion()+1, a.getFechaHoraInicio());
+            if(cam!=null && cam.getEstado()==EstadoCamion.EN_RETORNO)return;
+
+            for(Cisterna cist : mejorSolucion.getSistemaPLG().getCisternas()){
+                OperacionesGLPCisterna op = new OperacionesGLPCisterna();
+                op.setFechaHoraOperacion(a.getFechaHoraInicio().plusMinutes(1));
+                int idxLastOpCis = Collections.binarySearch(
+                        cist.getOperacionesGLPCisterna(),
+                        op,
+                        Comparator.comparing(OperacionesGLPCisterna::getFechaHoraOperacion)
+                );
+
+                if (idxLastOpCis < 0) {
+                    idxLastOpCis = -idxLastOpCis - 1;
+                }
+                if (idxLastOpCis < cist.getOperacionesGLPCisterna().size()) {
+                    cist.getOperacionesGLPCisterna().subList(idxLastOpCis, cist.getOperacionesGLPCisterna().size()).clear();
+                }
+            }
             replanificado.setCisternas(mejorSolucion.getSistemaPLG().getCisternas());
             LocalDateTime inicioAveria = a.getFechaHoraInicio();
             if(mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getDestinos().size()<2)return;
-            Camion cam = mejorSolucion.getSistemaPLG().getCamionEnInstante(a.getIdCamion()+1, inicioAveria);
-            if(cam!=null && cam.getEstado()==EstadoCamion.EN_RETORNO)return;
 
             mejorSolucion.getSistemaPLG().setReplanning(true);
             mejorSolucion.getSistemaPLG().setAveriaStartTime(inicioAveria);
@@ -190,10 +206,11 @@ public class SolutionController {
 
             // Replanification process
             mejorSolucion.getSistemaPLG().estadoDePedidosALas(inicioAveria);
+            replanificado.setFechaHoraInicio(inicioAveria);
             replanificado.setFlota(new ArrayList<>());
             replanificado.setPedidos(new ArrayList<>(mejorSolucion.getSistemaPLG().getPedidos()));
+            replanificado.setCamionesAveriados(new ArrayList<>());
             replanificado.getCamionesAveriados().add(cam);
-            replanificado.setFechaHoraInicio(inicioAveria);
             replanificado.setCamionCausanteReplan(cam);
             cam.getAverias().add(a);
             Replanficacion origenReplan = new Replanficacion();
@@ -215,15 +232,7 @@ public class SolutionController {
                 if(destActuAveriado!=null)destActuAveriado.setEstadoCamion(EstadoCamion.AVERIADO);
                 cam.getDestinos().add(destActuAveriado);
             } else cam.getDestinos().add(origenReplan);
-            if (a.getTipo().getId() == 1) {
-                cam.setPedidosAsignados(new ArrayList<>());
-                for (Pedido p : mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getPedidosAsignados()) {
-                    if (p.getEstado() == EstadoPedido.PENDIENTE) {
-                        p.setEstado(EstadoPedido.ASIGNADO);//no pasan a replanificaion
-                        cam.getPedidosAsignados().add(p);
-                    }
-                }
-            } else cam.setPedidosAsignados(new ArrayList<>());//caso 2 y 3 donde no atiende sino se va
+
 
             for (int i = 0; i < mejorSolucion.getSistemaPLG().getFlota().size(); i++) {
                 //si el camion no tiene registro de atenciones en la planificaicon
@@ -293,6 +302,25 @@ public class SolutionController {
                     System.out.println("camion en ruta> "+nuevoCamion.getUbicacionActual());
                 }
                 replanificado.getFlota().add(nuevoCamion);
+            }
+            if(mejorSolucion.getSistemaPLG().getCamionesAveriados().isEmpty())
+                mejorSolucion.getSistemaPLG().getCamionesAveriados().add(cam);//solo para la primera averia
+            for(Camion c : mejorSolucion.getSistemaPLG().getCamionesAveriados()){
+                int idcam = c.getId();
+                Camion camAveriado  = replanificado.getFlota().get(idcam-1);
+                if(camAveriado.getAverias()==null)camAveriado.setAverias(new ArrayList<>());
+                if(cam.getId()!=camAveriado.getId())
+                    replanificado.getCamionesAveriados().add(camAveriado);
+                camAveriado.getAverias().add(c.getAverias().getLast());
+                if (camAveriado.getAverias().getLast().getTipo().getId() == 1) {
+                    camAveriado.setPedidosAsignados(new ArrayList<>());
+                    for (Pedido p : mejorSolucion.getSistemaPLG().getFlota().get(camAveriado.getId()-1).getPedidosAsignados()) {
+                        if (p.getEstado() == EstadoPedido.PENDIENTE) {
+                            p.setEstado(EstadoPedido.ASIGNADO);//no pasan a replanificaion
+                            camAveriado.getPedidosAsignados().add(p);
+                        }
+                    }
+                } else camAveriado.setPedidosAsignados(new ArrayList<>());//caso 2 y 3 donde no atiende sino se va
             }
             int tamPoblacion = 30;
             int generaciones = 5;
@@ -652,5 +680,16 @@ public class SolutionController {
             return 0.0;
         }
         return cisterna.calcularGLPActual(time);
+    }
+    @GetMapping("/porcentajeSimulacion/{simulacionId}")
+    public double getPorcentajeSimulacion(
+            @PathVariable int simulacionId) {
+
+        Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
+        if (mejorSolucion == null) {
+            return 0.0;
+        }
+
+        return 0.0;
     }
 } 

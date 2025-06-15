@@ -291,15 +291,17 @@ public class Camion {
                     elegido = reabastecimiento;
                 }
             }
-
-            int idxCamTPrueba = 0, idxCamPrueba;
+            int tope = 0;
+            if(mejorCisterna*2==canditatos.size()){
+                tope = canditatos.size();
+            }
+            int idxCamPrueba = canditatos.size()/2;
+            if(canditatos.size()%2!=0)System.out.println("############################################Cantidad erronea############################################");
             for(int j=0; j<sistemaPLG.getCamionesAveriados().size(); j++){
                 Trasvase trasvase = new Trasvase();
                 int resultadoNodosIntermedios;
                 Camion camionAveriado = sistemaPLG.getCamionesAveriados().get(j);
                 if(faltanteGLP>camionAveriado.getCargaGLPActual() || !(camionAveriado.getDestinos().getFirst() instanceof Replanficacion)){continue;}
-                idxCamPrueba = idxCamTPrueba+mejorCisterna+1;
-                idxCamTPrueba++;
                 trasvase.setCamionTrasvase(camionAveriado);
                 trasvase.setUbicacion(camionAveriado.getUbicacionActual());
                 trasvase.setGLPOperacion(faltanteGLP);
@@ -331,6 +333,7 @@ public class Camion {
                     }
                     elegido = trasvase;
                 }
+                idxCamPrueba++;
 
             }
             if (mejorCisterna == -1) return -1; // no hay cisterna que abastesca solucion

@@ -25,9 +25,6 @@ public class PlanificacionPlgApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(PlanificacionPlgApplication.class, args);
-
-        //ejecutarAlgoritmo();
-
     }
 
 
@@ -154,17 +151,8 @@ public class PlanificacionPlgApplication {
             sistemaPLG.getFlota().add(camion);
         }
 
-        Nodo bloqueado1 = new Nodo(1, 15);
-        Nodo bloqueado2 = new Nodo(14, 15);
-        Nodo bloqueado3 = new Nodo(14, 4);
 
-        Bloqueo bloqueo = new Bloqueo();
-        bloqueo.setFechaHoraInicio(LocalDateTime.now().minusMinutes(10));
-        bloqueo.setFechaHoraFin(LocalDateTime.now().plusMinutes(100));
-        bloqueo.setRutasBloqueadas(Arrays.asList(bloqueado1, bloqueado2, bloqueado3));
-
-        sistemaPLG.setBloqueos(Arrays.asList(bloqueo));
-        //sistemaPLG.setBloqueos(new ArrayList<>());
+        sistemaPLG.cargaBloqueos("src/main/java/com/plg/planificacionplg/test/bloqueos.txt");
         sistemaPLG.setCamionesAveriados(new ArrayList<>());
 
 
@@ -175,6 +163,7 @@ public class PlanificacionPlgApplication {
         double porcentajeElite = 0.1;
 
         // Initial planification
+        System.out.println("Iniciando Planificación");
         Genetico ga = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
         mejorSolucion = ga.ejecutar(1, sistemaPLG);
         mejorSolucion.getSistemaPLG().imprimirPlanificacion();
@@ -192,6 +181,7 @@ public class PlanificacionPlgApplication {
 
         // Procesar averias
         for (Averia a : mejorSolucion.getSistemaPLG().getAverias()) {
+
             SistemaPLG replanificado = new SistemaPLG(mejorSolucion.getSistemaPLG());
             replanificado.setCisternas(mejorSolucion.getSistemaPLG().getCisternas());
             Camion c = mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion());
@@ -208,6 +198,7 @@ public class PlanificacionPlgApplication {
             if (cam != null && cam.getEstado() == EstadoCamion.EN_RETORNO) continue;
             if (false && (turnoini.isBefore(inicioAveria.toLocalTime())
                     && mejorSolucion.getSistemaPLG().getTurnosFin().get(turnoidx).isAfter(inicioAveria.toLocalTime()))) {
+                System.out.println("Iniciando RePlanificación Aleatoria");
                 // Set replanning flag and averia start time at the start of this specific averia's replanification
                 mejorSolucion.getSistemaPLG().setReplanning(true);
                 mejorSolucion.getSistemaPLG().setAveriaStartTime(inicioAveria);

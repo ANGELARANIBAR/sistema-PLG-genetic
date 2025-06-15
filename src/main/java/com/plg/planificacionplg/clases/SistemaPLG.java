@@ -1,5 +1,6 @@
 package com.plg.planificacionplg.clases;
 
+import jakarta.persistence.Entity;
 import lombok.Data;
 
 import javax.swing.*;
@@ -15,6 +16,8 @@ import java.util.*;
 
 @Data
 public class SistemaPLG {
+
+    private long id;
     private List<Cisterna> cisternas;
     private List<Camion> flota;
     private List<Bloqueo> bloqueos;
@@ -370,16 +373,8 @@ public class SistemaPLG {
     public void cargaBloqueos(String rutaArchivo){
         try (BufferedReader br = new BufferedReader(new FileReader(rutaArchivo))) {
             String linea;
-            Nodo bloqueado1 = new Nodo(1, 15);
-            Nodo bloqueado2 = new Nodo(14, 15);
-            Nodo bloqueado3 = new Nodo(14, 4);
-
-            Bloqueo bloqueo = new Bloqueo();
-            bloqueo.setFechaHoraInicio(LocalDateTime.now().minusMinutes(10));
-            bloqueo.setFechaHoraFin(LocalDateTime.now().plusMinutes(100));
-            bloqueo.setRutasBloqueadas(Arrays.asList(bloqueado1, bloqueado2, bloqueado3));
-
-            setBloqueos(Arrays.asList(bloqueo));
+            if(bloqueos==null)bloqueos = new ArrayList<>();
+            if(fechaHoraInicio==null)return;
             while ((linea = br.readLine()) != null) {
                 if (linea.trim().isEmpty()) continue;
 
@@ -399,16 +394,18 @@ public class SistemaPLG {
 
                 String[] coordenadas = coordenadasStr.split(",");
 
-                System.out.println("Inicio: " + inicioStr);
-                System.out.println("Fin: " + finStr);
-
-                for (int i = 1; i < coordenadas.length - 1; i += 2) {
-                    String x = coordenadas[i].trim();
-                    String y = coordenadas[i + 1].trim();
-                    System.out.println("Nodo bloqueado: (" + x + ", " + y + ")");
+                Bloqueo bloqueo = new Bloqueo();
+                bloqueo.setFechaHoraInicio(conversorFecha(inicioStr, fechaHoraInicio));
+                bloqueo.setFechaHoraFin(conversorFecha(finStr, fechaHoraInicio));
+                bloqueo.setRutasBloqueadas(new ArrayList<>());
+                int x, y;
+                for (int i = 0; i < coordenadas.length; i += 2) {
+                    x = Integer.parseInt(coordenadas[i].trim());
+                    y = Integer.parseInt(coordenadas[i+1].trim());
+                    Nodo bloqueado = new Nodo(x, y);
+                    bloqueo.getRutasBloqueadas().add(bloqueado);
                 }
-
-                System.out.println("-----------");
+                bloqueos.add(bloqueo);
             }
         } catch (IOException e) {
             System.err.println("Error al leer el archivo: " + e.getMessage());
@@ -476,5 +473,14 @@ public class SistemaPLG {
 
     public void setAveriaStartTime(LocalDateTime averiaStartTime) {
         this.averiaStartTime = averiaStartTime;
+    }
+    public static LocalDateTime conversorFecha(String str, LocalDateTime base) {
+        int dias = Integer.parseInt(str.substring(0, 2));
+        int horas = Integer.parseInt(str.substring(3, 5));
+        int minutos = Integer.parseInt(str.substring(6, 8));
+        if(dias<1)dias=1;
+        return base.plusDays(dias-1)
+                .withHour(horas)
+                .withMinute(minutos);
     }
 }

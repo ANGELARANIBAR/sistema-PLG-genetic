@@ -11,6 +11,7 @@ public class Genetico {
     private final double probMutacion;
     private final double porcentajeElite;
     private int numIndividuosExploratorios = 15;
+    private double porcentaje;
     @Getter
     private List<Double> resultados;
 
@@ -43,6 +44,7 @@ public class Genetico {
         Individuo mejorSolucion = Collections.max(poblacion, Comparator.comparingDouble(Individuo::getFitness)).clonar(code);
 
         for (int gen = 0; gen < generaciones; gen++) {
+            porcentaje = 100.0 * (gen + 1) / generaciones;
             List<Individuo> nuevaGeneracion = new ArrayList<>();
 
             // Elitismo
