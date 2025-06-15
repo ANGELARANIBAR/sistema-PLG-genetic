@@ -1,6 +1,8 @@
 package com.plg.planificacionplg;
 
 import com.plg.planificacionplg.clases.*;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -13,15 +15,10 @@ import java.util.List;
 @SpringBootApplication
 public class PlanificacionPlgApplication {
     private static final double MAX_DOUBLE = Double.MAX_VALUE;
+    @Setter @Getter
     private static Individuo mejorSolucion;
-
-    public static Individuo getMejorSolucion() {
-        return mejorSolucion;
-    }
-
-    public static void setMejorSolucion(Individuo nuevo) {
-        mejorSolucion = nuevo;
-    }
+    @Setter @Getter
+    private static double porcentajeEjecucion;
 
     public static void main(String[] args) {
         SpringApplication.run(PlanificacionPlgApplication.class, args);

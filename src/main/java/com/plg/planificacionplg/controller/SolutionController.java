@@ -685,11 +685,6 @@ public class SolutionController {
     public double getPorcentajeSimulacion(
             @PathVariable int simulacionId) {
 
-        Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
-        if (mejorSolucion == null) {
-            return 0.0;
-        }
-
-        return 0.0;
+        return PlanificacionPlgApplication.getPorcentajeEjecucion();
     }
 } 

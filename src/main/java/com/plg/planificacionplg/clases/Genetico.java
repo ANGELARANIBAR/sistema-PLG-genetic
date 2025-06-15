@@ -1,6 +1,8 @@
 package com.plg.planificacionplg.clases;
 
+import com.plg.planificacionplg.PlanificacionPlgApplication;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.*;
 
@@ -11,9 +13,7 @@ public class Genetico {
     private final double probMutacion;
     private final double porcentajeElite;
     private int numIndividuosExploratorios = 15;
-    private double porcentaje;
-    @Getter
-    private List<Double> resultados;
+    @Getter @Setter private List<Double> resultados;
 
     public Genetico(int tamPoblacion, int generaciones, double probCruce, double probMutacion, double porcentajeElite) {
         this.tamPoblacion = tamPoblacion;
@@ -44,7 +44,7 @@ public class Genetico {
         Individuo mejorSolucion = Collections.max(poblacion, Comparator.comparingDouble(Individuo::getFitness)).clonar(code);
 
         for (int gen = 0; gen < generaciones; gen++) {
-            porcentaje = 100.0 * (gen + 1) / generaciones;
+            PlanificacionPlgApplication.setPorcentajeEjecucion(100.0 * (gen + 1) / generaciones);
             List<Individuo> nuevaGeneracion = new ArrayList<>();
 
             // Elitismo
