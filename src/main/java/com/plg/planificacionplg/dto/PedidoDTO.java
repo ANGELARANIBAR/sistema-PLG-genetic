@@ -14,7 +14,8 @@ public class PedidoDTO {
     private boolean completado;
     private double consumoCombustibleTotal;
 
-    // Getters and Setters
+    // Constructor vacío
+    public PedidoDTO() {}    // Getters and Setters
     public int getId() {
         return id;
     }
@@ -94,4 +95,4 @@ public class PedidoDTO {
     public void setConsumoCombustibleTotal(double consumoCombustibleTotal) {
         this.consumoCombustibleTotal = consumoCombustibleTotal;
     }
-} 
+}

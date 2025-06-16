@@ -2,29 +2,75 @@ package com.plg.planificacionplg.clases;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Data
+@NoArgsConstructor
+@Entity
+@Table(name = "pedido")
 public class Pedido{
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private int id;
+    
+    @Column(name = "id_cliente", nullable = false)
     private int idCliente;
+    
+    @Column(name = "numero_pedido", unique = true, length = 50)
     private String numeroPedido;
+    
+    @Column(name = "volumen_glp", nullable = false)
     private double volumenGLP;
+    
+    @Column(name = "volumen_glp_entregado", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")
     private double volumenGLPEntregado;
+    
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+    @JoinColumn(name = "ubicacion_id", referencedColumnName = "id")
     private Nodo ubicacion;
-    private LocalDateTime fechaHoraRegistro, fechaHoraEntrega, fechaHoraMaxEntrega;
+    
+    @Column(name = "fecha_hora_registro", nullable = false)
+    private LocalDateTime fechaHoraRegistro;
+    
+    @Column(name = "fecha_hora_entrega")
+    private LocalDateTime fechaHoraEntrega;
+    
+    @Column(name = "fecha_hora_max_entrega")
+    private LocalDateTime fechaHoraMaxEntrega;
+    
+    @Column(name = "tiempo_max_entrega", nullable = false)
     private double tiempoMaxEntrega;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", nullable = false, length = 20)
     private EstadoPedido estado;
+    
+    @Column(name = "completado", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     private boolean completado;
-    private List <Camion> camiones;
-    private double consumoCombustibleTotal;
-
-    public Pedido(){
+    
+    @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+    @JoinTable(
+        name = "pedido_camiones",
+        joinColumns = @JoinColumn(name = "pedido_id"),
+        inverseJoinColumns = @JoinColumn(name = "camion_id")
+    )
+    private List<Camion> camiones;
+    
+    @Column(name = "consumo_combustible_total", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")
+    private double consumoCombustibleTotal;    public Pedido(){
         camiones = new ArrayList<>();
+        volumenGLPEntregado = 0.0;
+        consumoCombustibleTotal = 0.0;
+        completado = false;
     }
+    
     public Pedido(Pedido otro){
         this.id = otro.getId();
         this.idCliente = otro.getIdCliente();
@@ -38,7 +84,7 @@ public class Pedido{
         this.tiempoMaxEntrega = otro.getTiempoMaxEntrega();
         this.estado = otro.getEstado();
         this.completado = otro.isCompletado();
-        this.camiones = otro.getCamiones();
+        this.camiones = new ArrayList<>(otro.getCamiones());
         this.consumoCombustibleTotal = otro.getConsumoCombustibleTotal();
     }
 }

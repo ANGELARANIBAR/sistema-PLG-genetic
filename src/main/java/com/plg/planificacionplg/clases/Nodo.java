@@ -1,17 +1,37 @@
 package com.plg.planificacionplg.clases;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 @Data
+@NoArgsConstructor
+@Entity
+@Table(name = "nodo", indexes = {
+    @Index(name = "idx_nodo_posicion", columnList = "pos_x, pos_y"),
+    uniqueConstraints = @UniqueConstraint(columnNames = {"pos_x", "pos_y"})
+})
 public class Nodo {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private int id;
-    private double posX, posY;
+    
+    @Column(name = "pos_x", nullable = false)
+    private double posX;
+    
+    @Column(name = "pos_y", nullable = false) 
+    private double posY;
+    
+    @Column(name = "llegada")
     private LocalDateTime llegada;
+    
     public Nodo(double posX, double posY){
         this.posX = posX;
         this.posY = posY;
