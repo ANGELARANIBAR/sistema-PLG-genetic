@@ -1,17 +1,44 @@
 package com.plg.planificacionplg.clases;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Data
+@NoArgsConstructor
+@Entity
+@Table(name = "averia", indexes = {
+    @Index(name = "idx_averia_camion", columnList = "camion_id"),
+    @Index(name = "idx_averia_fecha", columnList = "fecha_hora_inicio")
+})
 public class Averia {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private int id;
-    private LocalDateTime fechaHoraInicio, fechaHoraFin;
+    
+    @Column(name = "fecha_hora_inicio", nullable = false)
+    private LocalDateTime fechaHoraInicio;
+    
+    @Column(name = "fecha_hora_fin")
+    private LocalDateTime fechaHoraFin;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo", nullable = false)
     private TipoAveria tipo;
-    private int idCamion;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "camion_id", nullable = false)
+    private Camion camion;
+    
+    @Column(name = "tiempo_inoperativo", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")
     private double tiempoInoperativo;
+    
+    @Column(name = "turno_ocurrencia")
     private int turnoOcurrencia;
     public void determinarFechaFin(SistemaPLG sistemaPLG){
         // no se considera el tiempo inmobilizado en el calculo de la fecha de disponibilidad

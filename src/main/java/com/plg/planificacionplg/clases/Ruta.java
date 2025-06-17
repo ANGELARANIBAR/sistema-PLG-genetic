@@ -1,26 +1,56 @@
 package com.plg.planificacionplg.clases;
 
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import lombok.Data;
-import org.springframework.cglib.core.Local;
-
 @Data
+@NoArgsConstructor
+@Entity
+@Table(name = "ruta")
 public class Ruta {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private int id;
-    private double tiempoEmpleado, consumoCombustible, distanciaTotal;
-    private List<Nodo> nodos;
-    public Ruta(){nodos=null;}
+    
+    @Column(name = "tiempo_empleado", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")
+    private double tiempoEmpleado;
+    
+    @Column(name = "consumo_combustible", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")
+    private double consumoCombustible;
+    
+    @Column(name = "distancia_total", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")
+    private double distanciaTotal;
+    
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "ruta_nodos",
+        joinColumns = @JoinColumn(name = "ruta_id"),
+        inverseJoinColumns = @JoinColumn(name = "nodo_id")
+    )
+    @OrderColumn(name = "orden")
+    private List<Nodo> nodos;    public Ruta(){
+        nodos = new ArrayList<>();
+        tiempoEmpleado = 0.0;
+        consumoCombustible = 0.0;
+        distanciaTotal = 0.0;
+    }
+    
     public Ruta(Ruta otro){
         this.id = otro.id;
         this.tiempoEmpleado = otro.tiempoEmpleado;
         this.consumoCombustible = otro.consumoCombustible;
         this.distanciaTotal = otro.distanciaTotal;
         this.nodos = new ArrayList<>();
-        for(Nodo nodo: otro.nodos){
-            nodos.add(nodo);
+        if(otro.nodos != null) {
+            for(Nodo nodo: otro.nodos){
+                nodos.add(nodo);
+            }
         }
     }
 

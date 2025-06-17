@@ -2,17 +2,35 @@ package com.plg.planificacionplg.clases;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
+
 @EqualsAndHashCode(callSuper = true)
 @Data
+@NoArgsConstructor
+@Entity
+@DiscriminatorValue("REABASTECIMIENTO")
 public class Reabastecimiento extends Destino {
+
+    @Transient
     private int id;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cisterna_id")
     private Cisterna cisterna;
+    
+    @Column(name = "carga_abastecida", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")
     private double cargaAbastecida;
+    
+    @Column(name = "fecha_hora_abastecimiento")
     private LocalDateTime fechaHoraAbastecimiento;
+    
     public Reabastecimiento() {
+        super();
         setTiempoOperacion(0.0);
+        cargaAbastecida = 0.0;
     }
     public Reabastecimiento(Reabastecimiento otro) {
         this.setPedido(otro.getPedido());

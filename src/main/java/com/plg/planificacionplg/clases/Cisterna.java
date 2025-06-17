@@ -1,7 +1,9 @@
 package com.plg.planificacionplg.clases;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -9,16 +11,37 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Data
+@NoArgsConstructor
+@Entity
+@Table(name = "cisterna")
 public class Cisterna {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private int id;
+    
+    @Column(name = "principal", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     private boolean principal;
-    private double capacidadTotal, cargaGLPActual;
+    
+    @Column(name = "capacidad_total", nullable = false)
+    private double capacidadTotal;
+    
+    @Column(name = "carga_glp_actual", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")
+    private double cargaGLPActual;
+    
+    @Column(name = "hora_abastecimiento")
     private LocalTime horaAbastecimento;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ubicacion_id")
     private Nodo ubicacion;
-    private List<OperacionesGLPCisterna> operacionesGLPCisterna;
-    public Cisterna() {
+    
+    @OneToMany(mappedBy = "cisterna", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<OperacionesGLPCisterna> operacionesGLPCisterna;    public Cisterna() {
         principal = false;
         operacionesGLPCisterna = new ArrayList<>();
+        cargaGLPActual = 0.0;
     }
     public Cisterna(Cisterna otro){
         id = otro.getId();

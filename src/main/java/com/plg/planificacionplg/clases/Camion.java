@@ -2,34 +2,100 @@ package com.plg.planificacionplg.clases;
 
 import ch.qos.logback.classic.net.SyslogAppender;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import jakarta.persistence.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 
 @Data
+@NoArgsConstructor
+@Entity
+@Table(name = "camion", indexes = {
+    @Index(name = "idx_camion_placa", columnList = "placa"),
+    @Index(name = "idx_camion_codigo", columnList = "codigo")
+})
 public class Camion {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private int id;
+    
+    @Column(name = "idx_por_tipo")
     private int idxPorTipo;
-    private String codigo, placa;
+    
+    @Column(name = "codigo", unique = true, length = 20)
+    private String codigo;
+    
+    @Column(name = "placa", unique = true, length = 10)
+    private String placa;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo", nullable = false)
     private TipoCamion tipo;
-    private double combustibleActual, cargaGLPActual, pesoTotal, combustibleEmpleado, distanciaTotal;
+    
+    @Column(name = "combustible_actual", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")
+    private double combustibleActual;
+    
+    @Column(name = "carga_glp_actual", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")
+    private double cargaGLPActual;
+    
+    @Column(name = "peso_total", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")
+    private double pesoTotal;
+    
+    @Column(name = "combustible_empleado", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")
+    private double combustibleEmpleado;
+    
+    @Column(name = "distancia_total", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")
+    private double distanciaTotal;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", nullable = false)
     private EstadoCamion estado;
+    
+    @ManyToMany(mappedBy = "camiones", fetch = FetchType.LAZY)
     private List<Pedido> pedidosAsignados;
+    
+    @OneToMany(mappedBy = "camion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Destino> destinos;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ubicacion_actual_id")
     private Nodo ubicacionActual;
+    
+    @Column(name = "idx_destino_en_curso")
     private int idxDestinoEnCurso;
+    
+    @OneToMany(mappedBy = "camion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Mantenimiento> mantenimientos;
+    
+    @OneToMany(mappedBy = "camion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Averia> averias;
+    
+    @ElementCollection
+    @CollectionTable(name = "camion_cargas_glp", joinColumns = @JoinColumn(name = "camion_id"))
+    @Column(name = "carga")
     private List<Integer> cargasGLP;
+    
+    @Column(name = "indice_pedido_actual")
     private Integer indicePedidoActual;
-    private Destino destinoEnCurso;
-
-    public Camion() {
+    
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "destino_en_curso_id")
+    private Destino destinoEnCurso;    public Camion() {
         averias = new ArrayList<>();
         destinos = new ArrayList<>();
         pedidosAsignados = new ArrayList<>();
+        cargasGLP = new ArrayList<>();
+        mantenimientos = new ArrayList<>();
+        combustibleActual = 0.0;
+        cargaGLPActual = 0.0;
+        pesoTotal = 0.0;
+        combustibleEmpleado = 0.0;
+        distanciaTotal = 0.0;
     }
 
     public Camion(Camion otro) {

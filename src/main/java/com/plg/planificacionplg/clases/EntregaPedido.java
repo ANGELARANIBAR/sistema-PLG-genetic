@@ -2,18 +2,30 @@ package com.plg.planificacionplg.clases;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
 @EqualsAndHashCode(callSuper = true)
 @Data
+@NoArgsConstructor
+@Entity
+@DiscriminatorValue("ENTREGA_PEDIDO")
 public class EntregaPedido extends Destino{
 
+    @Transient
     private int id;
+
+    @Column(name = "volumen_glp_entregado", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")
     private double volumenGLPEntregado; //vol entregado puede ser parcial
+    
     public EntregaPedido() {
+        super();
         setTiempoOperacion(15);
+        volumenGLPEntregado = 0.0;
     }
     public EntregaPedido(EntregaPedido otro) {
         this.id = otro.id;

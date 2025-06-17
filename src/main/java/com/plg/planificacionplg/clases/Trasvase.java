@@ -2,17 +2,30 @@ package com.plg.planificacionplg.clases;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
+@NoArgsConstructor
+@Entity
+@DiscriminatorValue("TRASVASE")
 public class Trasvase extends Destino{
+
+    @Transient
     private int id;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "camion_trasvase_id")
     private Camion camionTrasvase;
+    
+    @Column(name = "fecha_hora_trasvase")
     private LocalDateTime FechaHoraTrasvase;
 
     public Trasvase() {
+        super();
         setTiempoOperacion(15.0);
     }
     public Trasvase(Trasvase otro) {
