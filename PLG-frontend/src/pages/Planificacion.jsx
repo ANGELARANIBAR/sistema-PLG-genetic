@@ -23,9 +23,8 @@ import InfoIcon from '@mui/icons-material/Info';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
 import Routes from '../components/routes/Routes';
+import { simulationService } from '../services/simulationService';
 import './Planificacion.css';
-
-const API_URL = 'http://localhost:8080/api/solution';
 
 export default function Planificacion() {
   const [tabValue, setTabValue] = useState(0);
@@ -69,13 +68,15 @@ export default function Planificacion() {
 
   const checkFilesStatus = async () => {
     try {
-      const response = await fetch(`${API_URL}/upload-files-status`);
-      if (response.ok) {
-        const data = await response.json();
-        setFilesStatus(data);
-      }
+      const data = await simulationService.getFilesStatus();
+      setFilesStatus(data);
     } catch (error) {
       console.error("Error al verificar el estado de los archivos:", error);
+      setNotification({
+        open: true,
+        message: 'Error al verificar el estado de los archivos',
+        severity: 'error'
+      });
     }
   };
 
@@ -102,17 +103,8 @@ export default function Planificacion() {
   };
 
   const handleUploadFiles = async () => {
-    const formData = new FormData();
-    
-    // Agregar solo los archivos seleccionados al FormData
-    Object.keys(selectedFiles).forEach(fileType => {
-      if (selectedFiles[fileType]) {
-        formData.append(fileType, selectedFiles[fileType]);
-      }
-    });
-    
     // Verificar si hay archivos para subir
-    if ([...formData.entries()].length === 0) {
+    if (Object.values(selectedFiles).every(file => file === null)) {
       setNotification({
         open: true,
         message: 'No se ha seleccionado ningún archivo para subir',
@@ -123,36 +115,24 @@ export default function Planificacion() {
     
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/upload-files`, {
-        method: 'POST',
-        body: formData
+      await simulationService.uploadFiles(selectedFiles);
+      
+      setNotification({
+        open: true,
+        message: 'Archivos subidos correctamente',
+        severity: 'success'
       });
       
-      if (response.ok) {
-        const result = await response.json();
-        setNotification({
-          open: true,
-          message: 'Archivos subidos correctamente',
-          severity: 'success'
-        });
-        
-        // Limpiar los archivos seleccionados
-        setSelectedFiles({
-          pedidos: null,
-          bloqueos: null,
-          averias: null,
-          planmantenimiento: null
-        });
-        
-        // Actualizar el estado de los archivos
-        checkFilesStatus();
-      } else {
-        setNotification({
-          open: true,
-          message: 'Error al subir los archivos',
-          severity: 'error'
-        });
-      }
+      // Limpiar los archivos seleccionados
+      setSelectedFiles({
+        pedidos: null,
+        bloqueos: null,
+        averias: null,
+        planmantenimiento: null
+      });
+      
+      // Actualizar el estado de los archivos
+      checkFilesStatus();
     } catch (error) {
       console.error("Error al subir archivos:", error);
       setNotification({
@@ -171,27 +151,13 @@ export default function Planificacion() {
 
   const handleSetStartDateTime = async () => {
     try {
-      const response = await fetch(`${API_URL}/inicializar-fecha-hora`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ fechaHoraInicio: startDateTime.toISOString() }),
-      });
+      await simulationService.initializeFechaHora(startDateTime.toISOString());
       
-      if (response.ok) {
-        setNotification({
-          open: true,
-          message: 'Fecha y hora de inicio configurada correctamente',
-          severity: 'success'
-        });
-      } else {
-        setNotification({
-          open: true,
-          message: 'Error al configurar la fecha y hora de inicio',
-          severity: 'error'
-        });
-      }
+      setNotification({
+        open: true,
+        message: 'Fecha y hora de inicio configurada correctamente',
+        severity: 'success'
+      });
     } catch (error) {
       console.error("Error al configurar fecha y hora:", error);
       setNotification({
@@ -208,25 +174,15 @@ export default function Planificacion() {
     
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/ejecutar-simulacion`, {
-        method: 'POST'
-      });
+      await simulationService.executeSimulation();
       
-      if (response.ok) {
-        setNotification({
-          open: true,
-          message: 'Planificación ejecutada correctamente',
-          severity: 'success'
-        });
-        // Cambiar a la pestaña de rutas
-        setTabValue(1);
-      } else {
-        setNotification({
-          open: true,
-          message: 'Error al ejecutar la planificación',
-          severity: 'error'
-        });
-      }
+      setNotification({
+        open: true,
+        message: 'Planificación ejecutada correctamente',
+        severity: 'success'
+      });
+      // Cambiar a la pestaña de rutas
+      setTabValue(1);
     } catch (error) {
       console.error("Error al ejecutar planificación:", error);
       setNotification({
