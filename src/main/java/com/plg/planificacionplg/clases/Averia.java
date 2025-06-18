@@ -26,11 +26,12 @@ public class Averia {
     
     @Column(name = "fecha_hora_fin")
     private LocalDateTime fechaHoraFin;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tipo", nullable = false)
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tipo_id", nullable = false)
     private TipoAveria tipo;
-      @ManyToOne(fetch = FetchType.LAZY)
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "camion_id", nullable = false)
     private Camion camion;
     

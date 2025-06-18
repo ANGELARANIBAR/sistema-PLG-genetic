@@ -31,9 +31,9 @@ public class Camion {
     
     @Column(name = "placa", unique = true, length = 10)
     private String placa;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tipo", nullable = false)
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tipo_camion_id", nullable = false)
     private TipoCamion tipo;
     
     @Column(name = "combustible_actual", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")

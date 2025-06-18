@@ -59,7 +59,7 @@ public interface PedidoRepository extends JpaRepository<Pedido, Integer> {
     List<Pedido> findPedidosConEntregaParcial();
     
     // Buscar pedidos por ubicación (coordenadas aproximadas)
-    @Query("SELECT p FROM Pedido p WHERE p.ubicacion.latitud BETWEEN :latMin AND :latMax AND p.ubicacion.longitud BETWEEN :lonMin AND :lonMax")
+    @Query("SELECT p FROM Pedido p WHERE p.ubicacion.posX BETWEEN :latMin AND :latMax AND p.ubicacion.posY BETWEEN :lonMin AND :lonMax")
     List<Pedido> findPedidosByUbicacion(@Param("latMin") double latMin, @Param("latMax") double latMax, 
                                        @Param("lonMin") double lonMin, @Param("lonMax") double lonMax);
     
