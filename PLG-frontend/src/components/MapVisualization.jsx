@@ -27,7 +27,6 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   const [overlappingItems, setOverlappingItems] = useState([]);
   const [showOverlapMenu, setShowOverlapMenu] = useState(false);
   const [truckDirections, setTruckDirections] = useState(new Map());
-  const [showLegend, setShowLegend] = useState(true);
   const mapContainerRef = useRef(null);
 
   const getCurrentDestination = useCallback(async (truck) => {
@@ -263,7 +262,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   const getContainerDimensions = () => {
     if (mapContainerRef.current) {
       const containerWidth = mapContainerRef.current.clientWidth - 300; // Subtract sidebar width
-      const containerHeight = mapContainerRef.current.clientHeight;
+      const containerHeight = mapContainerRef.current.clientHeight - 20; // Subtract padding
       return { containerWidth, containerHeight };
     }
     return { containerWidth: 800, containerHeight: 600 };
@@ -370,10 +369,6 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
       case 'right': return truckIconRight;
       default: return truckIconUp;
     }
-  };
-
-  const toggleLegend = () => {
-    setShowLegend(!showLegend);
   };
 
   return (
@@ -585,52 +580,6 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
             </div>
           </div>
         )}
-
-        {/* Botón para mostrar/ocultar leyenda en el mapa (solo para móviles) */}
-        <div className="legend-toggle mobile-only" onClick={toggleLegend}>
-          {showLegend ? 'Ocultar leyenda' : 'Mostrar leyenda'}
-        </div>
-
-        {/* Leyenda ocultable en el mapa (solo para móviles) */}
-        {showLegend && (
-          <div className="map-legend mobile-only">
-            <div className="legend-header">
-              <h4>Leyenda</h4>
-              <button className="close-legend" onClick={toggleLegend}>×</button>
-            </div>
-            <div className="legend-content">
-              <div className="legend-item">
-                <div className="legend-icon truck-legend">
-                  <img src={truckIconUp} alt="Camión" className="legend-img" />
-                </div>
-                <span>Camión</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-icon cisterna-legend">
-                  <img src={cisternaIcon} alt="Cisterna" className="legend-img" />
-                </div>
-                <span>Cisterna</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-icon pedido-legend">
-                  <img src={pedidoIcon} alt="Pedido" className="legend-img" />
-                </div>
-                <span>Pedido</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-line route-legend"></div>
-                <span>Ruta</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-block">
-                  <div className="legend-block-line"></div>
-                  <div className="legend-block-symbol">✕</div>
-                </div>
-                <span>Bloqueo</span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Sidebar */}
@@ -639,28 +588,30 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
           selectedItem.type === 'truck' ? (
             <div className="info-section">
               <h3>Información de Camión</h3>
-              <div className="info-item">
-                <strong>Código:</strong> {system?.flota.find(t => t.truckId === selectedItem.id)?.codigo}
-              </div>
-              <div className="info-item">
-                <strong>Placa:</strong> {system?.flota.find(t => t.truckId === selectedItem.id)?.plate}
-              </div>
-              <div className="info-item">
-                <strong>Combustible actual:</strong> {Number(truckFuels.get(selectedItem.id) || 0).toFixed(2)}
-              </div>
-              <div className="info-item">
-                <strong>GLP actual:</strong> {Number(truckGLPs.get(selectedItem.id) || 0).toFixed(2)}
-              </div>
-              <div className="info-item">
-                <strong>Combustible final:</strong> {Number(system?.flota.find(t => t.truckId === selectedItem.id)?.fuelConsumed || 0).toFixed(2)}
-              </div>
-              {system?.flota.find(t => t.truckId === selectedItem.id) && (
+              <div className="info-content">
                 <div className="info-item">
-                  <strong>Estado camión:</strong> {truckStates.get(selectedItem.id) || 'N/A'}
+                  <strong>Código:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.codigo}</span>
                 </div>
-              )}
+                <div className="info-item">
+                  <strong>Placa:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.plate}</span>
+                </div>
+                <div className="info-item">
+                  <strong>Combustible actual:</strong> <span>{Number(truckFuels.get(selectedItem.id) || 0).toFixed(2)}</span>
+                </div>
+                <div className="info-item">
+                  <strong>GLP actual:</strong> <span>{Number(truckGLPs.get(selectedItem.id) || 0).toFixed(2)}</span>
+                </div>
+                <div className="info-item">
+                  <strong>Combustible final:</strong> <span>{Number(system?.flota.find(t => t.truckId === selectedItem.id)?.fuelConsumed || 0).toFixed(2)}</span>
+                </div>
+                {system?.flota.find(t => t.truckId === selectedItem.id) && (
+                  <div className="info-item">
+                    <strong>Estado camión:</strong> <span>{truckStates.get(selectedItem.id) || 'N/A'}</span>
+                  </div>
+                )}
+              </div>
               <div className="averia-buttons">
-                <h4 style={{ marginBottom: '10px' }}>Registrar avería</h4>
+                <h4>Registrar avería</h4>
                 <div className="button-container">
                   <button 
                     onClick={() => handleAveriaOption(1)} 
@@ -687,25 +638,25 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
             <div className="info-section">
               <h3>Información de Cisterna</h3>
               {system?.cisternas[selectedItem.id] && (
-                <div>
+                <div className="info-content">
                   <div className="info-item">
-                    <strong>Tipo:</strong> {system.cisternas[selectedItem.id].principal ? 'Principal' : 'Secundaria'}
+                    <strong>Tipo:</strong> <span>{system.cisternas[selectedItem.id].principal ? 'Principal' : 'Secundaria'}</span>
                   </div>
                   <div className="info-item">
-                    <strong>GLP Actual:</strong> {(cisternaGLPs.get(system.cisternas[selectedItem.id].id) ?? system.cisternas[selectedItem.id].cargaGLPActual).toFixed(2)}
+                    <strong>GLP Actual:</strong> <span>{(cisternaGLPs.get(system.cisternas[selectedItem.id].id) ?? system.cisternas[selectedItem.id].cargaGLPActual).toFixed(2)}</span>
                   </div>
                   <div className="info-item">
-                    <strong>Capacidad Total:</strong> {system.cisternas[selectedItem.id].capacidadTotal.toFixed(2)}
+                    <strong>Capacidad Total:</strong> <span>{system.cisternas[selectedItem.id].capacidadTotal.toFixed(2)}</span>
                   </div>
                   <div className="info-item">
-                    <strong>Hora de Abastecimiento:</strong> {system.cisternas[selectedItem.id].horaAbastecimento}
+                    <strong>Hora de Abastecimiento:</strong> <span>{system.cisternas[selectedItem.id].horaAbastecimento}</span>
                   </div>
                   {system.cisternas[selectedItem.id].operacionesGLPCisterna?.length > 0 && (
-                    <div style={{ marginTop: '10px' }}>
+                    <div className="operaciones-section">
                       <strong>Últimas Operaciones:</strong>
-                      <div style={{ marginTop: '5px', fontSize: '0.9em' }}>
+                      <div className="operaciones-list">
                         {system.cisternas[selectedItem.id].operacionesGLPCisterna.slice(-3).map((op, idx) => (
-                          <div key={idx} style={{ marginBottom: '3px' }}>
+                          <div key={idx} className="operacion-item">
                             {new Date(op.fechaHoraOperacion).toLocaleString()}: {op.cantSalidaGLP.toFixed(2)} GLP (Camión {op.placaCamion})
                           </div>
                         ))}
@@ -719,27 +670,27 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
             <div className="info-section">
               <h3>Información de Pedido</h3>
               {system?.pedidos.find(p => p.id === selectedItem.id) && (
-                <div>
+                <div className="info-content">
                   <div className="info-item">
-                    <strong>Código de Pedido:</strong> {system.pedidos.find(p => p.id === selectedItem.id)?.numeroPedido}
+                    <strong>Código de Pedido:</strong> <span>{system.pedidos.find(p => p.id === selectedItem.id)?.numeroPedido}</span>
                   </div>
                   <div className="info-item">
-                    <strong>Volumen GLP:</strong> {system.pedidos.find(p => p.id === selectedItem.id)?.volumenGLP.toFixed(2)}
+                    <strong>Volumen GLP:</strong> <span>{system.pedidos.find(p => p.id === selectedItem.id)?.volumenGLP.toFixed(2)}</span>
                   </div>
                   <div className="info-item">
-                    <strong>Hora Registro:</strong> {new Date(system.pedidos.find(p => p.id === selectedItem.id)?.fechaHoraRegistro || '').toLocaleString()}
+                    <strong>Hora Registro:</strong> <span>{new Date(system.pedidos.find(p => p.id === selectedItem.id)?.fechaHoraRegistro || '').toLocaleString()}</span>
                   </div>
                   <div className="info-item">
-                    <strong>Entrega Máxima:</strong> {new Date(system.pedidos.find(p => p.id === selectedItem.id)?.fechaHoraMaxEntrega || '').toLocaleString()}
+                    <strong>Entrega Máxima:</strong> <span>{new Date(system.pedidos.find(p => p.id === selectedItem.id)?.fechaHoraMaxEntrega || '').toLocaleString()}</span>
                   </div>
                   <div className="info-item">
-                    <strong>Estado:</strong> {system.pedidos.find(p => p.id === selectedItem.id)?.estado}
+                    <strong>Estado:</strong> <span>{system.pedidos.find(p => p.id === selectedItem.id)?.estado}</span>
                   </div>
                   <div className="info-item">
-                    <strong>Ubicación:</strong> ({system.pedidos.find(p => p.id === selectedItem.id)?.ubicacion.x}, {system.pedidos.find(p => p.id === selectedItem.id)?.ubicacion.y})
+                    <strong>Ubicación:</strong> <span>({system.pedidos.find(p => p.id === selectedItem.id)?.ubicacion.x}, {system.pedidos.find(p => p.id === selectedItem.id)?.ubicacion.y})</span>
                   </div>
                   <div className="info-item">
-                    <strong>Combustible total:</strong> {system.pedidos.find(p => p.id === selectedItem.id)?.consumoCombustibleTotal.toFixed(2)}
+                    <strong>Combustible total:</strong> <span>{system.pedidos.find(p => p.id === selectedItem.id)?.consumoCombustibleTotal.toFixed(2)}</span>
                   </div>
                 </div>
               )}
@@ -758,47 +709,40 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
           </div>
         )}
 
-        {/* Leyenda en la columna de información */}
+        {/* Leyenda fija en la columna de información */}
         <div className="sidebar-legend">
-          <div className="legend-header">
-            <h4>Leyenda</h4>
-            <button className="toggle-legend" onClick={toggleLegend}>
-              {showLegend ? '▼' : '▲'}
-            </button>
-          </div>
-          {showLegend && (
-            <div className="legend-content">
-              <div className="legend-item">
-                <div className="legend-icon truck-legend">
-                  <img src={truckIconUp} alt="Camión" className="legend-img" />
-                </div>
-                <span>Camión</span>
+          <h4>Leyenda</h4>
+          <div className="legend-content">
+            <div className="legend-item">
+              <div className="legend-icon truck-legend">
+                <img src={truckIconUp} alt="Camión" className="legend-img" />
               </div>
-              <div className="legend-item">
-                <div className="legend-icon cisterna-legend">
-                  <img src={cisternaIcon} alt="Cisterna" className="legend-img" />
-                </div>
-                <span>Cisterna</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-icon pedido-legend">
-                  <img src={pedidoIcon} alt="Pedido" className="legend-img" />
-                </div>
-                <span>Pedido</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-line route-legend"></div>
-                <span>Ruta</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-block">
-                  <div className="legend-block-line"></div>
-                  <div className="legend-block-symbol">✕</div>
-                </div>
-                <span>Bloqueo</span>
-              </div>
+              <span>Camión</span>
             </div>
-          )}
+            <div className="legend-item">
+              <div className="legend-icon cisterna-legend">
+                <img src={cisternaIcon} alt="Cisterna" className="legend-img" />
+              </div>
+              <span>Cisterna</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-icon pedido-legend">
+                <img src={pedidoIcon} alt="Pedido" className="legend-img" />
+              </div>
+              <span>Pedido</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-line route-legend"></div>
+              <span>Ruta</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-block">
+                <div className="legend-block-line"></div>
+                <div className="legend-block-symbol">✕</div>
+              </div>
+              <span>Bloqueo</span>
+            </div>
+          </div>
         </div>
       </div>
 
