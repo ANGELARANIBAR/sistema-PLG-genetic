@@ -73,10 +73,21 @@ public class PlanificacionPlgApplication {
         
         // Use uploaded content if available, otherwise use default file paths
         if (pedidosFileContent != null && !pedidosFileContent.isEmpty()) {
+            System.out.println("Cargando pedidos desde contenido subido...");
             sistemaPLG.cargarPedidos(pedidosFileContent);
         } else {
+            System.out.println("Cargando pedidos desde archivo por defecto...");
             sistemaPLG.cargarPedidos("src/main/java/com/plg/planificacionplg/test/pedidos.txt");
         }
+        
+        // Ensure pedidos list is initialized
+        if (sistemaPLG.getPedidos() == null) {
+            System.err.println("¡ADVERTENCIA! La lista de pedidos es NULL después de cargar. Inicializando como lista vacía.");
+            sistemaPLG.setPedidos(new ArrayList<>());
+        }
+        
+        // Log the number of pedidos loaded
+        System.out.println("Número de pedidos cargados: " + sistemaPLG.getPedidos().size());
         
         sistemaPLG.setPedidosTodos(new ArrayList<>(sistemaPLG.getPedidos()));
         sistemaPLG.setCisternas(cisternas);

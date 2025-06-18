@@ -26,7 +26,7 @@ public class SistemaPLG {
     private double tiempoEntregaMin;
     private double maxXmapa;
     private double maxYmapa;
-    private List<Pedido> pedidos;
+    private List<Pedido> pedidos = new ArrayList<>();
     private List<Pedido> pedidosTodos;
     private double distanciaManzana;
     private LocalDateTime fechaHoraInicio;
@@ -56,8 +56,10 @@ public class SistemaPLG {
         this.maxXmapa = otro.maxXmapa;
         this.maxYmapa = otro.maxYmapa;
         this.pedidos = new ArrayList<>();
-        for (Pedido pedido : otro.pedidos) {
-            this.pedidos.add(new Pedido(pedido));
+        if (otro.pedidos != null) {
+            for (Pedido pedido : otro.pedidos) {
+                this.pedidos.add(new Pedido(pedido));
+            }
         }
         this.distanciaManzana = otro.distanciaManzana;
         this.fechaHoraInicio = otro.fechaHoraInicio;
@@ -308,6 +310,13 @@ public class SistemaPLG {
 
     public void cargarPedidos(String contenido) {
         try {
+            // Initialize pedidos list if null
+            if (pedidos == null) {
+                pedidos = new ArrayList<>();
+            } else {
+                pedidos.clear(); // Clear existing pedidos
+            }
+            
             // Process content directly
             String[] lineas = contenido.split("\\r?\\n");
             for (String linea : lineas) {
@@ -340,7 +349,10 @@ public class SistemaPLG {
                 
                 pedidos.add(pedido);
             }
+            
+            System.out.println("Cargados " + pedidos.size() + " pedidos correctamente");
         } catch (Exception e) {
+            System.err.println("Error al cargar pedidos: " + e.getMessage());
             e.printStackTrace();
         }
     }
