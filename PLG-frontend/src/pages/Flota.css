@@ -1,0 +1,46 @@
+/* Flota Page Styles */
+
+.search-bar .MuiInputBase-root {
+  border-radius: 4px;
+}
+
+.add-button {
+  background-color: #f97316;
+  color: white;
+  text-transform: none;
+  border-radius: 8px;
+  white-space: nowrap;
+  padding: 8px 16px;
+  font-weight: 500;
+}
+
+.add-button:hover {
+  background-color: #ea580c;
+}
+
+.MuiTableCell-head {
+  font-weight: 600;
+  color: #374151;
+  background-color: #f9fafb;
+}
+
+.MuiTableRow-root {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.MuiTableCell-root {
+  padding: 12px 16px;
+}
+
+/* Status Chip */
+.status-chip {
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0 8px;
+}
+
+.status-disponible {
+  background-color: #3b82f6;
+  color: white;
+} 

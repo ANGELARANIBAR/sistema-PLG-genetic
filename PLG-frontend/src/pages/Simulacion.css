@@ -1,0 +1,33 @@
+.simulacion-container {
+  padding: 24px;
+  background-color: #f9fafb;
+  min-height: calc(100vh - 64px);
+}
+
+.simulacion-paper {
+  padding: 24px;
+  border-radius: 8px !important;
+  border: 1px solid #e5e7eb !important;
+  background-color: white;
+}
+
+.section-title {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 24px;
+}
+
+.next-button {
+  background-color: #f97316 !important;
+  color: white;
+  text-transform: none;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.next-button:hover {
+  background-color: #ea580c !important;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+} 

@@ -1,0 +1,28 @@
+.input-label {
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.datetime-input .MuiOutlinedInput-root {
+  background-color: white;
+  border-radius: 4px;
+}
+
+.datetime-input .MuiOutlinedInput-notchedOutline {
+  border-color: #e5e7eb;
+}
+
+.datetime-input:hover .MuiOutlinedInput-notchedOutline {
+  border-color: #d1d5db;
+}
+
+.datetime-input.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #6b7280;
+  border-width: 1px;
+}
+
+.input-icon {
+  color: #6b7280;
+  font-size: 1.25rem;
+} 

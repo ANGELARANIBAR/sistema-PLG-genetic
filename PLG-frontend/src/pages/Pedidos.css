@@ -1,0 +1,73 @@
+/* Pedidos Page Styles */
+
+.MuiTableRow-root {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.MuiTableCell-head {
+  font-weight: 600;
+  color: #374151;
+}
+
+.MuiTableCell-root {
+  padding: 12px 16px;
+}
+
+/* Status Chips */
+.status-chip {
+  border-radius: 16px;
+  font-weight: 500;
+  font-size: 0.75rem;
+  padding: 4px 12px;
+}
+
+.status-completado {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.status-pendiente {
+  background-color: #ef4444;
+  color: white;
+}
+
+
+.search-bar .MuiInputBase-root {
+  border-radius: 8px;
+  height: 40px;
+}
+
+/* Buttons */
+.add-button, .upload-button {
+  text-transform: uppercase;
+  border-radius: 8px;
+  white-space: nowrap;
+  height: 40px;
+  padding: 0 16px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  box-shadow: none;
+}
+
+/* Primary action button */
+.add-button {
+  background-color: #f97316;
+}
+
+.add-button:hover {
+  background-color: #ea580c;
+  box-shadow: none;
+}
+
+/* Secondary upload button */
+.upload-button {
+  border-color: #6b7280;
+  color: #6b7280;
+}
+
+.upload-button:hover {
+  border-color: #374151;
+  background-color: #f9fafb;
+  color: #374151;
+  box-shadow: none;
+}

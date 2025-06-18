@@ -1,0 +1,12 @@
+.scenario-container {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .scenario-container {
+    flex-direction: column;
+    align-items: center;
+  }
+} 

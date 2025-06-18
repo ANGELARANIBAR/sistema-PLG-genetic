@@ -1,0 +1,250 @@
+@keyframes pulse {
+  0% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0.4;
+  }
+}
+
+.pulsing-line {
+  animation: pulse 2s infinite;
+  stroke-dasharray: 10, 10;
+}
+
+.map-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 600px;
+}
+
+.map-visualization {
+  flex: 1;
+  position: relative;
+  border: 1px solid #ccc;
+  min-width: 800px;
+  min-height: 600px;
+  background-color: #f9f9f9;
+}
+
+.map-sidebar {
+  width: 300px;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-left: 1px solid #ccc;
+  padding: 20px;
+  overflow-y: auto;
+  height: 600px;
+}
+
+.truck-marker {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  background-color: #0000ff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 2;
+  border: 2px solid #000080;
+}
+
+.truck-marker.selected {
+  background-color: #ff0000;
+  border-color: #800000;
+}
+
+.cisterna-marker {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 2;
+  border: 2px solid;
+}
+
+.cisterna-marker.principal {
+  background-color: #ff0000;
+  border-color: #800000;
+}
+
+.cisterna-marker.secundaria {
+  background-color: #00ff00;
+  border-color: #008000;
+}
+
+.cisterna-marker.selected {
+  background-color: #ff0000;
+  border-color: #800000;
+}
+
+.pedido-marker {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background-color: #800080;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  border: 2px solid #400040;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.pedido-marker.selected {
+  background-color: #ff0000;
+  border-color: #800000;
+}
+
+.route-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.blocked-route {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.grid-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.replanning-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(255, 0, 0, 0.8);
+  color: white;
+  padding: 20px;
+  border-radius: 5px;
+  z-index: 1000;
+  font-size: 24px;
+  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.context-menu {
+  position: fixed;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  z-index: 1000;
+}
+
+.context-menu button {
+  padding: 4px 8px;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 2px;
+}
+
+.context-menu button.tipo-1 {
+  background-color: #4CAF50;
+}
+
+.context-menu button.tipo-2 {
+  background-color: #2196F3;
+}
+
+.context-menu button.tipo-3 {
+  background-color: #f44336;
+}
+
+.info-section {
+  margin-bottom: 15px;
+}
+
+.info-section h3 {
+  margin-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.info-item {
+  margin-bottom: 5px;
+}
+
+.info-item strong {
+  font-weight: bold;
+}
+
+.averia-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.averia-buttons button {
+  padding: 8px 12px;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.averia-buttons button.tipo-1 {
+  background-color: #4CAF50;
+}
+
+.averia-buttons button.tipo-2 {
+  background-color: #2196F3;
+}
+
+.averia-buttons button.tipo-3 {
+  background-color: #f44336;
+}
+
+.loading-message {
+  text-align: center;
+  padding: 20px;
+  font-size: 18px;
+  color: #666;
+} 

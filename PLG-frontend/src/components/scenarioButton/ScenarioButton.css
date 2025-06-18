@@ -1,0 +1,50 @@
+.scenario-button {
+  background-color: #f3f4f6;
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 240px;
+  border: 1px solid #e5e7eb;
+}
+
+.scenario-button:hover {
+  background-color: #e5e7eb;
+}
+
+.scenario-button.selected {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.scenario-button.disabled {
+  cursor: not-allowed;
+  background-color: #f3f4f6;
+}
+
+.scenario-button.disabled:hover {
+  background-color: #f3f4f6;
+}
+
+.scenario-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.scenario-label {
+  font-weight: 500;
+  color: #111827;
+  font-size: 0.9rem;
+}
+
+.scenario-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scenario-icon svg {
+  color: #374151;
+  font-size: 1.5rem;
+}

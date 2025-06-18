@@ -1,0 +1,39 @@
+/* NuevoVehiculo Page Styles */
+
+.MuiTextField-root input::placeholder,
+.MuiSelect-select {
+  color: #9ca3af;
+  opacity: 1;
+}
+
+.MuiTextField-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.MuiFormControl-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #f97316;
+}
+
+.save-button {
+  background-color: #f97316 !important;
+  color: white;
+  text-transform: none;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.save-button:hover {
+  background-color: #ea580c !important;
+}
+
+.cancel-button {
+  text-transform: none;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 8px;
+  color: #4b5563;
+  border-color: #d1d5db;
+}
+
+.cancel-button:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+} 

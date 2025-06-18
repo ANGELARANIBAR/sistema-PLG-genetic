@@ -1,0 +1,113 @@
+.toolbar {
+  min-height: 64px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  height: 32px;
+  display: block;
+}
+
+.logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  padding: 0 8px;
+}
+
+.nav-links a {
+  margin: 0 1rem;
+  color: white;
+  text-decoration: none;
+}
+
+.nav-links a:hover {
+  text-decoration: underline;
+}
+
+.nav-buttons-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+  margin: 0 24px;
+}
+
+.nav-button {
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 6px 16px;
+  text-transform: none;
+  font-size: 14px;
+  white-space: nowrap;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  margin: 0 4px;
+  transition: all 0.2s ease;
+}
+
+.nav-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 900px) {
+  .nav-button {
+    padding: 6px 8px;
+    font-size: 13px;
+    margin: 0 2px;
+  }
+  
+  .nav-buttons-container {
+    margin: 0 12px;
+  }
+}
+
+.active-nav-button {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.admin-button {
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 6px 12px;
+  text-transform: none;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.admin-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: white;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+/* Drawer styles */
+.MuiDrawer-paper {
+  background-color: #1f2937;
+  color: white;
+}
+
+.MuiListItemButton-root {
+  color: white;
+}
+
+.MuiListItemButton-root.Mui-selected {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+.MuiListItemButton-root:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}

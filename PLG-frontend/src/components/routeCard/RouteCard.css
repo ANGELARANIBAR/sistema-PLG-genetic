@@ -1,0 +1,53 @@
+.route-card {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 24px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.route-title {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 16px;
+  font-size: 1.1rem;
+}
+
+.route-info-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.route-icon {
+  color: #6b7280;
+  margin-right: 8px;
+  font-size: 1.2rem;
+}
+
+.route-text {
+  color: #374151;
+  font-weight: 500;
+}
+
+.route-distance {
+  color: #6b7280;
+  margin-top: 4px;
+  margin-bottom: 16px;
+}
+
+.view-map-button {
+  background-color: #f97316 !important;
+  color: white;
+  text-transform: none;
+  font-weight: 500;
+  margin-top: auto;
+  border-radius: 6px;
+  padding: 8px 16px;
+}
+
+.view-map-button:hover {
+  background-color: #ea580c !important;
+} 

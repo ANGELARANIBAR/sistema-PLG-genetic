@@ -1,0 +1,24 @@
+.routes-container {
+  width: 100%;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.view-button {
+  background-color: #1f2937 !important;
+  color: white !important;
+  text-transform: none !important;
+  font-weight: 500 !important;
+  min-width: 140px !important;
+  border-radius: 4px !important;
+  padding: 8px 16px !important;
+}
+
+.view-button:hover {
+  background-color: #111827 !important;
+} 

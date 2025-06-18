@@ -1,0 +1,60 @@
+/* Planificacion Page Styles */
+
+.plan-tabs .MuiTab-root {
+  text-transform: none;
+  min-width: auto;
+  font-weight: 500;
+  padding: 0 24px;
+}
+
+.examine-button {
+  background-color: #F8B84E;
+  color: black;
+  text-transform: none;
+  font-weight: 500;
+  min-width: 120px;
+  white-space: nowrap;
+}
+
+.examine-button:hover {
+  background-color: #f6a926;
+}
+
+.replan-button {
+  text-transform: none;
+  border-radius: 8px;
+  white-space: nowrap;
+  background-color: #f97316;
+  padding: 8px 16px;
+  font-weight: 500;
+}
+
+.replan-button:hover {
+  background-color: #ea580c;
+}
+
+.view-button {
+  background-color: #1f2937;
+  text-transform: none;
+  font-weight: 500;
+  min-width: 140px;
+  border-radius: 4px;
+}
+
+.view-button:hover {
+  background-color: #111827;
+}
+
+/* File input fields */
+.MuiTextField-root.Mui-disabled {
+  background-color: #f9fafb;
+  border-radius: 4px;
+}
+
+.MuiTextField-root.Mui-disabled .MuiInputBase-input {
+  color: #6b7280;
+}
+
+.MuiInputAdornment-root .MuiIconButton-root {
+  color: #9ca3af;
+} 

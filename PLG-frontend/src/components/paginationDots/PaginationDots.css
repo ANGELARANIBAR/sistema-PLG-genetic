@@ -1,0 +1,25 @@
+.pagination-dots-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin: 24px 0;
+}
+
+.pagination-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #d1d5db;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-dot:hover {
+  background-color: #9ca3af;
+}
+
+.pagination-dot.active {
+  background-color: #4b5563;
+  transform: scale(1.2);
+} 
