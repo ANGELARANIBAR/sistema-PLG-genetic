@@ -1,6 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { mapService } from '../services/mapService';
 import '../styles/MapStyles.css';
+// Importar iconos
+import truckIcon from '../assets/icons/truck-icon.svg';
+import cisternaIcon from '../assets/icons/cisterna-icon.svg';
+import pedidoIcon from '../assets/icons/pedido-icon.svg';
 
 const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   const [system, setSystem] = useState(null);
@@ -328,25 +332,6 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
           });
         })}
 
-        {/* Draw pedidos */}
-        {system.pedidos.map((pedido, index) => {
-          const pos = toScreenPosition(pedido.ubicacion.x, pedido.ubicacion.y);
-          return (
-            <div
-              key={`pedido-${index}`}
-              className={`pedido-marker ${selectedItem?.type === 'pedido' && selectedItem.id === pedido.id ? 'selected' : ''}`}
-              style={{
-                left: pos.x,
-                top: pos.y
-              }}
-              onClick={() => setSelectedItem({ type: 'pedido', id: pedido.id })}
-              title={`Order ${pedido.numeroPedido} - GLP: ${pedido.volumenGLP.toFixed(2)}`}
-            >
-              P{index + 1}
-            </div>
-          );
-        })}
-
         {/* Draw trucks */}
         {Array.from(truckPositions.entries()).map(([truckId, position]) => {
           const truck = system.flota.find(t => t.truckId === truckId);
@@ -366,21 +351,22 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
               key={`truck-${truckId}`}
               className={`truck-marker ${selectedItem?.type === 'truck' && selectedItem.id === truckId ? 'selected' : ''}`}
               style={{
-                left: pos.x,
-                top: pos.y
+                left: pos.x - 12,
+                top: pos.y - 12
               }}
               onClick={() => setSelectedItem({ type: 'truck', id: truckId })}
               onContextMenu={(e) => {
                 e.preventDefault();
                 handleTruckRightClick(e, truckId);
               }}
-              title={`Truck ${truck.codigo}
+              title={`Camión ${truck.codigo}
 Combustible: ${currentFuel.toFixed(2)}
 GLP: ${currentGLP.toFixed(2)}
 Combustible final: ${Number(truck.fuelConsumed || 0).toFixed(2)}
 ${currentDest ? `\nEn: ${currentDest.destinationType}` : ''}`}
             >
-              T{truckId}
+              <img src={truckIcon} alt="Truck" className="marker-icon" />
+              <span className="marker-label">T{truckId}</span>
             </div>
           );
         })}
@@ -394,8 +380,8 @@ ${currentDest ? `\nEn: ${currentDest.destinationType}` : ''}`}
               key={`cisterna-${index}`}
               className={`cisterna-marker ${cisterna.principal ? 'principal' : 'secundaria'} ${selectedItem?.type === 'cisterna' && selectedItem.id === index ? 'selected' : ''}`}
               style={{
-                left: pos.x,
-                top: pos.y
+                left: pos.x - 12,
+                top: pos.y - 12
               }}
               onClick={() => setSelectedItem({ type: 'cisterna', id: index })}
               title={`${cisterna.principal ? 'Principal' : 'Secundaria'} Cisterna
@@ -404,10 +390,31 @@ Hora Abastecimiento: ${cisterna.horaAbastecimento}
 ${cisterna.operacionesGLPCisterna?.length ? `
 Últimas operaciones:
 ${cisterna.operacionesGLPCisterna.slice(-3).map(op => 
-  `- ${new Date(op.fechaHoraOperacion).toLocaleString()}: ${op.cantSalidaGLP.toFixed(2)} GLP (Camión ${op.placaCamion})`
+`- ${new Date(op.fechaHoraOperacion).toLocaleString()}: ${op.cantSalidaGLP.toFixed(2)} GLP (Camión ${op.placaCamion})`
 ).join('\n')}` : ''}`}
             >
-              C{index + 1}
+              <img src={cisternaIcon} alt="Cisterna" className="marker-icon" />
+              <span className="marker-label">C{index + 1}</span>
+            </div>
+          );
+        })}
+
+        {/* Draw pedidos */}
+        {system.pedidos.map((pedido, index) => {
+          const pos = toScreenPosition(pedido.ubicacion.x, pedido.ubicacion.y);
+          return (
+            <div
+              key={`pedido-${index}`}
+              className={`pedido-marker ${selectedItem?.type === 'pedido' && selectedItem.id === pedido.id ? 'selected' : ''}`}
+              style={{
+                left: pos.x - 12,
+                top: pos.y - 12
+              }}
+              onClick={() => setSelectedItem({ type: 'pedido', id: pedido.id })}
+              title={`Pedido ${pedido.numeroPedido} - GLP: ${pedido.volumenGLP.toFixed(2)}`}
+            >
+              <img src={pedidoIcon} alt="Pedido" className="marker-icon" />
+              <span className="marker-label">P{index + 1}</span>
             </div>
           );
         })}
