@@ -118,48 +118,5 @@ export const simulationService = {
             console.error('Error checking replanning status:', error);
             throw error;
         }
-    },
-
-    // Upload files (pedidos, averias, bloqueos, planmantenimiento)
-    async uploadFiles(files) {
-        try {
-            const formData = new FormData();
-            
-            // Add files to FormData if they exist
-            if (files.pedidos) formData.append('pedidos', files.pedidos);
-            if (files.averias) formData.append('averias', files.averias);
-            if (files.bloqueos) formData.append('bloqueos', files.bloqueos);
-            if (files.planmantenimiento) formData.append('planmantenimiento', files.planmantenimiento);
-            
-            const response = await fetch(`${API_BASE_URL}/upload-files`, {
-                method: 'POST',
-                body: formData
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            return await response.json();
-        } catch (error) {
-            console.error('Error uploading files:', error);
-            throw error;
-        }
-    },
-    
-    // Check files status
-    async getFilesStatus() {
-        try {
-            const response = await fetch(`${API_BASE_URL}/upload-files-status`);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            return await response.json();
-        } catch (error) {
-            console.error('Error checking files status:', error);
-            throw error;
-        }
     }
 }; 
