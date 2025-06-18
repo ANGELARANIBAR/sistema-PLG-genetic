@@ -586,46 +586,48 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
           </div>
         )}
 
-        {/* Botón para mostrar/ocultar leyenda */}
-        <div className="legend-toggle" onClick={toggleLegend}>
+        {/* Botón para mostrar/ocultar leyenda en el mapa (solo para móviles) */}
+        <div className="legend-toggle mobile-only" onClick={toggleLegend}>
           {showLegend ? 'Ocultar leyenda' : 'Mostrar leyenda'}
         </div>
 
-        {/* Leyenda ocultable */}
+        {/* Leyenda ocultable en el mapa (solo para móviles) */}
         {showLegend && (
-          <div className="map-legend">
+          <div className="map-legend mobile-only">
             <div className="legend-header">
               <h4>Leyenda</h4>
               <button className="close-legend" onClick={toggleLegend}>×</button>
             </div>
-            <div className="legend-item">
-              <div className="legend-icon truck-legend">
-                <img src={truckIconUp} alt="Camión" className="legend-img" />
+            <div className="legend-content">
+              <div className="legend-item">
+                <div className="legend-icon truck-legend">
+                  <img src={truckIconUp} alt="Camión" className="legend-img" />
+                </div>
+                <span>Camión</span>
               </div>
-              <span>Camión</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-icon cisterna-legend">
-                <img src={cisternaIcon} alt="Cisterna" className="legend-img" />
+              <div className="legend-item">
+                <div className="legend-icon cisterna-legend">
+                  <img src={cisternaIcon} alt="Cisterna" className="legend-img" />
+                </div>
+                <span>Cisterna</span>
               </div>
-              <span>Cisterna</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-icon pedido-legend">
-                <img src={pedidoIcon} alt="Pedido" className="legend-img" />
+              <div className="legend-item">
+                <div className="legend-icon pedido-legend">
+                  <img src={pedidoIcon} alt="Pedido" className="legend-img" />
+                </div>
+                <span>Pedido</span>
               </div>
-              <span>Pedido</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-line route-legend"></div>
-              <span>Ruta</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-block">
-                <div className="legend-block-line"></div>
-                <div className="legend-block-symbol">✕</div>
+              <div className="legend-item">
+                <div className="legend-line route-legend"></div>
+                <span>Ruta</span>
               </div>
-              <span>Bloqueo</span>
+              <div className="legend-item">
+                <div className="legend-block">
+                  <div className="legend-block-line"></div>
+                  <div className="legend-block-symbol">✕</div>
+                </div>
+                <span>Bloqueo</span>
+              </div>
             </div>
           </div>
         )}
@@ -755,6 +757,49 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
             <p>Seleccione un camión, cisterna o pedido para ver detalles</p>
           </div>
         )}
+
+        {/* Leyenda en la columna de información */}
+        <div className="sidebar-legend">
+          <div className="legend-header">
+            <h4>Leyenda</h4>
+            <button className="toggle-legend" onClick={toggleLegend}>
+              {showLegend ? '▼' : '▲'}
+            </button>
+          </div>
+          {showLegend && (
+            <div className="legend-content">
+              <div className="legend-item">
+                <div className="legend-icon truck-legend">
+                  <img src={truckIconUp} alt="Camión" className="legend-img" />
+                </div>
+                <span>Camión</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-icon cisterna-legend">
+                  <img src={cisternaIcon} alt="Cisterna" className="legend-img" />
+                </div>
+                <span>Cisterna</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-icon pedido-legend">
+                  <img src={pedidoIcon} alt="Pedido" className="legend-img" />
+                </div>
+                <span>Pedido</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-line route-legend"></div>
+                <span>Ruta</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-block">
+                  <div className="legend-block-line"></div>
+                  <div className="legend-block-symbol">✕</div>
+                </div>
+                <span>Bloqueo</span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Context Menu */}
