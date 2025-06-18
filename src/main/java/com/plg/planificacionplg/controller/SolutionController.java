@@ -8,7 +8,9 @@ import org.springframework.cglib.core.Local;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
@@ -418,19 +420,7 @@ public class SolutionController {
     }
 
     @PostMapping("/ejecutar-simulacion")
-    public ResponseEntity<?> ejecutarAlgoritmo() {
-        // Check if at least one file has been uploaded
-        boolean hasAnyFileUploaded = PlanificacionPlgApplication.getPedidosContent() != null || 
-                                    PlanificacionPlgApplication.getBloqueosContent() != null ||
-                                    PlanificacionPlgApplication.getAveriasContent() != null ||
-                                    PlanificacionPlgApplication.getMantenimientoContent() != null;
-        
-        if (!hasAnyFileUploaded) {
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Debe cargar al menos un archivo antes de ejecutar la simulación");
-            return ResponseEntity.badRequest().body(response);
-        }
-        
+    public ResponseEntity<Individuo> ejecutarAlgoritmo() {
         new Thread(() -> {
             PlanificacionPlgApplication.ejecutarAlgoritmo(); // Lógica pesada
         }).start();
@@ -455,21 +445,9 @@ public class SolutionController {
     }
 
     @PostMapping("/ejecutar-simulacion-con-fecha")
-    public ResponseEntity<?> ejecutarAlgoritmoConFecha(@RequestBody FechaHoraInicioRequest request) {
+    public ResponseEntity<Individuo> ejecutarAlgoritmoConFecha(@RequestBody FechaHoraInicioRequest request) {
         if (request.getFechaHoraInicio() == null) {
-            return ResponseEntity.badRequest().body("fechaHoraInicio no puede ser null");
-        }
-        
-        // Check if at least one file has been uploaded
-        boolean hasAnyFileUploaded = PlanificacionPlgApplication.getPedidosContent() != null || 
-                                    PlanificacionPlgApplication.getBloqueosContent() != null ||
-                                    PlanificacionPlgApplication.getAveriasContent() != null ||
-                                    PlanificacionPlgApplication.getMantenimientoContent() != null;
-        
-        if (!hasAnyFileUploaded) {
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Debe cargar al menos un archivo antes de ejecutar la simulación");
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.badRequest().build();
         }
         
         // Set the fechaHoraInicio before executing the algorithm
@@ -481,6 +459,107 @@ public class SolutionController {
 
         return ResponseEntity.accepted().build(); // 202 Accepted, sin esperar resultado
     }
+
+    @PostMapping("/upload-files")
+public ResponseEntity<String> uploadFiles(
+        @RequestParam(value = "averias", required = false) MultipartFile averiasFile,
+        @RequestParam(value = "bloqueos", required = false) MultipartFile bloqueosFile,
+        @RequestParam(value = "pedidos", required = false) MultipartFile pedidosFile,
+        @RequestParam(value = "planMantenimiento", required = false) MultipartFile planMantenimientoFile,
+        @RequestParam(value = "ejecutarSimulacion", defaultValue = "false") boolean ejecutarSimulacion) {
+    
+    try {
+        Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
+        if (mejorSolucion == null) {
+            // If there's no solution initialized, we'll create a new one when executing the algorithm
+            if (!ejecutarSimulacion) {
+                return ResponseEntity.badRequest().body("No hay una solución inicializada. Debe establecer ejecutarSimulacion=true");
+            }
+            
+            // We'll use the files when executing the algorithm
+            storeTempFiles(averiasFile, bloqueosFile, pedidosFile, planMantenimientoFile);
+            
+            // Execute the algorithm in a separate thread
+            new Thread(() -> {
+                PlanificacionPlgApplication.ejecutarAlgoritmo();
+            }).start();
+            
+            return ResponseEntity.accepted().body("Simulación iniciada con los archivos proporcionados");
+        }
+        
+        // If we have an existing solution, update it with the new files
+        SistemaPLG sistema = mejorSolucion.getSistemaPLG();
+        
+        // Process the uploaded files
+        if (pedidosFile != null && !pedidosFile.isEmpty()) {
+            java.nio.file.Path pedidosPath = java.nio.file.Files.createTempFile("pedidos", ".txt");
+            pedidosFile.transferTo(pedidosPath.toFile());
+            sistema.cargarPedidos(pedidosPath.toString());
+            sistema.setPedidosTodos(new ArrayList<>(sistema.getPedidos()));
+            java.nio.file.Files.deleteIfExists(pedidosPath);
+        }
+        
+        if (bloqueosFile != null && !bloqueosFile.isEmpty()) {
+            java.nio.file.Path bloqueosPath = java.nio.file.Files.createTempFile("bloqueos", ".txt");
+            bloqueosFile.transferTo(bloqueosPath.toFile());
+            sistema.cargaBloqueos(bloqueosPath.toString());
+            java.nio.file.Files.deleteIfExists(bloqueosPath);
+        }
+        
+        if (planMantenimientoFile != null && !planMantenimientoFile.isEmpty()) {
+            java.nio.file.Path planMantenimientoPath = java.nio.file.Files.createTempFile("planMantenimiento", ".txt");
+            planMantenimientoFile.transferTo(planMantenimientoPath.toFile());
+            sistema.cargarMantenimientos(planMantenimientoPath.toString(), LocalTime.MIN, LocalTime.MAX);
+            java.nio.file.Files.deleteIfExists(planMantenimientoPath);
+        }
+        
+        if (averiasFile != null && !averiasFile.isEmpty()) {
+            java.nio.file.Path averiasPath = java.nio.file.Files.createTempFile("averias", ".txt");
+            averiasFile.transferTo(averiasPath.toFile());
+            sistema.cargarAverias(averiasPath.toString());
+            java.nio.file.Files.deleteIfExists(averiasPath);
+        }
+        
+        // If requested, execute the simulation with the updated data
+        if (ejecutarSimulacion) {
+            new Thread(() -> {
+                PlanificacionPlgApplication.ejecutarAlgoritmo();
+            }).start();
+            return ResponseEntity.accepted().body("Archivos cargados y simulación iniciada");
+        }
+        
+        return ResponseEntity.ok("Archivos cargados correctamente");
+    } catch (Exception e) {
+        return ResponseEntity.badRequest().body("Error al cargar archivos: " + e.getMessage());
+    }
+}
+
+// Helper method to store temporary files for later use by the algorithm
+private void storeTempFiles(MultipartFile averiasFile, MultipartFile bloqueosFile, 
+                           MultipartFile pedidosFile, MultipartFile planMantenimientoFile) throws IOException {
+    // Create a directory for temporary files if it doesn't exist
+    java.nio.file.Path tempDir = java.nio.file.Paths.get("src/main/java/com/plg/planificacionplg/test");
+    if (!java.nio.file.Files.exists(tempDir)) {
+        java.nio.file.Files.createDirectories(tempDir);
+    }
+    
+    // Save the files to the temp directory
+    if (pedidosFile != null && !pedidosFile.isEmpty()) {
+        pedidosFile.transferTo(tempDir.resolve("pedidos.txt").toFile());
+    }
+    
+    if (bloqueosFile != null && !bloqueosFile.isEmpty()) {
+        bloqueosFile.transferTo(tempDir.resolve("bloqueos.txt").toFile());
+    }
+    
+    if (planMantenimientoFile != null && !planMantenimientoFile.isEmpty()) {
+        planMantenimientoFile.transferTo(tempDir.resolve("planmantenimiento.txt").toFile());
+    }
+    
+    if (averiasFile != null && !averiasFile.isEmpty()) {
+        averiasFile.transferTo(tempDir.resolve("averias.txt").toFile());
+    }
+}
 
     private DestinationDTO convertToDestinationDTO(Destino destino) {
         DestinationDTO dto = new DestinationDTO();

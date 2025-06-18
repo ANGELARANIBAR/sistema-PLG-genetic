@@ -3,8 +3,6 @@ package com.plg.planificacionplg;
 import com.plg.planificacionplg.clases.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -16,7 +14,6 @@ import java.util.List;
 
 @SpringBootApplication
 public class PlanificacionPlgApplication {
-    private static final Logger logger = LoggerFactory.getLogger(PlanificacionPlgApplication.class);
     private static final double MAX_DOUBLE = Double.MAX_VALUE;
     @Setter @Getter
     private static Individuo mejorSolucion;
@@ -24,16 +21,6 @@ public class PlanificacionPlgApplication {
     private static double porcentajeEjecucion;
     @Setter @Getter
     private static LocalDateTime fechaHoraInicio;
-    
-    // File content storage for uploaded files
-    @Setter @Getter
-    private static String pedidosContent = null;
-    @Setter @Getter
-    private static String bloqueosContent = null;
-    @Setter @Getter
-    private static String averiasContent = null;
-    @Setter @Getter
-    private static String mantenimientoContent = null;
 
     public static void main(String[] args) {
         SpringApplication.run(PlanificacionPlgApplication.class, args);
@@ -41,7 +28,6 @@ public class PlanificacionPlgApplication {
 
 
     public static void ejecutarAlgoritmo() {
-        logger.info("Iniciando ejecución del algoritmo");
         List<Cisterna> cisternas = new ArrayList<>();
         Cisterna principal = new Cisterna();
         principal.setId(1);
@@ -74,16 +60,7 @@ public class PlanificacionPlgApplication {
         // Use fechaHoraInicio from frontend if available, otherwise use current time
         LocalDateTime fechaInicio = (fechaHoraInicio != null) ? fechaHoraInicio : LocalDateTime.now();
         sistemaPLG.setFechaHoraInicio(fechaInicio);
-        
-        // Cargar pedidos - Usar contenido cargado por el endpoint si está disponible, sino usar archivo
-        if (pedidosContent != null && !pedidosContent.isEmpty()) {
-            logger.info("Cargando pedidos desde contenido subido por el usuario");
-            sistemaPLG.cargarPedidos(pedidosContent);
-        } else {
-            logger.info("Cargando pedidos desde archivo local");
-            sistemaPLG.cargarPedidos("src/main/java/com/plg/planificacionplg/test/pedidos.txt");
-        }
-        
+        sistemaPLG.cargarPedidos("src/main/java/com/plg/planificacionplg/test/pedidos.txt");
         sistemaPLG.setPedidosTodos(new ArrayList<>(sistemaPLG.getPedidos()));
         sistemaPLG.setCisternas(cisternas);
         sistemaPLG.setDistanciaManzana(1);
@@ -175,16 +152,10 @@ public class PlanificacionPlgApplication {
             sistemaPLG.getFlota().add(camion);
         }
 
-        // Cargar bloqueos - Usar contenido cargado por el endpoint si está disponible, sino usar archivo
-        if (bloqueosContent != null && !bloqueosContent.isEmpty()) {
-            logger.info("Cargando bloqueos desde contenido subido por el usuario");
-            sistemaPLG.cargaBloqueos(bloqueosContent);
-        } else {
-            logger.info("Cargando bloqueos desde archivo local");
-            sistemaPLG.cargaBloqueos("src/main/java/com/plg/planificacionplg/test/bloqueos.txt");
-        }
-        
+
+        sistemaPLG.cargaBloqueos("src/main/java/com/plg/planificacionplg/test/bloqueos.txt");
         sistemaPLG.setCamionesAveriados(new ArrayList<>());
+
 
         int tamPoblacion = 30;
         int generaciones = 5;
@@ -193,33 +164,18 @@ public class PlanificacionPlgApplication {
         double porcentajeElite = 0.1;
 
         // Initial planification
-        logger.info("Iniciando Planificación");
+        System.out.println("Iniciando Planificación");
         Genetico ga = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
         mejorSolucion = ga.ejecutar(1, sistemaPLG);
         mejorSolucion.getSistemaPLG().imprimirPlanificacion();
 
+
         // Load maintenance and averias
-        if (mantenimientoContent != null && !mantenimientoContent.isEmpty()) {
-            logger.info("Cargando mantenimientos desde contenido subido por el usuario");
-            mejorSolucion.getSistemaPLG().cargarMantenimientos(
-                mantenimientoContent,
-                LocalTime.MIN, LocalTime.MAX
-            );
-        } else {
-            logger.info("Cargando mantenimientos desde archivo local");
-            mejorSolucion.getSistemaPLG().cargarMantenimientos(
+        mejorSolucion.getSistemaPLG().cargarMantenimientos(
                 "src/main/java/com/plg/planificacionplg/test/planmantenimiento.txt",
                 LocalTime.MIN, LocalTime.MAX
-            );
-        }
-        
-        if (averiasContent != null && !averiasContent.isEmpty()) {
-            logger.info("Cargando averías desde contenido subido por el usuario");
-            mejorSolucion.getSistemaPLG().cargarAverias(averiasContent);
-        } else {
-            logger.info("Cargando averías desde archivo local");
-            mejorSolucion.getSistemaPLG().cargarAverias("src/main/java/com/plg/planificacionplg/test/averias.txt");
-        }
+        );
+        mejorSolucion.getSistemaPLG().cargarAverias("src/main/java/com/plg/planificacionplg/test/averias.txt");
 
         double min = 0.35;
         double max = 0.75;
@@ -243,7 +199,7 @@ public class PlanificacionPlgApplication {
             if (cam != null && cam.getEstado() == EstadoCamion.EN_RETORNO) continue;
             if (false && (turnoini.isBefore(inicioAveria.toLocalTime())
                     && mejorSolucion.getSistemaPLG().getTurnosFin().get(turnoidx).isAfter(inicioAveria.toLocalTime()))) {
-                logger.info("Iniciando RePlanificación Aleatoria");
+                System.out.println("Iniciando RePlanificación Aleatoria");
                 // Set replanning flag and averia start time at the start of this specific averia's replanification
                 mejorSolucion.getSistemaPLG().setReplanning(true);
                 mejorSolucion.getSistemaPLG().setAveriaStartTime(inicioAveria);
@@ -267,7 +223,6 @@ public class PlanificacionPlgApplication {
                 if (mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getDestinos().isEmpty()) {
                     mejorSolucion.getSistemaPLG().setReplanning(false);
                     mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
-                    logger.warn("No hay destinos para el camión averiado, cancelando replanificación");
                     return;
                 }
                 Destino destActuAveriado = mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getDestinos()
@@ -307,8 +262,8 @@ public class PlanificacionPlgApplication {
                         nuevoCamion.setEstado(EstadoCamion.DISPONIBLE);
                         nuevoCamion.setUbicacionActual(origen.getUbicacion());
                         replanificado.getFlota().add(nuevoCamion);
-                        logger.debug("camion que no salio> " + nuevoCamion.getId());
-                        logger.debug("camion que no salio> " + nuevoCamion.getUbicacionActual());
+                        System.out.println("camion que no salio> " + nuevoCamion.getId());
+                        System.out.println("camion que no salio> " + nuevoCamion.getUbicacionActual());
 
                         continue;
                     }
@@ -330,15 +285,15 @@ public class PlanificacionPlgApplication {
                             nuevoCamion.getDestinos().get(0).setFechaHoraSalida(replanificado.getFechaHoraInicio());
                         }
                         replanificado.getFlota().add(nuevoCamion);
-                        logger.debug("camion en reposo> " + nuevoCamion.getId());
+                        System.out.println("camion en reposo> " + nuevoCamion.getId());
                         continue;
                     }
 
                     if (nuevoCamion.getEstado() != EstadoCamion.EN_RUTA && nuevoCamion.getEstado() != EstadoCamion.EN_RETORNO) {//despachando o recargando
                         nuevoCamion.getDestinos().add(destinoActual); //inicio, no es modificable en la construccion de rutas
-                        logger.debug(nuevoCamion.getEstado().toString());
-                        logger.debug("camion que no esta en ruta> " + nuevoCamion.getId());
-                        logger.debug("camion que no esta en ruta> " + nuevoCamion.getUbicacionActual());
+                        System.out.println(nuevoCamion.getEstado());
+                        System.out.println("camion que no esta en ruta> " + nuevoCamion.getId());
+                        System.out.println("camion que no esta en ruta> " + nuevoCamion.getUbicacionActual());
                     } else {
                         origenReplan = new Replanficacion();
                         origenReplan.setUbicacion(mejorSolucion.getSistemaPLG().getFlota().get(i).calcularUbicacion(inicioAveria));
@@ -348,8 +303,8 @@ public class PlanificacionPlgApplication {
                         origenReplan.setSaldoGLPCamion(destinoActual.getSaldoGLPCamion());
                         origenReplan.setSaldoCombustibleCamion(nuevoCamion.getCombustibleActual());
                         nuevoCamion.getDestinos().add(origenReplan);
-                        logger.debug("camion en ruta> " + nuevoCamion.getId());
-                        logger.debug("camion en ruta> " + nuevoCamion.getUbicacionActual());
+                        System.out.println("camion en ruta> " + nuevoCamion.getId());
+                        System.out.println("camion en ruta> " + nuevoCamion.getUbicacionActual());
                     }
                     replanificado.getFlota().add(nuevoCamion);
                 }
@@ -360,7 +315,6 @@ public class PlanificacionPlgApplication {
                 porcentajeElite = 0.4;
                 replanificado.imprimirPlanificacion();
                 Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
-                logger.info("Ejecutando algoritmo genético para replanificación");
                 mejorSolucion = ga2.ejecutar(2, replanificado);
                 mejorSolucion.getSistemaPLG().imprimirPlanificacion();
 
@@ -370,7 +324,5 @@ public class PlanificacionPlgApplication {
                 PlanificacionPlgApplication.setMejorSolucion(mejorSolucion);
             }
         }
-        
-        logger.info("Algoritmo ejecutado con éxito");
     }
 }

@@ -15,36 +15,12 @@ export const simulationService = {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || `Error: ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             return await response.text();
         } catch (error) {
             console.error('Error initializing fechaHoraInicio:', error);
-            throw error;
-        }
-    },
-
-    // Execute simulation
-    async executeSimulation() {
-        try {
-            const response = await fetch(`${API_BASE_URL}/ejecutar-simulacion`, {
-                method: 'POST'
-            });
-            
-            if (response.status === 202) {
-                return { message: "Simulación iniciada correctamente" };
-            }
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || `Error: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Error executing simulation:', error);
             throw error;
         }
     },
@@ -61,19 +37,37 @@ export const simulationService = {
                     fechaHoraInicio: fechaHoraInicio
                 })
             });
-            
-            if (response.status === 202) {
-                return { message: "Simulación iniciada correctamente" };
-            }
-            
+            if (response.status === 202)
+                return null; // o "accepted", "en proceso", etc.
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || `Error: ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+            
+        } catch (error) {
+            console.error('Error executing simulation with fechaHoraInicio:', error);
+            throw error;
+        }
+    },
+
+    // Execute simulation without fechaHoraInicio (existing method)
+    async executeSimulation() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/ejecutar-simulacion`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             return await response.json();
         } catch (error) {
-            console.error('Error executing simulation with fechaHoraInicio:', error);
+            console.error('Error executing simulation:', error);
             throw error;
         }
     },
@@ -94,18 +88,18 @@ export const simulationService = {
         }
     },
 
-    // Get simulation progress
-    async getSimulationProgress(simulationId = 1) {
+    // Get simulation percentage
+    async getSimulationPercentage(simulationId) {
         try {
             const response = await fetch(`${API_BASE_URL}/porcentajeSimulacion/${simulationId}`);
             
             if (!response.ok) {
-                throw new Error(`Error: ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
+
             return await response.json();
         } catch (error) {
-            console.error('Error getting simulation progress:', error);
+            console.error('Error getting simulation percentage:', error);
             throw error;
         }
     },
@@ -123,6 +117,30 @@ export const simulationService = {
         } catch (error) {
             console.error('Error checking replanning status:', error);
             throw error;
+        }
+    },
+    
+    // Check simulation status (combines percentage and replanning)
+    async checkSimulationStatus(simulationId = 1) {
+        try {
+            const [percentage, isReplanning] = await Promise.all([
+                this.getSimulationPercentage(simulationId),
+                this.isReplanning()
+            ]);
+            
+            return {
+                percentage,
+                isReplanning,
+                isComplete: percentage >= 100
+            };
+        } catch (error) {
+            console.error('Error checking simulation status:', error);
+            return {
+                percentage: 0,
+                isReplanning: false,
+                isComplete: false,
+                error: error.message
+            };
         }
     }
 }; 
