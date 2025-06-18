@@ -198,8 +198,8 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   }
 
   // Calculate scale factors to fit the map in the viewport
-  const containerWidth = 800;
-  const containerHeight = 600;
+  const containerWidth = 600;
+  const containerHeight = 500;
   const scaleX = containerWidth / system.maxXmapa;
   const scaleY = containerHeight / system.maxYmapa;
 
@@ -270,35 +270,6 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
               strokeWidth="0.8"
               strokeDasharray="3,3"
             />
-          ))}
-          
-          {/* Add coordinate labels */}
-          {Array.from({ length: Math.ceil(system.maxXmapa) + 1 }, (_, x) => (
-            x % 5 === 0 && (
-              <text
-                key={`label-x-${x}`}
-                x={x * scaleX}
-                y={containerHeight - 5}
-                fontSize="10"
-                fill="#666"
-                textAnchor="middle"
-              >
-                {x}
-              </text>
-            )
-          ))}
-          {Array.from({ length: Math.ceil(system.maxYmapa) + 1 }, (_, y) => (
-            y % 5 === 0 && (
-              <text
-                key={`label-y-${y}`}
-                x={5}
-                y={containerHeight - (y * scaleY)}
-                fontSize="10"
-                fill="#666"
-              >
-                {y}
-              </text>
-            )
           ))}
         </svg>
 
@@ -486,19 +457,19 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
                 <div className="button-container">
                   <button 
                     onClick={() => handleAveriaOption(1)} 
-                    className="tipo-1"
+                    className="tipo-averia"
                   >
                     Tipo 1
                   </button>
                   <button 
                     onClick={() => handleAveriaOption(2)} 
-                    className="tipo-2"
+                    className="tipo-averia"
                   >
                     Tipo 2
                   </button>
                   <button 
                     onClick={() => handleAveriaOption(3)} 
-                    className="tipo-3"
+                    className="tipo-averia"
                   >
                     Tipo 3
                   </button>
@@ -592,22 +563,22 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
           onClick={(e) => e.stopPropagation()}
         >
           <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>Registrar Avería</div>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <button 
               onClick={() => handleAveriaOption(1)} 
-              className="tipo-1"
+              className="tipo-averia"
             >
               Tipo 1
             </button>
             <button 
               onClick={() => handleAveriaOption(2)} 
-              className="tipo-2"
+              className="tipo-averia"
             >
               Tipo 2
             </button>
             <button 
               onClick={() => handleAveriaOption(3)} 
-              className="tipo-3"
+              className="tipo-averia"
             >
               Tipo 3
             </button>
