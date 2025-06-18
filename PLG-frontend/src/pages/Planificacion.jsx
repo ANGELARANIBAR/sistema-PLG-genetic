@@ -18,7 +18,7 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
 import Routes from '../components/routes/Routes';
 import './Planificacion.css';
-import axios from 'axios';
+import { fileUploadService } from '../services';
 
 export default function Planificacion() {
   const [tabValue, setTabValue] = useState(0);
@@ -63,15 +63,24 @@ export default function Planificacion() {
 
     setLoading({ ...loading, [fileType]: true });
 
-    const formData = new FormData();
-    formData.append('file', selectedFiles[fileType]);
-
     try {
-      const response = await axios.post(`http://localhost:8080/api/upload/${fileType}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      let response;
+      switch (fileType) {
+        case 'averias':
+          response = await fileUploadService.uploadAverias(selectedFiles[fileType]);
+          break;
+        case 'bloqueos':
+          response = await fileUploadService.uploadBloqueos(selectedFiles[fileType]);
+          break;
+        case 'mantenimiento':
+          response = await fileUploadService.uploadMantenimiento(selectedFiles[fileType]);
+          break;
+        case 'pedidos':
+          response = await fileUploadService.uploadPedidos(selectedFiles[fileType]);
+          break;
+        default:
+          throw new Error(`Unknown file type: ${fileType}`);
+      }
 
       setNotification({
         open: true,
@@ -113,7 +122,7 @@ export default function Planificacion() {
   const handleReplanificar = async () => {
     try {
       setLoading({ ...loading, replanificar: true });
-      const response = await axios.post('http://localhost:8080/api/solution/ejecutar-simulacion');
+      await fileUploadService.executeReplanification();
       setNotification({
         open: true,
         message: 'Replanificación completada exitosamente',
