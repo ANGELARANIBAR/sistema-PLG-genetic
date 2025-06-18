@@ -17,12 +17,14 @@ export default function Simulacion() {
   const [selectedFiles, setSelectedFiles] = useState({ 
     bloqueos: null, 
     averias: null, 
-    mantenimientos: null 
+    mantenimientos: null,
+    pedidos: null 
   });
   const [fileErrors, setFileErrors] = useState({
     bloqueos: "",
     averias: "",
-    mantenimientos: ""
+    mantenimientos: "",
+    pedidos: ""
   });
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -77,7 +79,7 @@ export default function Simulacion() {
               const [turno, codigo, tipo] = line.split("_");
               return { turno, codigo, tipo };
             });
-          } else if (type === "mantenimientos" || type === "bloqueos") {
+          } else if (type === "mantenimientos" || type === "bloqueos" || type === "pedidos") {
             parsedData = lines.map((line) => {
               return { raw: line };
             });
@@ -109,7 +111,7 @@ export default function Simulacion() {
 
   const handleNext = async () => {
     // Validate files are uploaded
-    const requiredFiles = ['bloqueos', 'averias', 'mantenimientos'];
+    const requiredFiles = ['bloqueos', 'averias', 'mantenimientos', 'pedidos'];
     const missingFiles = requiredFiles.filter(fileType => !selectedFiles[fileType]);
     
     if (missingFiles.length > 0) {
@@ -204,6 +206,38 @@ export default function Simulacion() {
           <Typography variant="body1" color="text.secondary">
             Considerar que solo se permiten archivos en formato txt
           </Typography>
+
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+              Pedidos
+            </Typography>
+            <Box sx={{ display: "flex", gap: 2, alignItems: "center", mt: 1 }}>
+              <Button
+                variant="contained"
+                className="examine-button"
+                onClick={() => handleFileUpload("pedidos")}
+              >
+                Examinar
+              </Button>
+              <TextField
+                fullWidth
+                disabled
+                value={selectedFiles.pedidos?.name || "No se ha seleccionado archivo"}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton edge="end">
+                        <InfoIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Box>
+            {fileErrors.pedidos && (
+              <FormHelperText error>{fileErrors.pedidos}</FormHelperText>
+            )}
+          </Box>
 
           <Box sx={{ mt: 3 }}>
             <Typography variant="subtitle1" fontWeight="600" gutterBottom>
