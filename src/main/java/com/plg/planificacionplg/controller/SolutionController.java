@@ -418,7 +418,19 @@ public class SolutionController {
     }
 
     @PostMapping("/ejecutar-simulacion")
-    public ResponseEntity<Individuo> ejecutarAlgoritmo() {
+    public ResponseEntity<?> ejecutarAlgoritmo() {
+        // Check if at least one file has been uploaded
+        boolean hasAnyFileUploaded = PlanificacionPlgApplication.getPedidosContent() != null || 
+                                    PlanificacionPlgApplication.getBloqueosContent() != null ||
+                                    PlanificacionPlgApplication.getAveriasContent() != null ||
+                                    PlanificacionPlgApplication.getMantenimientoContent() != null;
+        
+        if (!hasAnyFileUploaded) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Debe cargar al menos un archivo antes de ejecutar la simulación");
+            return ResponseEntity.badRequest().body(response);
+        }
+        
         new Thread(() -> {
             PlanificacionPlgApplication.ejecutarAlgoritmo(); // Lógica pesada
         }).start();
@@ -443,9 +455,21 @@ public class SolutionController {
     }
 
     @PostMapping("/ejecutar-simulacion-con-fecha")
-    public ResponseEntity<Individuo> ejecutarAlgoritmoConFecha(@RequestBody FechaHoraInicioRequest request) {
+    public ResponseEntity<?> ejecutarAlgoritmoConFecha(@RequestBody FechaHoraInicioRequest request) {
         if (request.getFechaHoraInicio() == null) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body("fechaHoraInicio no puede ser null");
+        }
+        
+        // Check if at least one file has been uploaded
+        boolean hasAnyFileUploaded = PlanificacionPlgApplication.getPedidosContent() != null || 
+                                    PlanificacionPlgApplication.getBloqueosContent() != null ||
+                                    PlanificacionPlgApplication.getAveriasContent() != null ||
+                                    PlanificacionPlgApplication.getMantenimientoContent() != null;
+        
+        if (!hasAnyFileUploaded) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Debe cargar al menos un archivo antes de ejecutar la simulación");
+            return ResponseEntity.badRequest().body(response);
         }
         
         // Set the fechaHoraInicio before executing the algorithm
