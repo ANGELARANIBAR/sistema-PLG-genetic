@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
-@NoArgsConstructor
 @Entity
 @DiscriminatorValue("TRASVASE")
 public class Trasvase extends Destino{

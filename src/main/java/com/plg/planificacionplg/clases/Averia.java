@@ -30,10 +30,13 @@ public class Averia {
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo", nullable = false)
     private TipoAveria tipo;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
+      @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "camion_id", nullable = false)
     private Camion camion;
+    
+    // Campo auxiliar para mantener compatibilidad con código existente
+    @Transient
+    private int idCamion;
     
     @Column(name = "tiempo_inoperativo", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")
     private double tiempoInoperativo;
@@ -69,8 +72,19 @@ public class Averia {
                 fechaHoraFin = fechaHoraInicio.toLocalDate().plusDays(3)
                         .atTime(sistemaPLG.getTurnosFin().get(turnoInicio));
 
-            }
-
+            }        }
+    }
+    
+    // Métodos personalizados para mantener compatibilidad
+    public int getIdCamion() {
+        if (camion != null) {
+            return camion.getId();
         }
+        return idCamion;
+    }
+    
+    public void setIdCamion(int idCamion) {
+        this.idCamion = idCamion;
+        // Note: La relación camion se debe establecer por separado si es necesario
     }
 }

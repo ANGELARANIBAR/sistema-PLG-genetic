@@ -11,7 +11,6 @@ import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
-@NoArgsConstructor
 @Entity
 @DiscriminatorValue("ENTREGA_PEDIDO")
 public class EntregaPedido extends Destino{
@@ -27,6 +26,7 @@ public class EntregaPedido extends Destino{
         setTiempoOperacion(15);
         volumenGLPEntregado = 0.0;
     }
+    
     public EntregaPedido(EntregaPedido otro) {
         this.id = otro.id;
         this.volumenGLPEntregado = otro.volumenGLPEntregado;

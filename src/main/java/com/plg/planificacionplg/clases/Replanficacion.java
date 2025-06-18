@@ -2,18 +2,19 @@ package com.plg.planificacionplg.clases;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
+@NoArgsConstructor
 public class Replanficacion extends Destino{
     private int id;
     private List<OperacionesGLPCisterna> operaciones;
-    public Replanficacion() {
-
-    }
+    
+    // Constructor copia
     public Replanficacion(Replanficacion otro) {
         otro.id = id;
         //this.setPedido(otro.getPedido());

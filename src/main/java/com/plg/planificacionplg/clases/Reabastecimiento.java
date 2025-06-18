@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
-@NoArgsConstructor
 @Entity
 @DiscriminatorValue("REABASTECIMIENTO")
 public class Reabastecimiento extends Destino {
@@ -32,6 +31,7 @@ public class Reabastecimiento extends Destino {
         setTiempoOperacion(0.0);
         cargaAbastecida = 0.0;
     }
+    
     public Reabastecimiento(Reabastecimiento otro) {
         this.setPedido(otro.getPedido());
         this.setUbicacion(otro.getUbicacion());

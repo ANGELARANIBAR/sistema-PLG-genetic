@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Data
-@NoArgsConstructor
 @Entity
 @Table(name = "bloqueo", indexes = {
     @Index(name = "idx_bloqueo_fecha_inicio", columnList = "fecha_hora_inicio"),

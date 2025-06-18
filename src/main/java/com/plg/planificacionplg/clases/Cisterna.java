@@ -11,7 +11,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Data
-@NoArgsConstructor
 @Entity
 @Table(name = "cisterna")
 public class Cisterna {
@@ -38,7 +37,9 @@ public class Cisterna {
     private Nodo ubicacion;
     
     @OneToMany(mappedBy = "cisterna", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<OperacionesGLPCisterna> operacionesGLPCisterna;    public Cisterna() {
+    private List<OperacionesGLPCisterna> operacionesGLPCisterna;    
+    
+    public Cisterna() {
         principal = false;
         operacionesGLPCisterna = new ArrayList<>();
         cargaGLPActual = 0.0;

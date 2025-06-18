@@ -12,10 +12,14 @@ import java.util.Objects;
 @Data
 @NoArgsConstructor
 @Entity
-@Table(name = "nodo", indexes = {
-    @Index(name = "idx_nodo_posicion", columnList = "pos_x, pos_y"),
-    uniqueConstraints = @UniqueConstraint(columnNames = {"pos_x", "pos_y"})
-})
+@Table(name = "nodo", 
+    indexes = {
+        @Index(name = "idx_nodo_posicion", columnList = "pos_x, pos_y")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"pos_x", "pos_y"})
+    }
+)
 public class Nodo {
     
     @Id

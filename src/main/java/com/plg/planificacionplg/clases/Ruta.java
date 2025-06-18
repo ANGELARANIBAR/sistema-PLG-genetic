@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 @Data
-@NoArgsConstructor
 @Entity
 @Table(name = "ruta")
 public class Ruta {
@@ -31,10 +30,12 @@ public class Ruta {
     @JoinTable(
         name = "ruta_nodos",
         joinColumns = @JoinColumn(name = "ruta_id"),
-        inverseJoinColumns = @JoinColumn(name = "nodo_id")
-    )
+        inverseJoinColumns = @JoinColumn(name = "nodo_id")    
+        )
     @OrderColumn(name = "orden")
-    private List<Nodo> nodos;    public Ruta(){
+    private List<Nodo> nodos;    
+    
+    public Ruta(){
         nodos = new ArrayList<>();
         tiempoEmpleado = 0.0;
         consumoCombustible = 0.0;

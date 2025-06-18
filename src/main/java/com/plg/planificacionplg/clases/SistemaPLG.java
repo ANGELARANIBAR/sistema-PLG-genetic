@@ -2,6 +2,7 @@ package com.plg.planificacionplg.clases;
 
 import jakarta.persistence.Entity;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.swing.*;
 import java.io.BufferedReader;
@@ -15,6 +16,7 @@ import java.time.LocalTime;
 import java.util.*;
 
 @Data
+@NoArgsConstructor
 public class SistemaPLG {
 
     private long id;
@@ -31,11 +33,10 @@ public class SistemaPLG {
     private List<LocalTime> turnosFin; //ordenado ascendentemente
     private List<Camion> camionesAveriados;
     private List<Averia> averias;
-    private Camion camionCausanteReplan;
-    private boolean replanning = false;
+    private Camion camionCausanteReplan;    private boolean replanning = false;
     private LocalDateTime averiaStartTime = null;
 
-    public SistemaPLG() {}
+    // Constructor copia
     public SistemaPLG(SistemaPLG otro) {
         this.cisternas = new ArrayList<>();
         for(Cisterna cisterna : otro.cisternas) {

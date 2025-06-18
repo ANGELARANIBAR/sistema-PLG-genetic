@@ -7,7 +7,6 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Data
-@NoArgsConstructor
 @Entity
 @Table(name = "destino")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
@@ -76,6 +75,6 @@ public abstract class Destino {
             GLPOperacion = pedido.getVolumenGLP();
         }
     }
-}
+    
     public abstract void imprimir();
 }

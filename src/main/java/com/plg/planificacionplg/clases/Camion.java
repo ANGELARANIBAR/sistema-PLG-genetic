@@ -11,7 +11,6 @@ import java.time.LocalTime;
 import java.util.*;
 
 @Data
-@NoArgsConstructor
 @Entity
 @Table(name = "camion", indexes = {
     @Index(name = "idx_camion_placa", columnList = "placa"),
@@ -85,7 +84,9 @@ public class Camion {
     
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "destino_en_curso_id")
-    private Destino destinoEnCurso;    public Camion() {
+    private Destino destinoEnCurso;    
+    
+    public Camion() {
         averias = new ArrayList<>();
         destinos = new ArrayList<>();
         pedidosAsignados = new ArrayList<>();

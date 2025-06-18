@@ -5,12 +5,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import jakarta.persistence.*;
+import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Data
-@NoArgsConstructor
 @Entity
 @Table(name = "pedido")
 public class Pedido{
@@ -64,7 +64,9 @@ public class Pedido{
     private List<Camion> camiones;
     
     @Column(name = "consumo_combustible_total", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")
-    private double consumoCombustibleTotal;    public Pedido(){
+    private double consumoCombustibleTotal;    
+    
+    public Pedido(){
         camiones = new ArrayList<>();
         volumenGLPEntregado = 0.0;
         consumoCombustibleTotal = 0.0;
@@ -83,8 +85,23 @@ public class Pedido{
         this.fechaHoraMaxEntrega = otro.getFechaHoraMaxEntrega();
         this.tiempoMaxEntrega = otro.getTiempoMaxEntrega();
         this.estado = otro.getEstado();
-        this.completado = otro.isCompletado();
-        this.camiones = new ArrayList<>(otro.getCamiones());
+        this.completado = otro.isCompletado();        this.camiones = new ArrayList<>(otro.getCamiones());
         this.consumoCombustibleTotal = otro.getConsumoCombustibleTotal();
+    }
+    
+    @PostConstruct
+    private void init() {
+        if (camiones == null) {
+            camiones = new ArrayList<>();
+        }
+        if (volumenGLPEntregado == 0.0) {
+            volumenGLPEntregado = 0.0;
+        }
+        if (consumoCombustibleTotal == 0.0) {
+            consumoCombustibleTotal = 0.0;
+        }
+        if (!completado) {
+            completado = false;
+        }
     }
 }
