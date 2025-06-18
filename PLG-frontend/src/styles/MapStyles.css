@@ -49,6 +49,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  gap: 10px;
 }
 
 .truck-marker, .cisterna-marker, .pedido-marker {
@@ -211,7 +212,7 @@
   border-radius: 8px;
   padding: 15px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  margin-bottom: 15px;
+  margin-bottom: 0;
   flex-shrink: 0;
 }
 
@@ -219,22 +220,23 @@
   margin-top: 0;
   margin-bottom: 15px;
   color: #333;
-  font-size: 18px;
+  font-size: 16px;
   border-bottom: 1px solid #eee;
   padding-bottom: 8px;
+  font-weight: 500;
 }
 
 .info-content {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .info-item {
   display: flex;
   justify-content: space-between;
   font-size: 14px;
-  padding: 4px 0;
+  padding: 3px 0;
   border-bottom: 1px solid #f0f0f0;
 }
 
@@ -244,12 +246,12 @@
 
 .info-item strong {
   color: #555;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .info-item span {
   color: #333;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .operaciones-section {
@@ -262,6 +264,7 @@
   display: block;
   margin-bottom: 8px;
   color: #555;
+  font-weight: 400;
 }
 
 .operaciones-list {
@@ -285,9 +288,10 @@
 
 .averia-buttons h4 {
   color: #444;
-  font-size: 16px;
+  font-size: 15px;
   margin-top: 0;
   margin-bottom: 12px;
+  font-weight: 500;
 }
 
 .button-container {
@@ -326,12 +330,12 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 30px 20px;
+  padding: 20px;
   text-align: center;
   color: #666;
   background-color: #f9f9f9;
   border-radius: 8px;
-  margin-bottom: 15px;
+  margin-bottom: 0;
 }
 
 .empty-icon {
@@ -340,10 +344,11 @@
 }
 
 .empty-selection p {
-  font-size: 15px;
+  font-size: 14px;
   max-width: 200px;
   line-height: 1.4;
   margin: 0;
+  font-weight: 400;
 }
 
 .loading-message {
@@ -450,6 +455,7 @@
 .legend-item {
   display: flex;
   align-items: center;
+  font-weight: 400;
 }
 
 .legend-icon {
@@ -519,8 +525,8 @@
   border-radius: 8px;
   padding: 15px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  margin-top: auto;
-  margin-bottom: 10px;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .sidebar-legend h4 {
@@ -529,12 +535,13 @@
   color: #333;
   border-bottom: 1px solid #eee;
   padding-bottom: 8px;
+  font-weight: 500;
 }
 
 .legend-content {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 /* Ocultar la leyenda del mapa en pantallas normales */
