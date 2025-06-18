@@ -12,6 +12,7 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  FormHelperText,
 } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -39,332 +40,239 @@ export default function Planificacion() {
     message: '',
     severity: 'success'
   });
+  const [fileErrors, setFileErrors] = useState({
+    averias: '',
+    bloqueos: '',
+    mantenimiento: '',
+    pedidos: ''
+  });
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
 
   const handleFileChange = (event, fileType) => {
-    setSelectedFiles({
-      ...selectedFiles,
-      [fileType]: event.target.files[0]
-    });
+    const file = event.target.files[0];
+    
+    // Reset error for this file type
+    setFileErrors(prev => ({
+      ...prev,
+      [fileType]: ''
+    }));
+    
+    if (file) {
+      try {
+        // Validate file before setting it
+        validateFile(file, fileType);
+        
+        setSelectedFiles(prev => ({
+          ...prev,
+          [fileType]: file
+        }));
+      } catch (error) {
+        setFileErrors(prev => ({
+          ...prev,
+          [fileType]: error.message
+        }));
+      }
+    }
   };
 
-  const handleFileUpload = async (fileType) => {
-    if (!selectedFiles[fileType]) {
-      setNotification({
-        open: true,
-        message: 'Por favor seleccione un archivo primero',
-        severity: 'warning'
-      });
+  const validateFile = (file, fileType) => {
+    // Check if it's a text file
+    if (!file.name.toLowerCase().endsWith('.txt')) {
+      throw new Error('Solo se permiten archivos de texto (.txt)');
+    }
+    
+    // Check file size (5MB max)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      throw new Error('El archivo es demasiado grande (máximo 5MB)');
+    }
+  };
+
+  const handleUpload = async (fileType) => {
+    const file = selectedFiles[fileType];
+    if (!file) {
+      setFileErrors(prev => ({
+        ...prev,
+        [fileType]: 'Por favor seleccione un archivo'
+      }));
       return;
     }
 
-    setLoading({ ...loading, [fileType]: true });
-
+    setLoading(prev => ({ ...prev, [fileType]: true }));
+    
     try {
       let response;
-      switch (fileType) {
+      
+      switch(fileType) {
         case 'averias':
-          response = await fileUploadService.uploadAverias(selectedFiles[fileType]);
+          response = await fileUploadService.uploadAverias(file);
           break;
         case 'bloqueos':
-          response = await fileUploadService.uploadBloqueos(selectedFiles[fileType]);
+          response = await fileUploadService.uploadBloqueos(file);
           break;
         case 'mantenimiento':
-          response = await fileUploadService.uploadMantenimiento(selectedFiles[fileType]);
+          response = await fileUploadService.uploadMantenimiento(file);
           break;
         case 'pedidos':
-          response = await fileUploadService.uploadPedidos(selectedFiles[fileType]);
+          response = await fileUploadService.uploadPedidos(file);
           break;
         default:
-          throw new Error(`Unknown file type: ${fileType}`);
+          throw new Error('Tipo de archivo no válido');
       }
-
+      
       setNotification({
         open: true,
-        message: `Archivo de ${getFileTypeName(fileType)} cargado exitosamente`,
+        message: `Archivo ${file.name} cargado correctamente`,
         severity: 'success'
       });
-      
-      // Reset file selection
-      setSelectedFiles({
-        ...selectedFiles,
-        [fileType]: null
-      });
     } catch (error) {
-      console.error(`Error al cargar el archivo de ${fileType}:`, error);
+      console.error(`Error uploading ${fileType} file:`, error);
+      
       setNotification({
         open: true,
-        message: `Error al cargar el archivo de ${getFileTypeName(fileType)}: ${error.response?.data?.error || error.message}`,
+        message: error.message || `Error al cargar el archivo ${fileType}`,
         severity: 'error'
       });
     } finally {
-      setLoading({ ...loading, [fileType]: false });
-    }
-  };
-
-  const getFileTypeName = (fileType) => {
-    switch (fileType) {
-      case 'averias': return 'averías';
-      case 'bloqueos': return 'bloqueos';
-      case 'mantenimiento': return 'mantenimiento';
-      case 'pedidos': return 'pedidos';
-      default: return fileType;
+      setLoading(prev => ({ ...prev, [fileType]: false }));
     }
   };
 
   const handleCloseNotification = () => {
-    setNotification({ ...notification, open: false });
+    setNotification(prev => ({ ...prev, open: false }));
   };
 
-  const handleReplanificar = async () => {
+  const handleReplanification = async () => {
+    setLoading(prev => ({ ...prev, replanification: true }));
+    
     try {
-      setLoading({ ...loading, replanificar: true });
       await fileUploadService.executeReplanification();
+      
       setNotification({
         open: true,
-        message: 'Replanificación completada exitosamente',
+        message: 'Replanificación ejecutada correctamente',
         severity: 'success'
       });
     } catch (error) {
-      console.error('Error al replanificar:', error);
+      console.error('Error executing replanification:', error);
+      
       setNotification({
         open: true,
-        message: `Error al replanificar: ${error.response?.data?.error || error.message}`,
+        message: error.message || 'Error al ejecutar la replanificación',
         severity: 'error'
       });
     } finally {
-      setLoading({ ...loading, replanificar: false });
+      setLoading(prev => ({ ...prev, replanification: false }));
     }
   };
 
-  return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" component="h1" fontWeight="700" gutterBottom>
-        Planificación de Rutas
-      </Typography>
-
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs
-            value={tabValue}
-            onChange={handleTabChange}
-            indicatorColor="primary"
-            textColor="inherit"
-            className="plan-tabs"
-          >
-            <Tab icon={<BarChartIcon />} iconPosition="start" label="Consideraciones" />
-            <Tab icon={<AltRouteIcon />} iconPosition="start" label="Rutas" />
-          </Tabs>
-        </Box>
-        <Button 
-          variant="contained" 
-          color="secondary" 
-          className="replan-button"
-          onClick={handleReplanificar}
-          disabled={loading.replanificar}
-          startIcon={loading.replanificar && <CircularProgress size={20} color="inherit" />}
+  const renderFileUploadSection = (title, fileType) => (
+    <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+      <Typography variant="subtitle1" sx={{ mb: 1 }}>{title}</Typography>
+      
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: fileErrors[fileType] ? 0 : 1 }}>
+        <Button
+          variant="contained"
+          component="label"
+          className="examine-button"
+          disabled={loading[fileType]}
         >
-          {loading.replanificar ? 'Procesando...' : 'Replanificar'}
+          Examinar
+          <input
+            type="file"
+            accept=".txt"
+            hidden
+            onChange={(e) => handleFileChange(e, fileType)}
+          />
+        </Button>
+        
+        <Typography sx={{ ml: 2, color: 'text.secondary', flexGrow: 1 }}>
+          {selectedFiles[fileType]?.name || 'Ningún archivo seleccionado'}
+        </Typography>
+        
+        <Button
+          variant="contained"
+          color="primary"
+          className="view-button"
+          onClick={() => handleUpload(fileType)}
+          disabled={!selectedFiles[fileType] || loading[fileType]}
+          sx={{ ml: 2 }}
+        >
+          {loading[fileType] ? <CircularProgress size={24} color="inherit" /> : 'Cargar'}
         </Button>
       </Box>
+      
+      {fileErrors[fileType] && (
+        <FormHelperText error>{fileErrors[fileType]}</FormHelperText>
+      )}
+    </Box>
+  );
 
+  return (
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" sx={{ mb: 3 }}>Planificación</Typography>
+      
+      <Tabs 
+        value={tabValue} 
+        onChange={handleTabChange} 
+        aria-label="planificacion tabs"
+        className="plan-tabs"
+        sx={{ mb: 3 }}
+      >
+        <Tab icon={<InfoIcon />} iconPosition="start" label="Configuración" />
+        <Tab icon={<BarChartIcon />} iconPosition="start" label="Consideraciones" />
+        <Tab icon={<AltRouteIcon />} iconPosition="start" label="Rutas" />
+      </Tabs>
+      
       {tabValue === 0 && (
-        <Paper variant="outlined" sx={{ p: 4, mt: 2, borderRadius: 2 }}>
-          <Typography variant="body1" color="text.secondary">
-            Considerar que solo se permiten archivos en formato txt
-          </Typography>
-          
-          <Box sx={{ mt: 3 }}>
-            <Typography variant="subtitle1" fontWeight="600" gutterBottom>
-              Bloqueos
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 1 }}>
+        <Box>
+          <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>Carga de Archivos</Typography>
+            
+            {renderFileUploadSection('Archivo de Pedidos', 'pedidos')}
+            {renderFileUploadSection('Archivo de Bloqueos', 'bloqueos')}
+            {renderFileUploadSection('Archivo de Averías', 'averias')}
+            {renderFileUploadSection('Plan de Mantenimiento', 'mantenimiento')}
+            
+            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
               <Button 
                 variant="contained" 
-                className="examine-button"
-                component="label"
-                disabled={loading.bloqueos}
+                color="secondary" 
+                className="replan-button"
+                onClick={handleReplanification}
+                disabled={loading.replanification}
+                sx={{ minWidth: 200 }}
               >
-                {loading.bloqueos ? <CircularProgress size={24} /> : 'Examinar'}
-                <input
-                  type="file"
-                  hidden
-                  accept=".txt"
-                  onChange={(e) => handleFileChange(e, 'bloqueos')}
-                />
+                {loading.replanification ? 
+                  <CircularProgress size={24} color="inherit" /> : 
+                  'Ejecutar Planificación'
+                }
               </Button>
-              <TextField
-                fullWidth
-                disabled
-                value={selectedFiles.bloqueos ? selectedFiles.bloqueos.name : "No se ha seleccionado archivo"}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton 
-                        edge="end"
-                        onClick={() => handleFileUpload('bloqueos')}
-                        disabled={!selectedFiles.bloqueos || loading.bloqueos}
-                      >
-                        <InfoIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
             </Box>
-          </Box>
-          
-          <Box sx={{ mt: 3 }}>
-            <Typography variant="subtitle1" fontWeight="600" gutterBottom>
-              Averías
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 1 }}>
-              <Button 
-                variant="contained" 
-                className="examine-button"
-                component="label"
-                disabled={loading.averias}
-              >
-                {loading.averias ? <CircularProgress size={24} /> : 'Examinar'}
-                <input
-                  type="file"
-                  hidden
-                  accept=".txt"
-                  onChange={(e) => handleFileChange(e, 'averias')}
-                />
-              </Button>
-              <TextField
-                fullWidth
-                disabled
-                value={selectedFiles.averias ? selectedFiles.averias.name : "No se ha seleccionado archivo"}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton 
-                        edge="end"
-                        onClick={() => handleFileUpload('averias')}
-                        disabled={!selectedFiles.averias || loading.averias}
-                      >
-                        <InfoIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Box>
-          </Box>
-          
-          <Box sx={{ mt: 3 }}>
-            <Typography variant="subtitle1" fontWeight="600" gutterBottom>
-              Mantenimiento
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 1 }}>
-              <Button 
-                variant="contained" 
-                className="examine-button"
-                component="label"
-                disabled={loading.mantenimiento}
-              >
-                {loading.mantenimiento ? <CircularProgress size={24} /> : 'Examinar'}
-                <input
-                  type="file"
-                  hidden
-                  accept=".txt"
-                  onChange={(e) => handleFileChange(e, 'mantenimiento')}
-                />
-              </Button>
-              <TextField
-                fullWidth
-                disabled
-                value={selectedFiles.mantenimiento ? selectedFiles.mantenimiento.name : "No se ha seleccionado archivo"}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton 
-                        edge="end"
-                        onClick={() => handleFileUpload('mantenimiento')}
-                        disabled={!selectedFiles.mantenimiento || loading.mantenimiento}
-                      >
-                        <InfoIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Box>
-          </Box>
-
-          <Box sx={{ mt: 3 }}>
-            <Typography variant="subtitle1" fontWeight="600" gutterBottom>
-              Pedidos
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 1 }}>
-              <Button 
-                variant="contained" 
-                className="examine-button"
-                component="label"
-                disabled={loading.pedidos}
-              >
-                {loading.pedidos ? <CircularProgress size={24} /> : 'Examinar'}
-                <input
-                  type="file"
-                  hidden
-                  accept=".txt"
-                  onChange={(e) => handleFileChange(e, 'pedidos')}
-                />
-              </Button>
-              <TextField
-                fullWidth
-                disabled
-                value={selectedFiles.pedidos ? selectedFiles.pedidos.name : "No se ha seleccionado archivo"}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton 
-                        edge="end"
-                        onClick={() => handleFileUpload('pedidos')}
-                        disabled={!selectedFiles.pedidos || loading.pedidos}
-                      >
-                        <InfoIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Box>
-          </Box>
-
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4 }}>
-            <Button 
-              variant="contained" 
-              className="view-button"
-            >
-              Ver pedidos
-            </Button>
-            <Button 
-              variant="contained" 
-              className="view-button"
-            >
-              Ver flota
-            </Button>
-          </Box>
-        </Paper>
+          </Paper>
+        </Box>
       )}
-
+      
       {tabValue === 1 && (
-        <Paper variant="outlined" sx={{ p: 4, mt: 2, borderRadius: 2 }}>
-          <Routes />
-        </Paper>
+        <Box>
+          <Typography>Consideraciones de la planificación</Typography>
+        </Box>
       )}
-
+      
+      {tabValue === 2 && (
+        <Box>
+          <Routes />
+        </Box>
+      )}
+      
       <Snackbar 
         open={notification.open} 
         autoHideDuration={6000} 
         onClose={handleCloseNotification}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
         <Alert 
           onClose={handleCloseNotification} 

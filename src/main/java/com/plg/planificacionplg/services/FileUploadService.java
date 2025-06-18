@@ -11,47 +11,85 @@ import java.time.LocalTime;
 public class FileUploadService {
 
     public void processAveriasFile(MultipartFile file) throws Exception {
-        if (PlanificacionPlgApplication.getMejorSolucion() == null || 
-            PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG() == null) {
-            throw new Exception("El sistema no ha sido inicializado. Por favor ejecute una simulación primero.");
+        if (file == null || file.isEmpty()) {
+            throw new Exception("El archivo de averías está vacío");
         }
         
-        SistemaPLG sistema = PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG();
+        validateFileFormat(file, ".txt");
+        
         String content = new String(file.getBytes());
-        sistema.cargarAverias(content);
+        // Store content in application
+        PlanificacionPlgApplication.setAveriasFileContent(content);
+        
+        // If system is already initialized, also update it directly
+        if (PlanificacionPlgApplication.getMejorSolucion() != null && 
+            PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG() != null) {
+            SistemaPLG sistema = PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG();
+            sistema.cargarAverias(content);
+        }
     }
     
     public void processBloqueoFile(MultipartFile file) throws Exception {
-        if (PlanificacionPlgApplication.getMejorSolucion() == null || 
-            PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG() == null) {
-            throw new Exception("El sistema no ha sido inicializado. Por favor ejecute una simulación primero.");
+        if (file == null || file.isEmpty()) {
+            throw new Exception("El archivo de bloqueos está vacío");
         }
         
-        SistemaPLG sistema = PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG();
+        validateFileFormat(file, ".txt");
+        
         String content = new String(file.getBytes());
-        sistema.cargaBloqueos(content);
+        // Store content in application
+        PlanificacionPlgApplication.setBloqueosFileContent(content);
+        
+        // If system is already initialized, also update it directly
+        if (PlanificacionPlgApplication.getMejorSolucion() != null && 
+            PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG() != null) {
+            SistemaPLG sistema = PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG();
+            sistema.cargaBloqueos(content);
+        }
     }
     
     public void processPedidosFile(MultipartFile file) throws Exception {
-        if (PlanificacionPlgApplication.getMejorSolucion() == null || 
-            PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG() == null) {
-            throw new Exception("El sistema no ha sido inicializado. Por favor ejecute una simulación primero.");
+        if (file == null || file.isEmpty()) {
+            throw new Exception("El archivo de pedidos está vacío");
         }
         
-        SistemaPLG sistema = PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG();
+        validateFileFormat(file, ".txt");
+        
         String content = new String(file.getBytes());
-        sistema.cargarPedidos(content);
+        // Store content in application
+        PlanificacionPlgApplication.setPedidosFileContent(content);
+        
+        // If system is already initialized, also update it directly
+        if (PlanificacionPlgApplication.getMejorSolucion() != null && 
+            PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG() != null) {
+            SistemaPLG sistema = PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG();
+            sistema.cargarPedidos(content);
+        }
     }
     
     public void processMantenimientoFile(MultipartFile file) throws Exception {
-        if (PlanificacionPlgApplication.getMejorSolucion() == null || 
-            PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG() == null) {
-            throw new Exception("El sistema no ha sido inicializado. Por favor ejecute una simulación primero.");
+        if (file == null || file.isEmpty()) {
+            throw new Exception("El archivo de mantenimiento está vacío");
         }
         
-        SistemaPLG sistema = PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG();
+        validateFileFormat(file, ".txt");
+        
         String content = new String(file.getBytes());
-        // Assuming standard business hours 8:00 - 17:00
-        sistema.cargarMantenimientos(content, LocalTime.of(8, 0), LocalTime.of(17, 0));
+        // Store content in application
+        PlanificacionPlgApplication.setMantenimientoFileContent(content);
+        
+        // If system is already initialized, also update it directly
+        if (PlanificacionPlgApplication.getMejorSolucion() != null && 
+            PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG() != null) {
+            SistemaPLG sistema = PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG();
+            sistema.cargarMantenimientos(content, LocalTime.of(8, 0), LocalTime.of(17, 0));
+        }
+    }
+    
+    private void validateFileFormat(MultipartFile file, String expectedExtension) throws Exception {
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || !originalFilename.toLowerCase().endsWith(expectedExtension)) {
+            throw new Exception("El archivo debe tener formato " + expectedExtension);
+        }
     }
 } 

@@ -21,6 +21,16 @@ public class PlanificacionPlgApplication {
     private static double porcentajeEjecucion;
     @Setter @Getter
     private static LocalDateTime fechaHoraInicio;
+    
+    // Add these variables to store uploaded file contents
+    @Setter @Getter
+    private static String pedidosFileContent;
+    @Setter @Getter
+    private static String bloqueosFileContent;
+    @Setter @Getter
+    private static String averiasFileContent;
+    @Setter @Getter
+    private static String mantenimientoFileContent;
 
     public static void main(String[] args) {
         SpringApplication.run(PlanificacionPlgApplication.class, args);
@@ -60,7 +70,14 @@ public class PlanificacionPlgApplication {
         // Use fechaHoraInicio from frontend if available, otherwise use current time
         LocalDateTime fechaInicio = (fechaHoraInicio != null) ? fechaHoraInicio : LocalDateTime.now();
         sistemaPLG.setFechaHoraInicio(fechaInicio);
-        sistemaPLG.cargarPedidos("src/main/java/com/plg/planificacionplg/test/pedidos.txt");
+        
+        // Use uploaded content if available, otherwise use default file paths
+        if (pedidosFileContent != null && !pedidosFileContent.isEmpty()) {
+            sistemaPLG.cargarPedidos(pedidosFileContent);
+        } else {
+            sistemaPLG.cargarPedidos("src/main/java/com/plg/planificacionplg/test/pedidos.txt");
+        }
+        
         sistemaPLG.setPedidosTodos(new ArrayList<>(sistemaPLG.getPedidos()));
         sistemaPLG.setCisternas(cisternas);
         sistemaPLG.setDistanciaManzana(1);
@@ -152,8 +169,13 @@ public class PlanificacionPlgApplication {
             sistemaPLG.getFlota().add(camion);
         }
 
-
-        sistemaPLG.cargaBloqueos("src/main/java/com/plg/planificacionplg/test/bloqueos.txt");
+        // Use uploaded content if available, otherwise use default file paths
+        if (bloqueosFileContent != null && !bloqueosFileContent.isEmpty()) {
+            sistemaPLG.cargaBloqueos(bloqueosFileContent);
+        } else {
+            sistemaPLG.cargaBloqueos("src/main/java/com/plg/planificacionplg/test/bloqueos.txt");
+        }
+        
         sistemaPLG.setCamionesAveriados(new ArrayList<>());
 
 
@@ -171,11 +193,25 @@ public class PlanificacionPlgApplication {
 
 
         // Load maintenance and averias
-        mejorSolucion.getSistemaPLG().cargarMantenimientos(
+        // Use uploaded content if available, otherwise use default file paths
+        if (mantenimientoFileContent != null && !mantenimientoFileContent.isEmpty()) {
+            mejorSolucion.getSistemaPLG().cargarMantenimientos(
+                mantenimientoFileContent,
+                LocalTime.MIN, LocalTime.MAX
+            );
+        } else {
+            mejorSolucion.getSistemaPLG().cargarMantenimientos(
                 "src/main/java/com/plg/planificacionplg/test/planmantenimiento.txt",
                 LocalTime.MIN, LocalTime.MAX
-        );
-        mejorSolucion.getSistemaPLG().cargarAverias("src/main/java/com/plg/planificacionplg/test/averias.txt");
+            );
+        }
+        
+        // Use uploaded content if available, otherwise use default file paths
+        if (averiasFileContent != null && !averiasFileContent.isEmpty()) {
+            mejorSolucion.getSistemaPLG().cargarAverias(averiasFileContent);
+        } else {
+            mejorSolucion.getSistemaPLG().cargarAverias("src/main/java/com/plg/planificacionplg/test/averias.txt");
+        }
 
         double min = 0.35;
         double max = 0.75;

@@ -25,12 +25,10 @@ public class FileUploadController {
             fileUploadService.processAveriasFile(file);
             
             Map<String, String> response = new HashMap<>();
-            response.put("message", "Archivo de averías cargado exitosamente");
+            response.put("message", "Archivo de averías cargado correctamente");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", "Error al cargar el archivo de averías: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
@@ -40,12 +38,10 @@ public class FileUploadController {
             fileUploadService.processBloqueoFile(file);
             
             Map<String, String> response = new HashMap<>();
-            response.put("message", "Archivo de bloqueos cargado exitosamente");
+            response.put("message", "Archivo de bloqueos cargado correctamente");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", "Error al cargar el archivo de bloqueos: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
@@ -55,12 +51,10 @@ public class FileUploadController {
             fileUploadService.processPedidosFile(file);
             
             Map<String, String> response = new HashMap<>();
-            response.put("message", "Archivo de pedidos cargado exitosamente");
+            response.put("message", "Archivo de pedidos cargado correctamente");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", "Error al cargar el archivo de pedidos: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
@@ -70,12 +64,10 @@ public class FileUploadController {
             fileUploadService.processMantenimientoFile(file);
             
             Map<String, String> response = new HashMap<>();
-            response.put("message", "Archivo de mantenimiento cargado exitosamente");
+            response.put("message", "Archivo de mantenimiento cargado correctamente");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", "Error al cargar el archivo de mantenimiento: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 } 
