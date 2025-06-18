@@ -3,6 +3,10 @@ import { mapService } from '../services/mapService';
 import '../styles/MapStyles.css';
 // Importar iconos
 import truckIcon from '../assets/icons/truck-icon.svg';
+import truckIconUp from '../assets/icons/truck-icon-up.svg';
+import truckIconDown from '../assets/icons/truck-icon-down.svg';
+import truckIconLeft from '../assets/icons/truck-icon-left.svg';
+import truckIconRight from '../assets/icons/truck-icon-right.svg';
 import cisternaIcon from '../assets/icons/cisterna-icon.svg';
 import pedidoIcon from '../assets/icons/pedido-icon.svg';
 
@@ -22,7 +26,6 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   const [truckStates, setTruckStates] = useState(new Map());
   const [overlappingItems, setOverlappingItems] = useState([]);
   const [showOverlapMenu, setShowOverlapMenu] = useState(false);
-  const [previousPositions, setPreviousPositions] = useState(new Map());
   const [truckDirections, setTruckDirections] = useState(new Map());
   const mapContainerRef = useRef(null);
 
@@ -61,7 +64,6 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
       const newPositions = new Map();
       const newFuels = new Map();
       const newGLPs = new Map();
-      const newDirections = new Map();
 
       for (const truck of system.flota) {
         try {
@@ -72,21 +74,6 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
           ]);
 
           if (position) {
-            // Calculate direction
-            const prevPos = truckPositions.get(truck.truckId);
-            if (prevPos) {
-              const dx = position.x - prevPos.x;
-              const dy = position.y - prevPos.y;
-              
-              if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) {
-                const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-                newDirections.set(truck.truckId, angle);
-              } else {
-                // Keep previous direction if truck is not moving
-                newDirections.set(truck.truckId, truckDirections.get(truck.truckId) || 0);
-              }
-            }
-            
             newPositions.set(truck.truckId, position);
           }
           if (fuel !== null) {
@@ -100,15 +87,13 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
         }
       }
 
-      setPreviousPositions(truckPositions);
       setTruckPositions(newPositions);
       setTruckFuels(newFuels);
       setTruckGLPs(newGLPs);
-      setTruckDirections(newDirections);
     };
 
     updateTruckData();
-  }, [currentTime, system, truckPositions, truckDirections]);
+  }, [currentTime, system]);
 
   // Update current destinations
   useEffect(() => {
@@ -234,6 +219,41 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
     };
   }, []);
 
+  // Determine truck direction based on current and previous positions
+  useEffect(() => {
+    if (!system) return;
+
+    const newDirections = new Map();
+    const previousPositions = new Map(truckPositions);
+
+    Array.from(truckPositions.entries()).forEach(([truckId, currentPos]) => {
+      const prevPos = previousPositions.get(truckId);
+      
+      if (prevPos) {
+        if (Math.abs(currentPos.x - prevPos.x) > Math.abs(currentPos.y - prevPos.y)) {
+          // Moving horizontally
+          if (currentPos.x > prevPos.x) {
+            newDirections.set(truckId, 'right');
+          } else if (currentPos.x < prevPos.x) {
+            newDirections.set(truckId, 'left');
+          }
+        } else {
+          // Moving vertically
+          if (currentPos.y > prevPos.y) {
+            newDirections.set(truckId, 'up');
+          } else if (currentPos.y < prevPos.y) {
+            newDirections.set(truckId, 'down');
+          }
+        }
+      } else {
+        // Default direction if no previous position
+        newDirections.set(truckId, 'up');
+      }
+    });
+
+    setTruckDirections(newDirections);
+  }, [truckPositions, system]);
+
   if (!system || !startTime) {
     return <div className="loading-message">Loading...</div>;
   }
@@ -339,6 +359,18 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
     }
   };
 
+  // Get truck icon based on direction
+  const getTruckIcon = (truckId) => {
+    const direction = truckDirections.get(truckId) || 'up';
+    switch (direction) {
+      case 'up': return truckIconUp;
+      case 'down': return truckIconDown;
+      case 'left': return truckIconLeft;
+      case 'right': return truckIconRight;
+      default: return truckIconUp;
+    }
+  };
+
   return (
     <div className="map-container" ref={mapContainerRef}>
       <div className="map-visualization" style={{ width: containerWidth }}>
@@ -425,7 +457,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
           });
         })}
 
-        {/* Draw trucks with direction */}
+        {/* Draw trucks */}
         {Array.from(truckPositions.entries()).map(([truckId, position]) => {
           const truck = system.flota.find(t => t.truckId === truckId);
           if (!truck) return null;
@@ -433,7 +465,6 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
           const currentFuel = Number(truckFuels.get(truckId) || 0);
           const currentGLP = Number(truckGLPs.get(truckId) || 0);
           const pos = toScreenPosition(position.x, position.y);
-          const direction = truckDirections.get(truckId) || 0;
           
           const currentDest = currentDestinations.get(truckId);
           if (currentDest) {
@@ -456,12 +487,7 @@ GLP: ${currentGLP.toFixed(2)}
 Combustible final: ${Number(truck.fuelConsumed || 0).toFixed(2)}
 ${currentDest ? `\nEn: ${currentDest.destinationType}` : ''}`}
             >
-              <img 
-                src={truckIcon} 
-                alt="Truck" 
-                className="marker-icon" 
-                style={{ transform: `rotate(${direction}deg)` }}
-              />
+              <img src={getTruckIcon(truckId)} alt="Truck" className="marker-icon" />
               <span className="marker-label">T{truckId}</span>
             </div>
           );
@@ -527,6 +553,37 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
             </div>
           </div>
         )}
+
+        {/* Leyenda */}
+        <div className="map-legend">
+          <h4>Leyenda</h4>
+          <div className="legend-item">
+            <div className="legend-icon truck-legend">
+              <img src={truckIconUp} alt="Camión" className="legend-img" />
+            </div>
+            <span>Camión</span>
+          </div>
+          <div className="legend-item">
+            <div className="legend-icon cisterna-legend">
+              <img src={cisternaIcon} alt="Cisterna" className="legend-img" />
+            </div>
+            <span>Cisterna</span>
+          </div>
+          <div className="legend-item">
+            <div className="legend-icon pedido-legend">
+              <img src={pedidoIcon} alt="Pedido" className="legend-img" />
+            </div>
+            <span>Pedido</span>
+          </div>
+          <div className="legend-item">
+            <div className="legend-line route-legend"></div>
+            <span>Ruta</span>
+          </div>
+          <div className="legend-item">
+            <div className="legend-line blocked-legend"></div>
+            <span>Bloqueo</span>
+          </div>
+        </div>
       </div>
 
       {/* Sidebar */}
@@ -653,39 +710,6 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
             <p>Seleccione un camión, cisterna o pedido para ver detalles</p>
           </div>
         )}
-      </div>
-
-      {/* Map Legend */}
-      <div className="map-legend">
-        <h4>Leyenda</h4>
-        <div className="legend-items">
-          <div className="legend-item">
-            <div className="legend-icon truck-legend">
-              <img src={truckIcon} alt="Camión" />
-            </div>
-            <span>Camión</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-icon cisterna-legend">
-              <img src={cisternaIcon} alt="Cisterna" />
-            </div>
-            <span>Cisterna</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-icon pedido-legend">
-              <img src={pedidoIcon} alt="Pedido" />
-            </div>
-            <span>Pedido</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-line-sample" style={{backgroundColor: "#ff0000"}}></div>
-            <span>Ruta bloqueada</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-line-sample" style={{backgroundColor: "#4caf50"}}></div>
-            <span>Ruta activa</span>
-          </div>
-        </div>
       </div>
 
       {/* Context Menu */}
