@@ -17,7 +17,7 @@ import InfoIcon from '@mui/icons-material/Info';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
 import Routes from '../components/routes/Routes';
-import fileService from '../services/fileService';
+import { fileService } from '../services/fileService';
 import './Planificacion.css';
 
 export default function Planificacion() {

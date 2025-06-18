@@ -1,8 +1,6 @@
-import axios from 'axios';
+const API_BASE_URL = 'http://localhost:8080/api/solution';
 
-const API_URL = 'http://localhost:8080/api/solution';
-
-const fileService = {
+export const fileService = {
   uploadFiles: async (files) => {
     const formData = new FormData();
     
@@ -12,12 +10,17 @@ const fileService = {
     if (files.planmantenimiento) formData.append('planmantenimiento', files.planmantenimiento);
     
     try {
-      const response = await axios.post(`${API_URL}/upload-files`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+      const response = await fetch(`${API_BASE_URL}/upload-files`, {
+        method: 'POST',
+        body: formData
       });
-      return response.data;
+      
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+      
+      return await response.json();
     } catch (error) {
       console.error('Error uploading files:', error);
       throw error;
@@ -26,8 +29,14 @@ const fileService = {
   
   getFilesStatus: async () => {
     try {
-      const response = await axios.get(`${API_URL}/upload-files-status`);
-      return response.data;
+      const response = await fetch(`${API_BASE_URL}/upload-files-status`);
+      
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+      
+      return await response.json();
     } catch (error) {
       console.error('Error checking files status:', error);
       throw error;
@@ -36,10 +45,31 @@ const fileService = {
   
   ejecutarSimulacion: async () => {
     try {
-      const response = await axios.get(`${API_URL}/ejecutar-simulacion`);
-      return response.data;
+      const response = await fetch(`${API_BASE_URL}/ejecutar-simulacion`);
+      
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+      
+      return await response.text();
     } catch (error) {
       console.error('Error executing simulation:', error);
+      throw error;
+    }
+  },
+  
+  getPorcentajeEjecucion: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/porcentaje-ejecucion`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to get execution percentage');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting execution percentage:', error);
       throw error;
     }
   }
