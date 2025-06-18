@@ -118,29 +118,5 @@ export const simulationService = {
             console.error('Error checking replanning status:', error);
             throw error;
         }
-    },
-    
-    // Check simulation status (combines percentage and replanning)
-    async checkSimulationStatus(simulationId = 1) {
-        try {
-            const [percentage, isReplanning] = await Promise.all([
-                this.getSimulationPercentage(simulationId),
-                this.isReplanning()
-            ]);
-            
-            return {
-                percentage,
-                isReplanning,
-                isComplete: percentage >= 100
-            };
-        } catch (error) {
-            console.error('Error checking simulation status:', error);
-            return {
-                percentage: 0,
-                isReplanning: false,
-                isComplete: false,
-                error: error.message
-            };
-        }
     }
 }; 

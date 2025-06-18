@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Box, 
   Typography, 
@@ -9,169 +9,150 @@ import {
   TextField,
   InputAdornment,
   IconButton,
-  Snackbar,
-  Alert,
   CircularProgress,
-  LinearProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions
+  Snackbar,
+  Alert
 } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
 import Routes from '../components/routes/Routes';
-import { fileUploadService } from '../services/fileUploadService';
-import { simulationService } from '../services/simulationService';
+import fileService from '../services/fileService';
 import './Planificacion.css';
 
 export default function Planificacion() {
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [notification, setNotification] = useState({
+  const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
     severity: 'info'
   });
-  const [simulationStatus, setSimulationStatus] = useState({
-    isRunning: false,
-    percentage: 0,
-    isReplanning: false
+  
+  // Estado para archivos seleccionados
+  const [selectedFiles, setSelectedFiles] = useState({
+    pedidos: null,
+    bloqueos: null,
+    averias: null,
+    planmantenimiento: null
   });
-  const [logDialogOpen, setLogDialogOpen] = useState(false);
-  const [logs, setLogs] = useState([]);
   
-  // File states
-  const [pedidosFile, setPedidosFile] = useState(null);
-  const [bloqueosFile, setBloqueosFile] = useState(null);
-  const [averiasFile, setAveriasFile] = useState(null);
-  const [mantenimientoFile, setMantenimientoFile] = useState(null);
+  // Estado para nombres de archivos mostrados
+  const [fileNames, setFileNames] = useState({
+    pedidos: "No se ha seleccionado archivo",
+    bloqueos: "No se ha seleccionado archivo",
+    averias: "No se ha seleccionado archivo",
+    planmantenimiento: "No se ha seleccionado archivo"
+  });
   
-  // Check simulation status periodically
+  // Estado para verificar si los archivos ya están subidos
+  const [filesStatus, setFilesStatus] = useState({
+    pedidos: false,
+    bloqueos: false,
+    averias: false,
+    planmantenimiento: false
+  });
+  
+  // Referencias para los inputs de archivos
+  const pedidosInputRef = useRef();
+  const bloqueosInputRef = useRef();
+  const averiasInputRef = useRef();
+  const mantenimientoInputRef = useRef();
+  
+  // Cargar estado de archivos al inicio
   useEffect(() => {
-    let intervalId;
-    
-    if (simulationStatus.isRunning && simulationStatus.percentage < 100) {
-      intervalId = setInterval(async () => {
-        try {
-          const status = await simulationService.checkSimulationStatus();
-          setSimulationStatus(prev => ({
-            ...prev,
-            percentage: status.percentage,
-            isReplanning: status.isReplanning,
-            isRunning: !status.isComplete
-          }));
-          
-          if (status.isComplete) {
-            addLog('Simulación completada exitosamente');
-            setNotification({
-              open: true,
-              message: 'Simulación completada exitosamente',
-              severity: 'success'
-            });
-          }
-        } catch (error) {
-          console.error('Error checking simulation status:', error);
-          addLog(`Error al verificar el estado de la simulación: ${error.message}`);
+    checkFilesStatus();
+  }, []);
+  
+  const checkFilesStatus = async () => {
+    try {
+      const status = await fileService.getFilesStatus();
+      setFilesStatus(status);
+      
+      // Actualizar nombres de archivos si ya están subidos
+      const updatedFileNames = {...fileNames};
+      Object.keys(status).forEach(key => {
+        if (status[key]) {
+          updatedFileNames[key] = `${key}.txt (subido)`;
         }
-      }, 2000); // Check every 2 seconds
+      });
+      setFileNames(updatedFileNames);
+    } catch (error) {
+      console.error('Error al verificar estado de archivos:', error);
     }
-    
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [simulationStatus.isRunning, simulationStatus.percentage]);
-  
-  const addLog = (message) => {
-    const timestamp = new Date().toLocaleTimeString();
-    setLogs(prevLogs => [...prevLogs, `[${timestamp}] ${message}`]);
   };
-  
+
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
   
-  const handleFileChange = (event, setFileFunction, fileType) => {
+  const handleFileChange = (event, fileType) => {
     const file = event.target.files[0];
     if (file) {
-      if (file.name.endsWith('.txt')) {
-        setFileFunction(file);
-        addLog(`Archivo ${fileType} seleccionado: ${file.name} (${formatFileSize(file.size)})`);
-      } else {
-        addLog(`Error: El archivo ${file.name} no es un archivo .txt`);
-        setNotification({
-          open: true,
-          message: 'Por favor, seleccione un archivo con formato .txt',
-          severity: 'error'
-        });
-      }
+      setSelectedFiles({
+        ...selectedFiles,
+        [fileType]: file
+      });
+      setFileNames({
+        ...fileNames,
+        [fileType]: file.name
+      });
     }
   };
   
-  const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' bytes';
-    else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
-    else return (bytes / 1048576).toFixed(2) + ' MB';
+  const handleFileClick = (fileType) => {
+    switch (fileType) {
+      case 'pedidos':
+        pedidosInputRef.current.click();
+        break;
+      case 'bloqueos':
+        bloqueosInputRef.current.click();
+        break;
+      case 'averias':
+        averiasInputRef.current.click();
+        break;
+      case 'planmantenimiento':
+        mantenimientoInputRef.current.click();
+        break;
+      default:
+        break;
+    }
   };
   
-  const handleReplanificar = async () => {
-    try {
-      setLoading(true);
-      addLog('Iniciando proceso de replanificación...');
-      
-      // Check if at least one file is selected
-      if (!pedidosFile && !bloqueosFile && !averiasFile && !mantenimientoFile) {
-        addLog('Error: No se ha seleccionado ningún archivo');
-        setNotification({
-          open: true,
-          message: 'Por favor, seleccione al menos un archivo para cargar',
-          severity: 'warning'
-        });
-        setLoading(false);
-        return;
-      }
-      
-      // Log which files will be uploaded
-      addLog('Archivos a cargar:');
-      if (pedidosFile) addLog(`- Pedidos: ${pedidosFile.name}`);
-      if (bloqueosFile) addLog(`- Bloqueos: ${bloqueosFile.name}`);
-      if (averiasFile) addLog(`- Averías: ${averiasFile.name}`);
-      if (mantenimientoFile) addLog(`- Mantenimiento: ${mantenimientoFile.name}`);
-      
-      // Upload files and execute simulation
-      addLog('Enviando archivos al servidor...');
-      const result = await fileUploadService.uploadFiles(
-        averiasFile,
-        bloqueosFile,
-        pedidosFile,
-        mantenimientoFile,
-        true // ejecutarSimulacion = true
-      );
-      
-      addLog(`Respuesta del servidor: ${result}`);
-      setNotification({
+  const handleUploadFiles = async () => {
+    // Verificar si hay al menos un archivo seleccionado
+    if (!Object.values(selectedFiles).some(file => file !== null)) {
+      setSnackbar({
         open: true,
-        message: 'Archivos cargados correctamente y simulación iniciada',
+        message: 'Por favor seleccione al menos un archivo para subir',
+        severity: 'warning'
+      });
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const result = await fileService.uploadFiles(selectedFiles);
+      setSnackbar({
+        open: true,
+        message: 'Archivos subidos correctamente',
         severity: 'success'
       });
       
-      // Set simulation as running and reset percentage
-      setSimulationStatus({
-        isRunning: true,
-        percentage: 0,
-        isReplanning: false
+      // Actualizar estado de archivos después de la subida
+      await checkFilesStatus();
+      
+      // Limpiar selección de archivos
+      setSelectedFiles({
+        pedidos: null,
+        bloqueos: null,
+        averias: null,
+        planmantenimiento: null
       });
-      
-      // Switch to Routes tab
-      setTabValue(1);
-      
     } catch (error) {
-      addLog(`Error en el proceso de replanificación: ${error.message}`);
-      setNotification({
+      setSnackbar({
         open: true,
-        message: `Error: ${error.message}`,
+        message: 'Error al subir archivos: ' + (error.response?.data || error.message),
         severity: 'error'
       });
     } finally {
@@ -179,12 +160,43 @@ export default function Planificacion() {
     }
   };
   
-  const handleCloseNotification = () => {
-    setNotification({ ...notification, open: false });
+  const handleReplanificar = async () => {
+    // Verificar si todos los archivos necesarios están subidos
+    if (!filesStatus.pedidos) {
+      setSnackbar({
+        open: true,
+        message: 'Debe subir el archivo de pedidos para ejecutar la simulación',
+        severity: 'warning'
+      });
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      await fileService.ejecutarSimulacion();
+      setSnackbar({
+        open: true,
+        message: 'Simulación ejecutada correctamente',
+        severity: 'success'
+      });
+      // Cambiar a la pestaña de rutas
+      setTabValue(1);
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: 'Error al ejecutar simulación: ' + (error.response?.data || error.message),
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
   
-  const getFileNameOrDefault = (file) => {
-    return file ? file.name : 'No se ha seleccionado archivo';
+  const handleCloseSnackbar = () => {
+    setSnackbar({
+      ...snackbar,
+      open: false
+    });
   };
 
   return (
@@ -206,43 +218,16 @@ export default function Planificacion() {
             <Tab icon={<AltRouteIcon />} iconPosition="start" label="Rutas" />
           </Tabs>
         </Box>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button 
-            variant="outlined"
-            onClick={() => setLogDialogOpen(true)}
-          >
-            Ver Logs
-          </Button>
-          <Button 
-            variant="contained" 
-            color="secondary" 
-            className="replan-button"
-            onClick={handleReplanificar}
-            disabled={loading || simulationStatus.isRunning}
-            startIcon={loading && <CircularProgress size={20} color="inherit" />}
-          >
-            {loading ? 'Procesando...' : 'Replanificar'}
-          </Button>
-        </Box>
+        <Button 
+          variant="contained" 
+          color="secondary" 
+          className="replan-button"
+          onClick={handleReplanificar}
+          disabled={loading}
+        >
+          {loading ? <CircularProgress size={24} color="inherit" /> : 'Replanificar'}
+        </Button>
       </Box>
-      
-      {simulationStatus.isRunning && (
-        <Box sx={{ width: '100%', mt: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
-              {simulationStatus.isReplanning ? 'Replanificando...' : 'Simulando...'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {Math.round(simulationStatus.percentage)}%
-            </Typography>
-          </Box>
-          <LinearProgress 
-            variant="determinate" 
-            value={simulationStatus.percentage} 
-            color={simulationStatus.isReplanning ? "secondary" : "primary"}
-          />
-        </Box>
-      )}
 
       {tabValue === 0 && (
         <Paper variant="outlined" sx={{ p: 4, mt: 2, borderRadius: 2 }}>
@@ -250,33 +235,34 @@ export default function Planificacion() {
             Considerar que solo se permiten archivos en formato txt
           </Typography>
           
+          {/* Input para Pedidos */}
           <Box sx={{ mt: 3 }}>
             <Typography variant="subtitle1" fontWeight="600" gutterBottom>
               Pedidos
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 1 }}>
+              <input
+                type="file"
+                accept=".txt"
+                ref={pedidosInputRef}
+                style={{ display: 'none' }}
+                onChange={(e) => handleFileChange(e, 'pedidos')}
+              />
               <Button 
                 variant="contained" 
                 className="examine-button"
-                component="label"
-                disabled={simulationStatus.isRunning}
+                onClick={() => handleFileClick('pedidos')}
               >
                 Examinar
-                <input
-                  type="file"
-                  accept=".txt"
-                  hidden
-                  onChange={(e) => handleFileChange(e, setPedidosFile, 'pedidos')}
-                />
               </Button>
               <TextField
                 fullWidth
                 disabled
-                value={getFileNameOrDefault(pedidosFile)}
+                value={fileNames.pedidos}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton edge="end" title="Archivo de pedidos con formato: tiempoSolicitud:x,y,c-idCliente,volumenm3,tiempoMaxEntregah">
+                      <IconButton edge="end">
                         <InfoIcon />
                       </IconButton>
                     </InputAdornment>
@@ -286,33 +272,34 @@ export default function Planificacion() {
             </Box>
           </Box>
           
+          {/* Input para Bloqueos */}
           <Box sx={{ mt: 3 }}>
             <Typography variant="subtitle1" fontWeight="600" gutterBottom>
               Bloqueos
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 1 }}>
+              <input
+                type="file"
+                accept=".txt"
+                ref={bloqueosInputRef}
+                style={{ display: 'none' }}
+                onChange={(e) => handleFileChange(e, 'bloqueos')}
+              />
               <Button 
                 variant="contained" 
                 className="examine-button"
-                component="label"
-                disabled={simulationStatus.isRunning}
+                onClick={() => handleFileClick('bloqueos')}
               >
                 Examinar
-                <input
-                  type="file"
-                  accept=".txt"
-                  hidden
-                  onChange={(e) => handleFileChange(e, setBloqueosFile, 'bloqueos')}
-                />
               </Button>
               <TextField
                 fullWidth
                 disabled
-                value={getFileNameOrDefault(bloqueosFile)}
+                value={fileNames.bloqueos}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton edge="end" title="Archivo de bloqueos con formato: tiempoInicio-tiempoFin:x1,y1,x2,y2,...">
+                      <IconButton edge="end">
                         <InfoIcon />
                       </IconButton>
                     </InputAdornment>
@@ -322,33 +309,34 @@ export default function Planificacion() {
             </Box>
           </Box>
           
+          {/* Input para Averías */}
           <Box sx={{ mt: 3 }}>
             <Typography variant="subtitle1" fontWeight="600" gutterBottom>
               Averías
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 1 }}>
+              <input
+                type="file"
+                accept=".txt"
+                ref={averiasInputRef}
+                style={{ display: 'none' }}
+                onChange={(e) => handleFileChange(e, 'averias')}
+              />
               <Button 
                 variant="contained" 
                 className="examine-button"
-                component="label"
-                disabled={simulationStatus.isRunning}
+                onClick={() => handleFileClick('averias')}
               >
                 Examinar
-                <input
-                  type="file"
-                  accept=".txt"
-                  hidden
-                  onChange={(e) => handleFileChange(e, setAveriasFile, 'averías')}
-                />
               </Button>
               <TextField
                 fullWidth
                 disabled
-                value={getFileNameOrDefault(averiasFile)}
+                value={fileNames.averias}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton edge="end" title="Archivo de averías con formato: TipoAvería_CodigoCamión_TurnoIncidencia">
+                      <IconButton edge="end">
                         <InfoIcon />
                       </IconButton>
                     </InputAdornment>
@@ -358,33 +346,34 @@ export default function Planificacion() {
             </Box>
           </Box>
           
+          {/* Input para Mantenimiento */}
           <Box sx={{ mt: 3 }}>
             <Typography variant="subtitle1" fontWeight="600" gutterBottom>
               Mantenimiento
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 1 }}>
+              <input
+                type="file"
+                accept=".txt"
+                ref={mantenimientoInputRef}
+                style={{ display: 'none' }}
+                onChange={(e) => handleFileChange(e, 'planmantenimiento')}
+              />
               <Button 
                 variant="contained" 
                 className="examine-button"
-                component="label"
-                disabled={simulationStatus.isRunning}
+                onClick={() => handleFileClick('planmantenimiento')}
               >
                 Examinar
-                <input
-                  type="file"
-                  accept=".txt"
-                  hidden
-                  onChange={(e) => handleFileChange(e, setMantenimientoFile, 'mantenimiento')}
-                />
               </Button>
               <TextField
                 fullWidth
                 disabled
-                value={getFileNameOrDefault(mantenimientoFile)}
+                value={fileNames.planmantenimiento}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton edge="end" title="Archivo de plan de mantenimiento con formato: FechaAAAAMMDD:CodigoCamión">
+                      <IconButton edge="end">
                         <InfoIcon />
                       </IconButton>
                     </InputAdornment>
@@ -398,14 +387,20 @@ export default function Planificacion() {
             <Button 
               variant="contained" 
               className="view-button"
-              disabled={simulationStatus.isRunning}
+              onClick={handleUploadFiles}
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Subir Archivos'}
+            </Button>
+            <Button 
+              variant="contained" 
+              className="view-button"
             >
               Ver pedidos
             </Button>
             <Button 
               variant="contained" 
               className="view-button"
-              disabled={simulationStatus.isRunning}
             >
               Ver flota
             </Button>
@@ -419,56 +414,14 @@ export default function Planificacion() {
         </Paper>
       )}
       
-      {/* Log Dialog */}
-      <Dialog
-        open={logDialogOpen}
-        onClose={() => setLogDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Logs de Operación</DialogTitle>
-        <DialogContent>
-          <DialogContentText component="div">
-            <Box sx={{ 
-              maxHeight: '400px', 
-              overflowY: 'auto', 
-              fontFamily: 'monospace',
-              backgroundColor: '#f5f5f5',
-              p: 2,
-              borderRadius: 1
-            }}>
-              {logs.length === 0 ? (
-                <Typography variant="body2" color="text.secondary">
-                  No hay logs disponibles
-                </Typography>
-              ) : (
-                logs.map((log, index) => (
-                  <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
-                    {log}
-                  </Typography>
-                ))
-              )}
-            </Box>
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setLogDialogOpen(false)}>Cerrar</Button>
-          <Button onClick={() => setLogs([])}>Limpiar logs</Button>
-        </DialogActions>
-      </Dialog>
-      
       <Snackbar 
-        open={notification.open} 
+        open={snackbar.open} 
         autoHideDuration={6000} 
-        onClose={handleCloseNotification}
+        onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert 
-          onClose={handleCloseNotification} 
-          severity={notification.severity} 
-          sx={{ width: '100%' }}
-        >
-          {notification.message}
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
         </Alert>
       </Snackbar>
     </Box>

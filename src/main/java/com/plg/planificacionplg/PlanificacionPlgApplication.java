@@ -21,6 +21,13 @@ public class PlanificacionPlgApplication {
     private static double porcentajeEjecucion;
     @Setter @Getter
     private static LocalDateTime fechaHoraInicio;
+    
+    // Rutas base para los archivos de datos
+    private static final String BASE_DIR = "src/main/java/com/plg/planificacionplg/test/";
+    private static final String PEDIDOS_FILE = BASE_DIR + "pedidos.txt";
+    private static final String BLOQUEOS_FILE = BASE_DIR + "bloqueos.txt";
+    private static final String AVERIAS_FILE = BASE_DIR + "averias.txt";
+    private static final String MANTENIMIENTO_FILE = BASE_DIR + "planmantenimiento.txt";
 
     public static void main(String[] args) {
         SpringApplication.run(PlanificacionPlgApplication.class, args);
@@ -60,7 +67,7 @@ public class PlanificacionPlgApplication {
         // Use fechaHoraInicio from frontend if available, otherwise use current time
         LocalDateTime fechaInicio = (fechaHoraInicio != null) ? fechaHoraInicio : LocalDateTime.now();
         sistemaPLG.setFechaHoraInicio(fechaInicio);
-        sistemaPLG.cargarPedidos("src/main/java/com/plg/planificacionplg/test/pedidos.txt");
+        sistemaPLG.cargarPedidos(PEDIDOS_FILE);
         sistemaPLG.setPedidosTodos(new ArrayList<>(sistemaPLG.getPedidos()));
         sistemaPLG.setCisternas(cisternas);
         sistemaPLG.setDistanciaManzana(1);
@@ -153,7 +160,7 @@ public class PlanificacionPlgApplication {
         }
 
 
-        sistemaPLG.cargaBloqueos("src/main/java/com/plg/planificacionplg/test/bloqueos.txt");
+        sistemaPLG.cargaBloqueos(BLOQUEOS_FILE);
         sistemaPLG.setCamionesAveriados(new ArrayList<>());
 
 
@@ -172,10 +179,10 @@ public class PlanificacionPlgApplication {
 
         // Load maintenance and averias
         mejorSolucion.getSistemaPLG().cargarMantenimientos(
-                "src/main/java/com/plg/planificacionplg/test/planmantenimiento.txt",
+                MANTENIMIENTO_FILE,
                 LocalTime.MIN, LocalTime.MAX
         );
-        mejorSolucion.getSistemaPLG().cargarAverias("src/main/java/com/plg/planificacionplg/test/averias.txt");
+        mejorSolucion.getSistemaPLG().cargarAverias(AVERIAS_FILE);
 
         double min = 0.35;
         double max = 0.75;
