@@ -202,8 +202,8 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   }
 
   // Calculate scale factors to fit the map in the viewport
-  const containerWidth = 600;
-  const containerHeight = 500;
+  const containerWidth = 800;
+  const containerHeight = 600;
   const scaleX = containerWidth / system.maxXmapa;
   const scaleY = containerHeight / system.maxYmapa;
 
@@ -215,7 +215,54 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
 
   const handleTruckRightClick = (e, truckId) => {
     e.preventDefault();
+    e.stopPropagation();
     setContextMenu({ x: e.clientX, y: e.clientY, truckId });
+  };
+
+  // Función para manejar elementos superpuestos
+  const handleOverlappingElements = (e, position, type, id) => {
+    e.stopPropagation();
+    
+    // Verificar si hay otros elementos en la misma posición
+    const elementsAtPosition = [];
+    
+    // Buscar camiones en la posición
+    Array.from(truckPositions.entries()).forEach(([truckId, pos]) => {
+      const truckPos = toScreenPosition(pos.x, pos.y);
+      const distance = Math.sqrt(
+        Math.pow(truckPos.x - position.x, 2) + 
+        Math.pow(truckPos.y - position.y, 2)
+      );
+      
+      if (distance < 20) {
+        elementsAtPosition.push({ type: 'truck', id: truckId });
+      }
+    });
+    
+    // Buscar pedidos en la posición
+    system.pedidos.forEach((pedido) => {
+      const pedidoPos = toScreenPosition(pedido.ubicacion.x, pedido.ubicacion.y);
+      const distance = Math.sqrt(
+        Math.pow(pedidoPos.x - position.x, 2) + 
+        Math.pow(pedidoPos.y - position.y, 2)
+      );
+      
+      if (distance < 20) {
+        elementsAtPosition.push({ type: 'pedido', id: pedido.id });
+      }
+    });
+    
+    // Si hay múltiples elementos, mostrar menú de selección
+    if (elementsAtPosition.length > 1) {
+      setContextMenu({ 
+        x: e.clientX, 
+        y: e.clientY, 
+        overlappingElements: elementsAtPosition 
+      });
+    } else {
+      // Si solo hay un elemento, seleccionarlo directamente
+      setSelectedItem({ type, id });
+    }
   };
 
   const handleAveriaOption = async (tipoAveria) => {
@@ -233,6 +280,11 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
       console.error('Error registering averia:', error);
     }
 
+    setContextMenu(null);
+  };
+
+  const handleSelectElement = (element) => {
+    setSelectedItem(element);
     setContextMenu(null);
   };
 
@@ -354,7 +406,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
                 left: pos.x - 12,
                 top: pos.y - 12
               }}
-              onClick={() => setSelectedItem({ type: 'truck', id: truckId })}
+              onClick={(e) => handleOverlappingElements(e, pos, 'truck', truckId)}
               onContextMenu={(e) => {
                 e.preventDefault();
                 handleTruckRightClick(e, truckId);
@@ -383,7 +435,7 @@ ${currentDest ? `\nEn: ${currentDest.destinationType}` : ''}`}
                 left: pos.x - 12,
                 top: pos.y - 12
               }}
-              onClick={() => setSelectedItem({ type: 'cisterna', id: index })}
+              onClick={(e) => handleOverlappingElements(e, pos, 'cisterna', index)}
               title={`${cisterna.principal ? 'Principal' : 'Secundaria'} Cisterna
 GLP Actual: ${currentGLP.toFixed(2)} / ${cisterna.capacidadTotal.toFixed(2)}
 Hora Abastecimiento: ${cisterna.horaAbastecimento}
@@ -410,7 +462,7 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
                 left: pos.x - 12,
                 top: pos.y - 12
               }}
-              onClick={() => setSelectedItem({ type: 'pedido', id: pedido.id })}
+              onClick={(e) => handleOverlappingElements(e, pos, 'pedido', pedido.id)}
               title={`Pedido ${pedido.numeroPedido} - GLP: ${pedido.volumenGLP.toFixed(2)}`}
             >
               <img src={pedidoIcon} alt="Pedido" className="marker-icon" />
@@ -569,27 +621,48 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>Registrar Avería</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <button 
-              onClick={() => handleAveriaOption(1)} 
-              className="tipo-averia"
-            >
-              Tipo 1
-            </button>
-            <button 
-              onClick={() => handleAveriaOption(2)} 
-              className="tipo-averia"
-            >
-              Tipo 2
-            </button>
-            <button 
-              onClick={() => handleAveriaOption(3)} 
-              className="tipo-averia"
-            >
-              Tipo 3
-            </button>
-          </div>
+          {contextMenu.overlappingElements ? (
+            <>
+              <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>Seleccionar elemento:</div>
+              <div className="overlapping-elements-menu">
+                {contextMenu.overlappingElements.map((element, index) => (
+                  <div 
+                    key={`element-${index}`} 
+                    className="overlapping-element-option"
+                    onClick={() => handleSelectElement(element)}
+                  >
+                    {element.type === 'truck' && `Camión T${element.id}`}
+                    {element.type === 'pedido' && `Pedido P${system.pedidos.findIndex(p => p.id === element.id) + 1}`}
+                    {element.type === 'cisterna' && `Cisterna C${element.id + 1}`}
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : contextMenu.truckId ? (
+            <>
+              <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>Registrar Avería</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <button 
+                  onClick={() => handleAveriaOption(1)} 
+                  className="tipo-averia"
+                >
+                  Tipo 1
+                </button>
+                <button 
+                  onClick={() => handleAveriaOption(2)} 
+                  className="tipo-averia"
+                >
+                  Tipo 2
+                </button>
+                <button 
+                  onClick={() => handleAveriaOption(3)} 
+                  className="tipo-averia"
+                >
+                  Tipo 3
+                </button>
+              </div>
+            </>
+          ) : null}
         </div>
       )}
     </div>
