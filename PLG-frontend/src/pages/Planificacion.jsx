@@ -11,7 +11,17 @@ import {
   IconButton,
   CircularProgress,
   Snackbar,
-  Alert
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
 } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -52,6 +62,10 @@ export default function Planificacion() {
     averias: false,
     planmantenimiento: false
   });
+  
+  // Estado para el modal de visualización de pedidos
+  const [pedidosModalOpen, setPedidosModalOpen] = useState(false);
+  const [pedidosContent, setPedidosContent] = useState([]);
   
   // Referencias para los inputs de archivos
   const pedidosInputRef = useRef();
@@ -197,6 +211,81 @@ export default function Planificacion() {
       ...snackbar,
       open: false
     });
+  };
+  
+  const handleOpenPedidos = () => {
+    // Si hay un archivo seleccionado, leer su contenido
+    if (selectedFiles.pedidos) {
+      readPedidosFile(selectedFiles.pedidos);
+    } 
+    // Si no hay archivo seleccionado pero ya está subido, mostrar mensaje
+    else if (filesStatus.pedidos) {
+      setSnackbar({
+        open: true,
+        message: 'El archivo ya está subido al servidor. Puede ejecutar la simulación.',
+        severity: 'info'
+      });
+    } else {
+      setSnackbar({
+        open: true,
+        message: 'Primero debe seleccionar un archivo de pedidos',
+        severity: 'warning'
+      });
+    }
+  };
+  
+  const readPedidosFile = (file) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      const content = e.target.result;
+      const lines = content.split('\n').filter(line => line.trim() !== '');
+      
+      const parsedPedidos = lines.map(line => {
+        const [tiempo, datos] = line.split(':');
+        if (!datos) return null;
+        
+        // Parsear el tiempo (formato: "01d06h00m")
+        const tiempoMatch = tiempo.match(/(\d+)d(\d+)h(\d+)m/);
+        let tiempoFormateado = '';
+        if (tiempoMatch) {
+          const [_, dias, horas, minutos] = tiempoMatch;
+          tiempoFormateado = `${dias} días, ${horas} horas, ${minutos} minutos`;
+        }
+        
+        // Parsear los datos (formato: "42,42,c-1,10m3,3h")
+        const datosArray = datos.split(',');
+        if (datosArray.length < 5) return null;
+        
+        const [posX, posY, cliente, volumen, tiempoEntrega] = datosArray;
+        
+        return {
+          tiempo: tiempoFormateado,
+          posX,
+          posY,
+          cliente: cliente.replace('c-', ''),
+          volumen: volumen.replace('m3', ''),
+          tiempoEntrega: tiempoEntrega.replace('h', '')
+        };
+      }).filter(pedido => pedido !== null);
+      
+      setPedidosContent(parsedPedidos);
+      setPedidosModalOpen(true);
+    };
+    
+    reader.onerror = () => {
+      setSnackbar({
+        open: true,
+        message: 'Error al leer el archivo',
+        severity: 'error'
+      });
+    };
+    
+    reader.readAsText(file);
+  };
+  
+  const handleClosePedidosModal = () => {
+    setPedidosModalOpen(false);
   };
 
   return (
@@ -395,6 +484,7 @@ export default function Planificacion() {
             <Button 
               variant="contained" 
               className="view-button"
+              onClick={handleOpenPedidos}
             >
               Ver pedidos
             </Button>
@@ -413,6 +503,57 @@ export default function Planificacion() {
           <Routes />
         </Paper>
       )}
+      
+      {/* Modal para visualizar pedidos */}
+      <Dialog
+        open={pedidosModalOpen}
+        onClose={handleClosePedidosModal}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          Visualización de Pedidos
+        </DialogTitle>
+        <DialogContent>
+          {pedidosContent.length > 0 ? (
+            <TableContainer component={Paper} sx={{ mt: 2 }}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Tiempo</TableCell>
+                    <TableCell>Posición X</TableCell>
+                    <TableCell>Posición Y</TableCell>
+                    <TableCell>Cliente</TableCell>
+                    <TableCell>Volumen (m³)</TableCell>
+                    <TableCell>Tiempo Máx. Entrega (h)</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {pedidosContent.map((pedido, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{pedido.tiempo}</TableCell>
+                      <TableCell>{pedido.posX}</TableCell>
+                      <TableCell>{pedido.posY}</TableCell>
+                      <TableCell>{pedido.cliente}</TableCell>
+                      <TableCell>{pedido.volumen}</TableCell>
+                      <TableCell>{pedido.tiempoEntrega}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Typography variant="body1" sx={{ mt: 2 }}>
+              No hay datos disponibles
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClosePedidosModal} color="primary">
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
       
       <Snackbar 
         open={snackbar.open} 
