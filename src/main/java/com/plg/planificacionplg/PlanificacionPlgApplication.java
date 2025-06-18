@@ -19,6 +19,8 @@ public class PlanificacionPlgApplication {
     private static Individuo mejorSolucion;
     @Setter @Getter
     private static double porcentajeEjecucion;
+    @Setter @Getter
+    private static LocalDateTime fechaHoraInicio;
 
     public static void main(String[] args) {
         SpringApplication.run(PlanificacionPlgApplication.class, args);
@@ -55,7 +57,9 @@ public class PlanificacionPlgApplication {
         cisternas.add(cintermedio2);
 
         SistemaPLG sistemaPLG = new SistemaPLG();
-        sistemaPLG.setFechaHoraInicio(LocalDateTime.now());
+        // Use fechaHoraInicio from frontend if available, otherwise use current time
+        LocalDateTime fechaInicio = (fechaHoraInicio != null) ? fechaHoraInicio : LocalDateTime.now();
+        sistemaPLG.setFechaHoraInicio(fechaInicio);
         sistemaPLG.cargarPedidos("src/main/java/com/plg/planificacionplg/test/pedidos.txt");
         sistemaPLG.setPedidosTodos(new ArrayList<>(sistemaPLG.getPedidos()));
         sistemaPLG.setCisternas(cisternas);

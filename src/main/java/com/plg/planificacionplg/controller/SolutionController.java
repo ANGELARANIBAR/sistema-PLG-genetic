@@ -426,6 +426,37 @@ public class SolutionController {
         return ResponseEntity.accepted().build(); // 202 Accepted, sin esperar resultado
     }
 
+    @PostMapping("/inicializar-fecha-hora")
+    public ResponseEntity<String> inicializarFechaHora(@RequestBody FechaHoraInicioRequest request) {
+        try {
+            if (request.getFechaHoraInicio() == null) {
+                return ResponseEntity.badRequest().body("fechaHoraInicio no puede ser null");
+            }
+            
+            // Store the fechaHoraInicio in the application for later use
+            PlanificacionPlgApplication.setFechaHoraInicio(request.getFechaHoraInicio());
+            
+            return ResponseEntity.ok("Fecha y hora inicializada correctamente: " + request.getFechaHoraInicio());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error al inicializar fecha y hora: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/ejecutar-simulacion-con-fecha")
+    public ResponseEntity<Individuo> ejecutarAlgoritmoConFecha(@RequestBody FechaHoraInicioRequest request) {
+        if (request.getFechaHoraInicio() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        // Set the fechaHoraInicio before executing the algorithm
+        PlanificacionPlgApplication.setFechaHoraInicio(request.getFechaHoraInicio());
+        
+        new Thread(() -> {
+            PlanificacionPlgApplication.ejecutarAlgoritmo(); // Lógica pesada
+        }).start();
+
+        return ResponseEntity.accepted().build(); // 202 Accepted, sin esperar resultado
+    }
 
     private DestinationDTO convertToDestinationDTO(Destino destino) {
         DestinationDTO dto = new DestinationDTO();
