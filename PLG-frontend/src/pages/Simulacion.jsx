@@ -109,6 +109,36 @@ export default function Simulacion() {
     setMessage("");
   };
 
+  const uploadFiles = async () => {
+    try {
+      // Upload pedidos file
+      if (selectedFiles.pedidos) {
+        await simulationService.uploadPedidosFile(selectedFiles.pedidos);
+      }
+      
+      // Upload bloqueos file
+      if (selectedFiles.bloqueos) {
+        await simulationService.uploadBloqueosFile(selectedFiles.bloqueos);
+      }
+      
+      // Upload averias file
+      if (selectedFiles.averias) {
+        await simulationService.uploadAveriasFile(selectedFiles.averias);
+      }
+      
+      // Upload mantenimiento file
+      if (selectedFiles.mantenimientos) {
+        await simulationService.uploadMantenimientoFile(selectedFiles.mantenimientos);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      setMessage(`❌ Error al cargar los archivos: ${error.message}`);
+      return false;
+    }
+  };
+
   const handleNext = async () => {
     // Validate files are uploaded
     const requiredFiles = ['bloqueos', 'averias', 'mantenimientos', 'pedidos'];
@@ -123,6 +153,12 @@ export default function Simulacion() {
     setMessage("");
 
     try {
+      // First upload all files
+      const filesUploaded = await uploadFiles();
+      if (!filesUploaded) {
+        throw new Error("Error al cargar los archivos");
+      }
+      
       // Combine fecha and hora into a single datetime string
       const fechaHoraInicio = `${fecha}T${hora}:00`;
       

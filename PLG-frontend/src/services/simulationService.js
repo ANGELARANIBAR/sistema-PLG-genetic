@@ -1,6 +1,27 @@
 const API_BASE_URL = 'http://localhost:8080/api/solution';
+const UPLOAD_API_URL = 'http://localhost:8080/api/upload';
 
 export const simulationService = {
+    // Upload pedidos file
+    async uploadPedidosFile(file) {
+        return uploadFile(file, 'pedidos');
+    },
+
+    // Upload bloqueos file
+    async uploadBloqueosFile(file) {
+        return uploadFile(file, 'bloqueos');
+    },
+
+    // Upload averias file
+    async uploadAveriasFile(file) {
+        return uploadFile(file, 'averias');
+    },
+
+    // Upload mantenimiento file
+    async uploadMantenimientoFile(file) {
+        return uploadFile(file, 'mantenimiento');
+    },
+
     // Initialize fechaHoraInicio
     async initializeFechaHora(fechaHoraInicio) {
         try {
@@ -119,4 +140,31 @@ export const simulationService = {
             throw error;
         }
     }
-}; 
+};
+
+// Helper function to upload files
+async function uploadFile(file, fileType) {
+    if (!file) {
+        throw new Error('No file selected');
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch(`${UPLOAD_API_URL}/${fileType}`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Error al cargar el archivo: ${response.status} - ${errorText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error(`Error uploading ${fileType} file:`, error);
+        throw error;
+    }
+} 
