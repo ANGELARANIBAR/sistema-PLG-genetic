@@ -480,12 +480,13 @@ public class SolutionController {
     }
 
     @PostMapping("/ejecutar-simulacion")
-    public ResponseEntity<Individuo> ejecutarAlgoritmo() {
-        new Thread(() -> {
-            PlanificacionPlgApplication.ejecutarAlgoritmo(); // Lógica pesada
-        }).start();
-
-        return ResponseEntity.accepted().build(); // 202 Accepted, sin esperar resultado
+    public ResponseEntity<?> ejecutarSimulacion() {
+        try {
+            PlanificacionPlgApplication.ejecutarAlgoritmo();
+            return ResponseEntity.ok().body(Map.of("message", "Simulación ejecutada correctamente"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Error al ejecutar la simulación: " + e.getMessage()));
+        }
     }
 
     @PostMapping("/inicializar-fecha-hora")
@@ -518,28 +519,6 @@ public class SolutionController {
         }).start();
 
         return ResponseEntity.accepted().build(); // 202 Accepted, sin esperar resultado
-    }
-
-    @GetMapping("/ejecutar-simulacion")
-    public ResponseEntity<?> ejecutarSimulacion() {
-        try {
-            // Verificar que existan los archivos necesarios
-            if (!Files.exists(Paths.get(BASE_UPLOAD_DIR + "pedidos.txt"))) {
-                return ResponseEntity.badRequest().body("El archivo de pedidos no existe");
-            }
-            
-            // Ejecutar el algoritmo de planificación
-            PlanificacionPlgApplication.ejecutarAlgoritmo();
-            
-            return ResponseEntity.ok("Simulación ejecutada correctamente");
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Error al ejecutar la simulación: " + e.getMessage());
-        }
-    }
-    
-    @GetMapping("/porcentaje-ejecucion")
-    public double getPorcentajeEjecucion() {
-        return PlanificacionPlgApplication.getPorcentajeEjecucion();
     }
 
     private DestinationDTO convertToDestinationDTO(Destino destino) {

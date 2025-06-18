@@ -9,284 +9,238 @@ import {
   TextField,
   InputAdornment,
   IconButton,
-  CircularProgress,
-  Snackbar,
   Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow
+  Snackbar,
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  Stack
 } from '@mui/material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import InfoIcon from '@mui/icons-material/Info';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
 import Routes from '../components/routes/Routes';
-import { fileService } from '../services/fileService';
 import './Planificacion.css';
+
+const API_URL = 'http://localhost:8080/api/solution';
 
 export default function Planificacion() {
   const [tabValue, setTabValue] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'info'
-  });
-  
-  // Estado para archivos seleccionados
-  const [selectedFiles, setSelectedFiles] = useState({
-    pedidos: null,
-    bloqueos: null,
-    averias: null,
-    planmantenimiento: null
-  });
-  
-  // Estado para nombres de archivos mostrados
-  const [fileNames, setFileNames] = useState({
-    pedidos: "No se ha seleccionado archivo",
-    bloqueos: "No se ha seleccionado archivo",
-    averias: "No se ha seleccionado archivo",
-    planmantenimiento: "No se ha seleccionado archivo"
-  });
-  
-  // Estado para verificar si los archivos ya están subidos
   const [filesStatus, setFilesStatus] = useState({
     pedidos: false,
     bloqueos: false,
     averias: false,
     planmantenimiento: false
   });
+  const [selectedFiles, setSelectedFiles] = useState({
+    pedidos: null,
+    bloqueos: null,
+    averias: null,
+    planmantenimiento: null
+  });
+  const [fileNames, setFileNames] = useState({
+    pedidos: "No se ha seleccionado archivo",
+    bloqueos: "No se ha seleccionado archivo",
+    averias: "No se ha seleccionado archivo",
+    planmantenimiento: "No se ha seleccionado archivo"
+  });
+  const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    severity: 'info'
+  });
+  const [startDateTime, setStartDateTime] = useState(new Date());
   
-  // Estado para el modal de visualización de pedidos
-  const [pedidosModalOpen, setPedidosModalOpen] = useState(false);
-  const [pedidosContent, setPedidosContent] = useState([]);
-  
-  // Referencias para los inputs de archivos
-  const pedidosInputRef = useRef();
-  const bloqueosInputRef = useRef();
-  const averiasInputRef = useRef();
-  const mantenimientoInputRef = useRef();
-  
-  // Cargar estado de archivos al inicio
+  const fileInputRefs = {
+    pedidos: useRef(null),
+    bloqueos: useRef(null),
+    averias: useRef(null),
+    planmantenimiento: useRef(null)
+  };
+
+  // Cargar el estado de los archivos al iniciar
   useEffect(() => {
     checkFilesStatus();
   }, []);
-  
+
   const checkFilesStatus = async () => {
     try {
-      const status = await fileService.getFilesStatus();
-      setFilesStatus(status);
-      
-      // Actualizar nombres de archivos si ya están subidos
-      const updatedFileNames = {...fileNames};
-      Object.keys(status).forEach(key => {
-        if (status[key]) {
-          updatedFileNames[key] = `${key}.txt (subido)`;
-        }
-      });
-      setFileNames(updatedFileNames);
+      const response = await fetch(`${API_URL}/upload-files-status`);
+      if (response.ok) {
+        const data = await response.json();
+        setFilesStatus(data);
+      }
     } catch (error) {
-      console.error('Error al verificar estado de archivos:', error);
+      console.error("Error al verificar el estado de los archivos:", error);
     }
   };
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
-  
+
   const handleFileChange = (event, fileType) => {
     const file = event.target.files[0];
     if (file) {
-      setSelectedFiles({
-        ...selectedFiles,
+      setSelectedFiles(prev => ({
+        ...prev,
         [fileType]: file
-      });
-      setFileNames({
-        ...fileNames,
+      }));
+      setFileNames(prev => ({
+        ...prev,
         [fileType]: file.name
-      });
+      }));
     }
   };
-  
+
   const handleFileClick = (fileType) => {
-    switch (fileType) {
-      case 'pedidos':
-        pedidosInputRef.current.click();
-        break;
-      case 'bloqueos':
-        bloqueosInputRef.current.click();
-        break;
-      case 'averias':
-        averiasInputRef.current.click();
-        break;
-      case 'planmantenimiento':
-        mantenimientoInputRef.current.click();
-        break;
-      default:
-        break;
-    }
+    fileInputRefs[fileType].current.click();
   };
-  
+
   const handleUploadFiles = async () => {
-    // Verificar si hay al menos un archivo seleccionado
-    if (!Object.values(selectedFiles).some(file => file !== null)) {
-      setSnackbar({
-        open: true,
-        message: 'Por favor seleccione al menos un archivo para subir',
-        severity: 'warning'
-      });
-      return;
-    }
+    const formData = new FormData();
     
-    setLoading(true);
-    try {
-      const result = await fileService.uploadFiles(selectedFiles);
-      setSnackbar({
-        open: true,
-        message: 'Archivos subidos correctamente',
-        severity: 'success'
-      });
-      
-      // Actualizar estado de archivos después de la subida
-      await checkFilesStatus();
-      
-      // Limpiar selección de archivos
-      setSelectedFiles({
-        pedidos: null,
-        bloqueos: null,
-        averias: null,
-        planmantenimiento: null
-      });
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: 'Error al subir archivos: ' + (error.response?.data || error.message),
-        severity: 'error'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const handleReplanificar = async () => {
-    // Verificar si todos los archivos necesarios están subidos
-    if (!filesStatus.pedidos) {
-      setSnackbar({
-        open: true,
-        message: 'Debe subir el archivo de pedidos para ejecutar la simulación',
-        severity: 'warning'
-      });
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      await fileService.ejecutarSimulacion();
-      setSnackbar({
-        open: true,
-        message: 'Simulación ejecutada correctamente',
-        severity: 'success'
-      });
-      // Cambiar a la pestaña de rutas
-      setTabValue(1);
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: 'Error al ejecutar simulación: ' + (error.response?.data || error.message),
-        severity: 'error'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const handleCloseSnackbar = () => {
-    setSnackbar({
-      ...snackbar,
-      open: false
+    // Agregar solo los archivos seleccionados al FormData
+    Object.keys(selectedFiles).forEach(fileType => {
+      if (selectedFiles[fileType]) {
+        formData.append(fileType, selectedFiles[fileType]);
+      }
     });
-  };
-  
-  const handleOpenPedidos = () => {
-    // Si hay un archivo seleccionado, leer su contenido
-    if (selectedFiles.pedidos) {
-      readPedidosFile(selectedFiles.pedidos);
-    } 
-    // Si no hay archivo seleccionado pero ya está subido, mostrar mensaje
-    else if (filesStatus.pedidos) {
-      setSnackbar({
+    
+    // Verificar si hay archivos para subir
+    if ([...formData.entries()].length === 0) {
+      setNotification({
         open: true,
-        message: 'El archivo ya está subido al servidor. Puede ejecutar la simulación.',
-        severity: 'info'
-      });
-    } else {
-      setSnackbar({
-        open: true,
-        message: 'Primero debe seleccionar un archivo de pedidos',
+        message: 'No se ha seleccionado ningún archivo para subir',
         severity: 'warning'
+      });
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/upload-files`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setNotification({
+          open: true,
+          message: 'Archivos subidos correctamente',
+          severity: 'success'
+        });
+        
+        // Limpiar los archivos seleccionados
+        setSelectedFiles({
+          pedidos: null,
+          bloqueos: null,
+          averias: null,
+          planmantenimiento: null
+        });
+        
+        // Actualizar el estado de los archivos
+        checkFilesStatus();
+      } else {
+        setNotification({
+          open: true,
+          message: 'Error al subir los archivos',
+          severity: 'error'
+        });
+      }
+    } catch (error) {
+      console.error("Error al subir archivos:", error);
+      setNotification({
+        open: true,
+        message: 'Error al subir los archivos: ' + error.message,
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCloseNotification = () => {
+    setNotification(prev => ({ ...prev, open: false }));
+  };
+
+  const handleSetStartDateTime = async () => {
+    try {
+      const response = await fetch(`${API_URL}/inicializar-fecha-hora`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fechaHoraInicio: startDateTime.toISOString() }),
+      });
+      
+      if (response.ok) {
+        setNotification({
+          open: true,
+          message: 'Fecha y hora de inicio configurada correctamente',
+          severity: 'success'
+        });
+      } else {
+        setNotification({
+          open: true,
+          message: 'Error al configurar la fecha y hora de inicio',
+          severity: 'error'
+        });
+      }
+    } catch (error) {
+      console.error("Error al configurar fecha y hora:", error);
+      setNotification({
+        open: true,
+        message: 'Error al configurar fecha y hora: ' + error.message,
+        severity: 'error'
       });
     }
   };
-  
-  const readPedidosFile = (file) => {
-    const reader = new FileReader();
+
+  const handleReplanificar = async () => {
+    // Primero configuramos la fecha y hora de inicio
+    await handleSetStartDateTime();
     
-    reader.onload = (e) => {
-      const content = e.target.result;
-      const lines = content.split('\n').filter(line => line.trim() !== '');
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/ejecutar-simulacion`, {
+        method: 'POST'
+      });
       
-      const parsedPedidos = lines.map(line => {
-        const [tiempo, datos] = line.split(':');
-        if (!datos) return null;
-        
-        // Parsear el tiempo (formato: "01d06h00m")
-        const tiempoMatch = tiempo.match(/(\d+)d(\d+)h(\d+)m/);
-        let tiempoFormateado = '';
-        if (tiempoMatch) {
-          const [_, dias, horas, minutos] = tiempoMatch;
-          tiempoFormateado = `${dias} días, ${horas} horas, ${minutos} minutos`;
-        }
-        
-        // Parsear los datos (formato: "42,42,c-1,10m3,3h")
-        const datosArray = datos.split(',');
-        if (datosArray.length < 5) return null;
-        
-        const [posX, posY, cliente, volumen, tiempoEntrega] = datosArray;
-        
-        return {
-          tiempo: tiempoFormateado,
-          posX,
-          posY,
-          cliente: cliente.replace('c-', ''),
-          volumen: volumen.replace('m3', ''),
-          tiempoEntrega: tiempoEntrega.replace('h', '')
-        };
-      }).filter(pedido => pedido !== null);
-      
-      setPedidosContent(parsedPedidos);
-      setPedidosModalOpen(true);
-    };
-    
-    reader.onerror = () => {
-      setSnackbar({
+      if (response.ok) {
+        setNotification({
+          open: true,
+          message: 'Planificación ejecutada correctamente',
+          severity: 'success'
+        });
+        // Cambiar a la pestaña de rutas
+        setTabValue(1);
+      } else {
+        setNotification({
+          open: true,
+          message: 'Error al ejecutar la planificación',
+          severity: 'error'
+        });
+      }
+    } catch (error) {
+      console.error("Error al ejecutar planificación:", error);
+      setNotification({
         open: true,
-        message: 'Error al leer el archivo',
+        message: 'Error al ejecutar la planificación: ' + error.message,
         severity: 'error'
       });
-    };
-    
-    reader.readAsText(file);
+    } finally {
+      setLoading(false);
+    }
   };
-  
-  const handleClosePedidosModal = () => {
-    setPedidosModalOpen(false);
-  };
+
+  const allFilesUploaded = filesStatus.pedidos && filesStatus.bloqueos && 
+                          filesStatus.averias && filesStatus.planmantenimiento;
 
   return (
     <Box sx={{ p: 3 }}>
@@ -312,7 +266,7 @@ export default function Planificacion() {
           color="secondary" 
           className="replan-button"
           onClick={handleReplanificar}
-          disabled={loading}
+          disabled={loading || !allFilesUploaded}
         >
           {loading ? <CircularProgress size={24} color="inherit" /> : 'Replanificar'}
         </Button>
@@ -320,11 +274,32 @@ export default function Planificacion() {
 
       {tabValue === 0 && (
         <Paper variant="outlined" sx={{ p: 4, mt: 2, borderRadius: 2 }}>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body1" color="text.secondary" gutterBottom>
             Considerar que solo se permiten archivos en formato txt
           </Typography>
           
-          {/* Input para Pedidos */}
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+              Fecha y hora de inicio de simulación
+            </Typography>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <DateTimePicker
+                  label="Fecha y hora de inicio"
+                  value={startDateTime}
+                  onChange={(newValue) => setStartDateTime(newValue)}
+                  sx={{ width: '100%' }}
+                />
+                <Button 
+                  variant="outlined"
+                  onClick={handleSetStartDateTime}
+                >
+                  Establecer
+                </Button>
+              </Stack>
+            </LocalizationProvider>
+          </Box>
+          
           <Box sx={{ mt: 3 }}>
             <Typography variant="subtitle1" fontWeight="600" gutterBottom>
               Pedidos
@@ -333,8 +308,8 @@ export default function Planificacion() {
               <input
                 type="file"
                 accept=".txt"
-                ref={pedidosInputRef}
                 style={{ display: 'none' }}
+                ref={fileInputRefs.pedidos}
                 onChange={(e) => handleFileChange(e, 'pedidos')}
               />
               <Button 
@@ -352,7 +327,7 @@ export default function Planificacion() {
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton edge="end">
-                        <InfoIcon />
+                        <InfoIcon color={filesStatus.pedidos ? "success" : "inherit"} />
                       </IconButton>
                     </InputAdornment>
                   ),
@@ -361,7 +336,6 @@ export default function Planificacion() {
             </Box>
           </Box>
           
-          {/* Input para Bloqueos */}
           <Box sx={{ mt: 3 }}>
             <Typography variant="subtitle1" fontWeight="600" gutterBottom>
               Bloqueos
@@ -370,8 +344,8 @@ export default function Planificacion() {
               <input
                 type="file"
                 accept=".txt"
-                ref={bloqueosInputRef}
                 style={{ display: 'none' }}
+                ref={fileInputRefs.bloqueos}
                 onChange={(e) => handleFileChange(e, 'bloqueos')}
               />
               <Button 
@@ -389,7 +363,7 @@ export default function Planificacion() {
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton edge="end">
-                        <InfoIcon />
+                        <InfoIcon color={filesStatus.bloqueos ? "success" : "inherit"} />
                       </IconButton>
                     </InputAdornment>
                   ),
@@ -398,7 +372,6 @@ export default function Planificacion() {
             </Box>
           </Box>
           
-          {/* Input para Averías */}
           <Box sx={{ mt: 3 }}>
             <Typography variant="subtitle1" fontWeight="600" gutterBottom>
               Averías
@@ -407,8 +380,8 @@ export default function Planificacion() {
               <input
                 type="file"
                 accept=".txt"
-                ref={averiasInputRef}
                 style={{ display: 'none' }}
+                ref={fileInputRefs.averias}
                 onChange={(e) => handleFileChange(e, 'averias')}
               />
               <Button 
@@ -426,7 +399,7 @@ export default function Planificacion() {
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton edge="end">
-                        <InfoIcon />
+                        <InfoIcon color={filesStatus.averias ? "success" : "inherit"} />
                       </IconButton>
                     </InputAdornment>
                   ),
@@ -435,7 +408,6 @@ export default function Planificacion() {
             </Box>
           </Box>
           
-          {/* Input para Mantenimiento */}
           <Box sx={{ mt: 3 }}>
             <Typography variant="subtitle1" fontWeight="600" gutterBottom>
               Mantenimiento
@@ -444,8 +416,8 @@ export default function Planificacion() {
               <input
                 type="file"
                 accept=".txt"
-                ref={mantenimientoInputRef}
                 style={{ display: 'none' }}
+                ref={fileInputRefs.planmantenimiento}
                 onChange={(e) => handleFileChange(e, 'planmantenimiento')}
               />
               <Button 
@@ -463,7 +435,7 @@ export default function Planificacion() {
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton edge="end">
-                        <InfoIcon />
+                        <InfoIcon color={filesStatus.planmantenimiento ? "success" : "inherit"} />
                       </IconButton>
                     </InputAdornment>
                   ),
@@ -476,15 +448,6 @@ export default function Planificacion() {
             <Button 
               variant="contained" 
               className="view-button"
-              onClick={handleUploadFiles}
-              disabled={loading}
-            >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Subir Archivos'}
-            </Button>
-            <Button 
-              variant="contained" 
-              className="view-button"
-              onClick={handleOpenPedidos}
             >
               Ver pedidos
             </Button>
@@ -494,7 +457,21 @@ export default function Planificacion() {
             >
               Ver flota
             </Button>
+            <Button 
+              variant="contained" 
+              color="primary"
+              onClick={handleUploadFiles}
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Cargar archivos'}
+            </Button>
           </Box>
+          
+          {!allFilesUploaded && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              Debe cargar todos los archivos necesarios antes de ejecutar la planificación.
+            </Alert>
+          )}
         </Paper>
       )}
 
@@ -503,66 +480,15 @@ export default function Planificacion() {
           <Routes />
         </Paper>
       )}
-      
-      {/* Modal para visualizar pedidos */}
-      <Dialog
-        open={pedidosModalOpen}
-        onClose={handleClosePedidosModal}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle>
-          Visualización de Pedidos
-        </DialogTitle>
-        <DialogContent>
-          {pedidosContent.length > 0 ? (
-            <TableContainer component={Paper} sx={{ mt: 2 }}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Tiempo</TableCell>
-                    <TableCell>Posición X</TableCell>
-                    <TableCell>Posición Y</TableCell>
-                    <TableCell>Cliente</TableCell>
-                    <TableCell>Volumen (m³)</TableCell>
-                    <TableCell>Tiempo Máx. Entrega (h)</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {pedidosContent.map((pedido, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{pedido.tiempo}</TableCell>
-                      <TableCell>{pedido.posX}</TableCell>
-                      <TableCell>{pedido.posY}</TableCell>
-                      <TableCell>{pedido.cliente}</TableCell>
-                      <TableCell>{pedido.volumen}</TableCell>
-                      <TableCell>{pedido.tiempoEntrega}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          ) : (
-            <Typography variant="body1" sx={{ mt: 2 }}>
-              No hay datos disponibles
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClosePedidosModal} color="primary">
-            Cerrar
-          </Button>
-        </DialogActions>
-      </Dialog>
-      
+
       <Snackbar 
-        open={snackbar.open} 
+        open={notification.open} 
         autoHideDuration={6000} 
-        onClose={handleCloseSnackbar}
+        onClose={handleCloseNotification}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
+        <Alert onClose={handleCloseNotification} severity={notification.severity} sx={{ width: '100%' }}>
+          {notification.message}
         </Alert>
       </Snackbar>
     </Box>
