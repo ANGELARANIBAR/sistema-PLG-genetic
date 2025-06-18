@@ -254,9 +254,9 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
               y1={0}
               x2={x * scaleX}
               y2={containerHeight}
-              stroke="#ccc"
-              strokeWidth="1"
-              strokeDasharray="2,2"
+              stroke="#e0e0e0"
+              strokeWidth="0.8"
+              strokeDasharray="3,3"
             />
           ))}
           {Array.from({ length: Math.ceil(system.maxYmapa) + 1 }, (_, y) => (
@@ -266,10 +266,39 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
               y1={containerHeight - (y * scaleY)}
               x2={containerWidth}
               y2={containerHeight - (y * scaleY)}
-              stroke="#ccc"
-              strokeWidth="1"
-              strokeDasharray="2,2"
+              stroke="#e0e0e0"
+              strokeWidth="0.8"
+              strokeDasharray="3,3"
             />
+          ))}
+          
+          {/* Add coordinate labels */}
+          {Array.from({ length: Math.ceil(system.maxXmapa) + 1 }, (_, x) => (
+            x % 5 === 0 && (
+              <text
+                key={`label-x-${x}`}
+                x={x * scaleX}
+                y={containerHeight - 5}
+                fontSize="10"
+                fill="#666"
+                textAnchor="middle"
+              >
+                {x}
+              </text>
+            )
+          ))}
+          {Array.from({ length: Math.ceil(system.maxYmapa) + 1 }, (_, y) => (
+            y % 5 === 0 && (
+              <text
+                key={`label-y-${y}`}
+                x={5}
+                y={containerHeight - (y * scaleY)}
+                fontSize="10"
+                fill="#666"
+              >
+                {y}
+              </text>
+            )
           ))}
         </svg>
 
@@ -431,7 +460,7 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
         {selectedItem ? (
           selectedItem.type === 'truck' ? (
             <div className="info-section">
-              <h3>Información de camión</h3>
+              <h3>Información de Camión</h3>
               <div className="info-item">
                 <strong>Código:</strong> {system?.flota.find(t => t.truckId === selectedItem.id)?.codigo}
               </div>
@@ -449,51 +478,53 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
               </div>
               {system?.flota.find(t => t.truckId === selectedItem.id) && (
                 <div className="info-item">
-                  <strong>Estado camion:</strong> {truckStates.get(selectedItem.id) || 'N/A'}
+                  <strong>Estado camión:</strong> {truckStates.get(selectedItem.id) || 'N/A'}
                 </div>
               )}
               <div className="averia-buttons">
-                <h4 style={{ marginBottom: '10px' }}>Registrar averia</h4>
-                <button 
-                  onClick={() => handleAveriaOption(1)} 
-                  className="tipo-1"
-                >
-                  Tipo 1
-                </button>
-                <button 
-                  onClick={() => handleAveriaOption(2)} 
-                  className="tipo-2"
-                >
-                  Tipo 2
-                </button>
-                <button 
-                  onClick={() => handleAveriaOption(3)} 
-                  className="tipo-3"
-                >
-                  Tipo 3
-                </button>
+                <h4 style={{ marginBottom: '10px' }}>Registrar avería</h4>
+                <div className="button-container">
+                  <button 
+                    onClick={() => handleAveriaOption(1)} 
+                    className="tipo-1"
+                  >
+                    Tipo 1
+                  </button>
+                  <button 
+                    onClick={() => handleAveriaOption(2)} 
+                    className="tipo-2"
+                  >
+                    Tipo 2
+                  </button>
+                  <button 
+                    onClick={() => handleAveriaOption(3)} 
+                    className="tipo-3"
+                  >
+                    Tipo 3
+                  </button>
+                </div>
               </div>
             </div>
           ) : selectedItem.type === 'cisterna' ? (
             <div className="info-section">
-              <h3>Cisterna Information</h3>
+              <h3>Información de Cisterna</h3>
               {system?.cisternas[selectedItem.id] && (
                 <div>
                   <div className="info-item">
-                    <strong>Type:</strong> {system.cisternas[selectedItem.id].principal ? 'Principal' : 'Secundaria'}
+                    <strong>Tipo:</strong> {system.cisternas[selectedItem.id].principal ? 'Principal' : 'Secundaria'}
                   </div>
                   <div className="info-item">
-                    <strong>Current GLP:</strong> {(cisternaGLPs.get(system.cisternas[selectedItem.id].id) ?? system.cisternas[selectedItem.id].cargaGLPActual).toFixed(2)}
+                    <strong>GLP Actual:</strong> {(cisternaGLPs.get(system.cisternas[selectedItem.id].id) ?? system.cisternas[selectedItem.id].cargaGLPActual).toFixed(2)}
                   </div>
                   <div className="info-item">
-                    <strong>Total Capacity:</strong> {system.cisternas[selectedItem.id].capacidadTotal.toFixed(2)}
+                    <strong>Capacidad Total:</strong> {system.cisternas[selectedItem.id].capacidadTotal.toFixed(2)}
                   </div>
                   <div className="info-item">
-                    <strong>Supply Time:</strong> {system.cisternas[selectedItem.id].horaAbastecimento}
+                    <strong>Hora de Abastecimiento:</strong> {system.cisternas[selectedItem.id].horaAbastecimento}
                   </div>
                   {system.cisternas[selectedItem.id].operacionesGLPCisterna?.length > 0 && (
                     <div style={{ marginTop: '10px' }}>
-                      <strong>Last Operations:</strong>
+                      <strong>Últimas Operaciones:</strong>
                       <div style={{ marginTop: '5px', fontSize: '0.9em' }}>
                         {system.cisternas[selectedItem.id].operacionesGLPCisterna.slice(-3).map((op, idx) => (
                           <div key={idx} style={{ marginBottom: '3px' }}>
@@ -515,13 +546,13 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
                     <strong>Código de Pedido:</strong> {system.pedidos.find(p => p.id === selectedItem.id)?.numeroPedido}
                   </div>
                   <div className="info-item">
-                    <strong>GLP Volumen:</strong> {system.pedidos.find(p => p.id === selectedItem.id)?.volumenGLP.toFixed(2)}
+                    <strong>Volumen GLP:</strong> {system.pedidos.find(p => p.id === selectedItem.id)?.volumenGLP.toFixed(2)}
                   </div>
                   <div className="info-item">
                     <strong>Hora Registro:</strong> {new Date(system.pedidos.find(p => p.id === selectedItem.id)?.fechaHoraRegistro || '').toLocaleString()}
                   </div>
                   <div className="info-item">
-                    <strong>Entrega Pedido Máximo:</strong> {new Date(system.pedidos.find(p => p.id === selectedItem.id)?.fechaHoraMaxEntrega || '').toLocaleString()}
+                    <strong>Entrega Máxima:</strong> {new Date(system.pedidos.find(p => p.id === selectedItem.id)?.fechaHoraMaxEntrega || '').toLocaleString()}
                   </div>
                   <div className="info-item">
                     <strong>Estado:</strong> {system.pedidos.find(p => p.id === selectedItem.id)?.estado}
@@ -530,15 +561,22 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
                     <strong>Ubicación:</strong> ({system.pedidos.find(p => p.id === selectedItem.id)?.ubicacion.x}, {system.pedidos.find(p => p.id === selectedItem.id)?.ubicacion.y})
                   </div>
                   <div className="info-item">
-                    <strong>Combusitble total invertido:</strong> {system.pedidos.find(p => p.id === selectedItem.id)?.consumoCombustibleTotal.toFixed(2)}
+                    <strong>Combustible total:</strong> {system.pedidos.find(p => p.id === selectedItem.id)?.consumoCombustibleTotal.toFixed(2)}
                   </div>
                 </div>
               )}
             </div>
           )
         ) : (
-          <div style={{ textAlign: 'center', color: '#666' }}>
-            Select a truck, cisterna, or order to view details
+          <div className="empty-selection">
+            <div className="empty-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 17L12 22L22 17" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 12L12 17L22 12" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <p>Seleccione un camión, cisterna o pedido para ver detalles</p>
           </div>
         )}
       </div>
