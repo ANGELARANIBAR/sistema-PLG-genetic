@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { mapService } from '../services/mapService';
 import '../styles/MapStyles.css';
 // Importar iconos
@@ -20,6 +20,9 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   const [contextMenu, setContextMenu] = useState(null);
   const [lastSystemUpdate, setLastSystemUpdate] = useState(new Date());
   const [truckStates, setTruckStates] = useState(new Map());
+  const [overlappingItems, setOverlappingItems] = useState([]);
+  const [showOverlapMenu, setShowOverlapMenu] = useState(false);
+  const mapContainerRef = useRef(null);
 
   const getCurrentDestination = useCallback(async (truck) => {
     if (!currentTime) return null;
@@ -189,6 +192,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   useEffect(() => {
     const handleClickOutside = () => {
       setContextMenu(null);
+      setShowOverlapMenu(false);
     };
 
     document.addEventListener('click', handleClickOutside);
@@ -197,15 +201,36 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
     };
   }, []);
 
+  // Adjust map size on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      // Force rerender to update dimensions
+      setLastSystemUpdate(new Date());
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   if (!system || !startTime) {
     return <div className="loading-message">Loading...</div>;
   }
 
   // Calculate scale factors to fit the map in the viewport
-  const containerWidth = 800;
-  const containerHeight = 600;
-  const scaleX = containerWidth / system.maxXmapa;
-  const scaleY = containerHeight / system.maxYmapa;
+  const getContainerDimensions = () => {
+    if (mapContainerRef.current) {
+      const containerWidth = mapContainerRef.current.clientWidth - 300; // Subtract sidebar width
+      const containerHeight = mapContainerRef.current.clientHeight;
+      return { containerWidth, containerHeight };
+    }
+    return { containerWidth: 800, containerHeight: 600 };
+  };
+
+  const { containerWidth, containerHeight } = getContainerDimensions();
+  const scaleX = containerWidth / (system?.maxXmapa || 100);
+  const scaleY = containerHeight / (system?.maxYmapa || 100);
 
   // Function to convert coordinates to screen position
   const toScreenPosition = (x, y) => ({
@@ -213,56 +238,57 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
     y: containerHeight - (y * scaleY) // Invert Y coordinate to start from bottom
   });
 
+  // Function to check for overlapping items at a position
+  const findItemsAtPosition = (x, y) => {
+    const items = [];
+    const threshold = 15; // Pixel threshold for overlap detection
+
+    // Check trucks
+    Array.from(truckPositions.entries()).forEach(([truckId, position]) => {
+      const pos = toScreenPosition(position.x, position.y);
+      if (Math.abs(pos.x - x) < threshold && Math.abs(pos.y - y) < threshold) {
+        const truck = system.flota.find(t => t.truckId === truckId);
+        if (truck) {
+          items.push({ type: 'truck', id: truckId, label: `Camión ${truck.codigo}` });
+        }
+      }
+    });
+
+    // Check pedidos
+    system?.pedidos.forEach((pedido) => {
+      const pos = toScreenPosition(pedido.ubicacion.x, pedido.ubicacion.y);
+      if (Math.abs(pos.x - x) < threshold && Math.abs(pos.y - y) < threshold) {
+        items.push({ type: 'pedido', id: pedido.id, label: `Pedido ${pedido.numeroPedido}` });
+      }
+    });
+
+    // Check cisternas
+    system?.cisternas.forEach((cisterna, index) => {
+      const pos = toScreenPosition(cisterna.ubicacion.x, cisterna.ubicacion.y);
+      if (Math.abs(pos.x - x) < threshold && Math.abs(pos.y - y) < threshold) {
+        items.push({ type: 'cisterna', id: index, label: `Cisterna ${cisterna.principal ? 'Principal' : 'Secundaria'}` });
+      }
+    });
+
+    return items;
+  };
+
+  const handleMarkerClick = (e, item) => {
+    e.stopPropagation();
+    const items = findItemsAtPosition(e.clientX, e.clientY);
+    
+    if (items.length > 1) {
+      setOverlappingItems(items);
+      setShowOverlapMenu({ x: e.clientX, y: e.clientY });
+    } else {
+      setSelectedItem(item);
+    }
+  };
+
   const handleTruckRightClick = (e, truckId) => {
     e.preventDefault();
     e.stopPropagation();
     setContextMenu({ x: e.clientX, y: e.clientY, truckId });
-  };
-
-  // Función para manejar elementos superpuestos
-  const handleOverlappingElements = (e, position, type, id) => {
-    e.stopPropagation();
-    
-    // Verificar si hay otros elementos en la misma posición
-    const elementsAtPosition = [];
-    
-    // Buscar camiones en la posición
-    Array.from(truckPositions.entries()).forEach(([truckId, pos]) => {
-      const truckPos = toScreenPosition(pos.x, pos.y);
-      const distance = Math.sqrt(
-        Math.pow(truckPos.x - position.x, 2) + 
-        Math.pow(truckPos.y - position.y, 2)
-      );
-      
-      if (distance < 20) {
-        elementsAtPosition.push({ type: 'truck', id: truckId });
-      }
-    });
-    
-    // Buscar pedidos en la posición
-    system.pedidos.forEach((pedido) => {
-      const pedidoPos = toScreenPosition(pedido.ubicacion.x, pedido.ubicacion.y);
-      const distance = Math.sqrt(
-        Math.pow(pedidoPos.x - position.x, 2) + 
-        Math.pow(pedidoPos.y - position.y, 2)
-      );
-      
-      if (distance < 20) {
-        elementsAtPosition.push({ type: 'pedido', id: pedido.id });
-      }
-    });
-    
-    // Si hay múltiples elementos, mostrar menú de selección
-    if (elementsAtPosition.length > 1) {
-      setContextMenu({ 
-        x: e.clientX, 
-        y: e.clientY, 
-        overlappingElements: elementsAtPosition 
-      });
-    } else {
-      // Si solo hay un elemento, seleccionarlo directamente
-      setSelectedItem({ type, id });
-    }
   };
 
   const handleAveriaOption = async (tipoAveria) => {
@@ -283,11 +309,6 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
     setContextMenu(null);
   };
 
-  const handleSelectElement = (element) => {
-    setSelectedItem(element);
-    setContextMenu(null);
-  };
-
   const checkAndUpdateOrderState = async (truck, currentDest) => {
     if (currentDest.destinationType === 'ENTREGA_PEDIDO' && currentDest.orderId && false) {
       try {
@@ -299,8 +320,8 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   };
 
   return (
-    <div className="map-container">
-      <div className="map-visualization">
+    <div className="map-container" ref={mapContainerRef}>
+      <div className="map-visualization" style={{ width: containerWidth }}>
         {/* Draw grid */}
         <svg className="grid-svg">
           {Array.from({ length: Math.ceil(system.maxXmapa) + 1 }, (_, x) => (
@@ -406,11 +427,8 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
                 left: pos.x - 12,
                 top: pos.y - 12
               }}
-              onClick={(e) => handleOverlappingElements(e, pos, 'truck', truckId)}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                handleTruckRightClick(e, truckId);
-              }}
+              onClick={(e) => handleMarkerClick(e, { type: 'truck', id: truckId })}
+              onContextMenu={(e) => handleTruckRightClick(e, truckId)}
               title={`Camión ${truck.codigo}
 Combustible: ${currentFuel.toFixed(2)}
 GLP: ${currentGLP.toFixed(2)}
@@ -435,7 +453,7 @@ ${currentDest ? `\nEn: ${currentDest.destinationType}` : ''}`}
                 left: pos.x - 12,
                 top: pos.y - 12
               }}
-              onClick={(e) => handleOverlappingElements(e, pos, 'cisterna', index)}
+              onClick={(e) => handleMarkerClick(e, { type: 'cisterna', id: index })}
               title={`${cisterna.principal ? 'Principal' : 'Secundaria'} Cisterna
 GLP Actual: ${currentGLP.toFixed(2)} / ${cisterna.capacidadTotal.toFixed(2)}
 Hora Abastecimiento: ${cisterna.horaAbastecimento}
@@ -462,7 +480,7 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
                 left: pos.x - 12,
                 top: pos.y - 12
               }}
-              onClick={(e) => handleOverlappingElements(e, pos, 'pedido', pedido.id)}
+              onClick={(e) => handleMarkerClick(e, { type: 'pedido', id: pedido.id })}
               title={`Pedido ${pedido.numeroPedido} - GLP: ${pedido.volumenGLP.toFixed(2)}`}
             >
               <img src={pedidoIcon} alt="Pedido" className="marker-icon" />
@@ -621,48 +639,55 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {contextMenu.overlappingElements ? (
-            <>
-              <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>Seleccionar elemento:</div>
-              <div className="overlapping-elements-menu">
-                {contextMenu.overlappingElements.map((element, index) => (
-                  <div 
-                    key={`element-${index}`} 
-                    className="overlapping-element-option"
-                    onClick={() => handleSelectElement(element)}
-                  >
-                    {element.type === 'truck' && `Camión T${element.id}`}
-                    {element.type === 'pedido' && `Pedido P${system.pedidos.findIndex(p => p.id === element.id) + 1}`}
-                    {element.type === 'cisterna' && `Cisterna C${element.id + 1}`}
-                  </div>
-                ))}
+          <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>Registrar Avería</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button 
+              onClick={() => handleAveriaOption(1)} 
+              className="tipo-averia"
+            >
+              Tipo 1
+            </button>
+            <button 
+              onClick={() => handleAveriaOption(2)} 
+              className="tipo-averia"
+            >
+              Tipo 2
+            </button>
+            <button 
+              onClick={() => handleAveriaOption(3)} 
+              className="tipo-averia"
+            >
+              Tipo 3
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Overlap Selection Menu */}
+      {showOverlapMenu && (
+        <div 
+          className="overlap-menu"
+          style={{
+            top: showOverlapMenu.y,
+            left: showOverlapMenu.x
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>Seleccionar elemento</div>
+          <div className="overlap-items">
+            {overlappingItems.map((item, index) => (
+              <div 
+                key={`overlap-${index}`}
+                className="overlap-item"
+                onClick={() => {
+                  setSelectedItem(item);
+                  setShowOverlapMenu(false);
+                }}
+              >
+                {item.label}
               </div>
-            </>
-          ) : contextMenu.truckId ? (
-            <>
-              <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>Registrar Avería</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <button 
-                  onClick={() => handleAveriaOption(1)} 
-                  className="tipo-averia"
-                >
-                  Tipo 1
-                </button>
-                <button 
-                  onClick={() => handleAveriaOption(2)} 
-                  className="tipo-averia"
-                >
-                  Tipo 2
-                </button>
-                <button 
-                  onClick={() => handleAveriaOption(3)} 
-                  className="tipo-averia"
-                >
-                  Tipo 3
-                </button>
-              </div>
-            </>
-          ) : null}
+            ))}
+          </div>
         </div>
       )}
     </div>
