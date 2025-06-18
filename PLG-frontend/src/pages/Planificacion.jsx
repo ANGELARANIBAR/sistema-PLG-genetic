@@ -9,18 +9,126 @@ import {
   TextField,
   InputAdornment,
   IconButton,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
 import Routes from '../components/routes/Routes';
 import './Planificacion.css';
+import axios from 'axios';
 
 export default function Planificacion() {
   const [tabValue, setTabValue] = useState(0);
+  const [loading, setLoading] = useState({
+    averias: false,
+    bloqueos: false,
+    mantenimiento: false,
+    pedidos: false
+  });
+  const [selectedFiles, setSelectedFiles] = useState({
+    averias: null,
+    bloqueos: null,
+    mantenimiento: null,
+    pedidos: null
+  });
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
+  };
+
+  const handleFileChange = (event, fileType) => {
+    setSelectedFiles({
+      ...selectedFiles,
+      [fileType]: event.target.files[0]
+    });
+  };
+
+  const handleFileUpload = async (fileType) => {
+    if (!selectedFiles[fileType]) {
+      setNotification({
+        open: true,
+        message: 'Por favor seleccione un archivo primero',
+        severity: 'warning'
+      });
+      return;
+    }
+
+    setLoading({ ...loading, [fileType]: true });
+
+    const formData = new FormData();
+    formData.append('file', selectedFiles[fileType]);
+
+    try {
+      const response = await axios.post(`http://localhost:8080/api/upload/${fileType}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      setNotification({
+        open: true,
+        message: `Archivo de ${getFileTypeName(fileType)} cargado exitosamente`,
+        severity: 'success'
+      });
+      
+      // Reset file selection
+      setSelectedFiles({
+        ...selectedFiles,
+        [fileType]: null
+      });
+    } catch (error) {
+      console.error(`Error al cargar el archivo de ${fileType}:`, error);
+      setNotification({
+        open: true,
+        message: `Error al cargar el archivo de ${getFileTypeName(fileType)}: ${error.response?.data?.error || error.message}`,
+        severity: 'error'
+      });
+    } finally {
+      setLoading({ ...loading, [fileType]: false });
+    }
+  };
+
+  const getFileTypeName = (fileType) => {
+    switch (fileType) {
+      case 'averias': return 'averías';
+      case 'bloqueos': return 'bloqueos';
+      case 'mantenimiento': return 'mantenimiento';
+      case 'pedidos': return 'pedidos';
+      default: return fileType;
+    }
+  };
+
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
+  };
+
+  const handleReplanificar = async () => {
+    try {
+      setLoading({ ...loading, replanificar: true });
+      const response = await axios.post('http://localhost:8080/api/solution/ejecutar-simulacion');
+      setNotification({
+        open: true,
+        message: 'Replanificación completada exitosamente',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error al replanificar:', error);
+      setNotification({
+        open: true,
+        message: `Error al replanificar: ${error.response?.data?.error || error.message}`,
+        severity: 'error'
+      });
+    } finally {
+      setLoading({ ...loading, replanificar: false });
+    }
   };
 
   return (
@@ -46,8 +154,11 @@ export default function Planificacion() {
           variant="contained" 
           color="secondary" 
           className="replan-button"
+          onClick={handleReplanificar}
+          disabled={loading.replanificar}
+          startIcon={loading.replanificar && <CircularProgress size={20} color="inherit" />}
         >
-          Replanificar
+          {loading.replanificar ? 'Procesando...' : 'Replanificar'}
         </Button>
       </Box>
 
@@ -65,17 +176,29 @@ export default function Planificacion() {
               <Button 
                 variant="contained" 
                 className="examine-button"
+                component="label"
+                disabled={loading.bloqueos}
               >
-                Examinar
+                {loading.bloqueos ? <CircularProgress size={24} /> : 'Examinar'}
+                <input
+                  type="file"
+                  hidden
+                  accept=".txt"
+                  onChange={(e) => handleFileChange(e, 'bloqueos')}
+                />
               </Button>
               <TextField
                 fullWidth
                 disabled
-                value="No se ha seleccionado archivo"
+                value={selectedFiles.bloqueos ? selectedFiles.bloqueos.name : "No se ha seleccionado archivo"}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton edge="end">
+                      <IconButton 
+                        edge="end"
+                        onClick={() => handleFileUpload('bloqueos')}
+                        disabled={!selectedFiles.bloqueos || loading.bloqueos}
+                      >
                         <InfoIcon />
                       </IconButton>
                     </InputAdornment>
@@ -93,17 +216,29 @@ export default function Planificacion() {
               <Button 
                 variant="contained" 
                 className="examine-button"
+                component="label"
+                disabled={loading.averias}
               >
-                Examinar
+                {loading.averias ? <CircularProgress size={24} /> : 'Examinar'}
+                <input
+                  type="file"
+                  hidden
+                  accept=".txt"
+                  onChange={(e) => handleFileChange(e, 'averias')}
+                />
               </Button>
               <TextField
                 fullWidth
                 disabled
-                value="No se ha seleccionado archivo"
+                value={selectedFiles.averias ? selectedFiles.averias.name : "No se ha seleccionado archivo"}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton edge="end">
+                      <IconButton 
+                        edge="end"
+                        onClick={() => handleFileUpload('averias')}
+                        disabled={!selectedFiles.averias || loading.averias}
+                      >
                         <InfoIcon />
                       </IconButton>
                     </InputAdornment>
@@ -121,17 +256,69 @@ export default function Planificacion() {
               <Button 
                 variant="contained" 
                 className="examine-button"
+                component="label"
+                disabled={loading.mantenimiento}
               >
-                Examinar
+                {loading.mantenimiento ? <CircularProgress size={24} /> : 'Examinar'}
+                <input
+                  type="file"
+                  hidden
+                  accept=".txt"
+                  onChange={(e) => handleFileChange(e, 'mantenimiento')}
+                />
               </Button>
               <TextField
                 fullWidth
                 disabled
-                value="No se ha seleccionado archivo"
+                value={selectedFiles.mantenimiento ? selectedFiles.mantenimiento.name : "No se ha seleccionado archivo"}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton edge="end">
+                      <IconButton 
+                        edge="end"
+                        onClick={() => handleFileUpload('mantenimiento')}
+                        disabled={!selectedFiles.mantenimiento || loading.mantenimiento}
+                      >
+                        <InfoIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Box>
+          </Box>
+
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+              Pedidos
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 1 }}>
+              <Button 
+                variant="contained" 
+                className="examine-button"
+                component="label"
+                disabled={loading.pedidos}
+              >
+                {loading.pedidos ? <CircularProgress size={24} /> : 'Examinar'}
+                <input
+                  type="file"
+                  hidden
+                  accept=".txt"
+                  onChange={(e) => handleFileChange(e, 'pedidos')}
+                />
+              </Button>
+              <TextField
+                fullWidth
+                disabled
+                value={selectedFiles.pedidos ? selectedFiles.pedidos.name : "No se ha seleccionado archivo"}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton 
+                        edge="end"
+                        onClick={() => handleFileUpload('pedidos')}
+                        disabled={!selectedFiles.pedidos || loading.pedidos}
+                      >
                         <InfoIcon />
                       </IconButton>
                     </InputAdornment>
@@ -163,6 +350,21 @@ export default function Planificacion() {
           <Routes />
         </Paper>
       )}
+
+      <Snackbar 
+        open={notification.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity={notification.severity} 
+          sx={{ width: '100%' }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 } 

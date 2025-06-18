@@ -257,29 +257,44 @@ public class SistemaPLG {
     }
 
 
-    public List<Camion> cargarMantenimientos(String rutaArchivo, LocalTime horaIni, LocalTime horaFin) {
-        //List<Camion> flota = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(rutaArchivo))) {
-            String linea;
-            while ((linea = br.readLine()) != null) {
-                String[] partes = linea.split(":");
-                LocalDate fecha = LocalDate.parse(partes[0], java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
-                String codigoCamion = partes[1];
-                Mantenimiento m = new Mantenimiento();
-                m.setFechaHoraInicio(LocalDateTime.of(fecha, horaIni));
-                m.setFechaHoraFin(LocalDateTime.of(fecha, horaFin));
-                m.setTipo(Mantenimiento.TipoMantenimiento.PREVENTIVO);
-                int idxCamion = buscarIdCamionPorCodigo(codigoCamion);
-                if(idxCamion != -1){
-                    if(flota.get(idxCamion).getMantenimientos()==null)flota.get(idxCamion).setMantenimientos(new ArrayList<>());
-                    flota.get(idxCamion).getMantenimientos().add(m);
+    public List<Camion> cargarMantenimientos(String contenido, LocalTime horaIni, LocalTime horaFin) {
+        List<Camion> camionesEnMantenimiento = new ArrayList<>();
+        try {
+            // Process content directly
+            String[] lineas = contenido.split("\\r?\\n");
+            for (String linea : lineas) {
+                if (linea.trim().isEmpty() || linea.startsWith("#")) continue;
+                
+                String[] datos = linea.split(",");
+                if (datos.length < 3) continue;
+                
+                String codigoCamion = datos[0].trim();
+                String fechaStr = datos[1].trim();
+                String descripcion = datos[2].trim();
+                
+                int idCamion = buscarIdCamionPorCodigo(codigoCamion);
+                if (idCamion == -1) continue;
+                
+                Camion camion = flota.get(idCamion - 1);
+                LocalDateTime fechaMantenimiento = conversorFecha(fechaStr, fechaHoraInicio);
+                
+                Mantenimiento mantenimiento = new Mantenimiento();
+                mantenimiento.setCamion(camion);
+                mantenimiento.setFechaHoraInicio(fechaMantenimiento.with(horaIni));
+                mantenimiento.setFechaHoraFin(fechaMantenimiento.with(horaFin));
+                mantenimiento.setDescripcion(descripcion);
+                mantenimiento.setTipo(Mantenimiento.TipoMantenimiento.PREVENTIVO);
+                
+                if (camion.getMantenimientos() == null) {
+                    camion.setMantenimientos(new ArrayList<>());
                 }
+                camion.getMantenimientos().add(mantenimiento);
+                camionesEnMantenimiento.add(camion);
             }
-        } catch (IOException e) {
-            System.out.println("Error al leer el archivo: " + e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        return flota;
+        return camionesEnMantenimiento;
     }
     private int buscarIdCamionPorCodigo(String codigoCamion) {
         for (int i = 0; i < flota.size(); i++) {
@@ -291,125 +306,133 @@ public class SistemaPLG {
     }
 
 
-    public void cargarPedidos(String rutaArchivo) {
-
-        try (BufferedReader br = new BufferedReader(new FileReader(rutaArchivo))) {
-            if(pedidos==null)pedidos=new ArrayList<>();
-            String linea;
-            while ((linea = br.readLine()) != null) {
-                String[] partes = linea.split(":");
-                String[] tiempoPartes = partes[0].replace("d", " ").replace("h", " ").replace("m", " ").split(" ");
-
-                double tiempoSolicitud = Double.parseDouble(tiempoPartes[0]) * 1440 + // Días a minutos
-                        Double.parseDouble(tiempoPartes[1]) * 60 +  // Horas a minutos
-                        Double.parseDouble(tiempoPartes[2]);        // Minutos
-
-                String[] datos = partes[1].split(",");
-                double x = Double.parseDouble(datos[0]);
-                double y = Double.parseDouble(datos[1]);
-                int idCliente = Integer.parseInt(datos[2].replace("c-", ""));
-                double volumen = Double.parseDouble(datos[3].replace("m3", ""));
-                double tiempoMaxEntrega = Double.parseDouble(datos[4].replace("h", "")) * 60; // Horas a minutos
-                Pedido pedidoNuevo = new Pedido();
-                pedidoNuevo.setId(pedidos.size()+1);
-                pedidoNuevo.setIdCliente(idCliente);
-                pedidoNuevo.setNumeroPedido("PED-00"+pedidos.size());
-                pedidoNuevo.setVolumenGLP(volumen);
-                pedidoNuevo.setUbicacion(new Nodo(x, y));
-                pedidoNuevo.setFechaHoraRegistro(fechaHoraInicio.plusMinutes((long)(tiempoSolicitud)));
-                pedidoNuevo.setTiempoMaxEntrega(tiempoMaxEntrega);
-                pedidoNuevo.setFechaHoraMaxEntrega(fechaHoraInicio.plusMinutes((long)(pedidoNuevo.getTiempoMaxEntrega()+tiempoSolicitud)));
-                pedidoNuevo.setEstado(EstadoPedido.PENDIENTE);
-                pedidoNuevo.setCompletado(false);
-                pedidoNuevo.setCamiones(new ArrayList<>());
-                pedidoNuevo.setConsumoCombustibleTotal(0);
-                pedidos.add(pedidoNuevo);
+    public void cargarPedidos(String contenido) {
+        try {
+            // Process content directly
+            String[] lineas = contenido.split("\\r?\\n");
+            for (String linea : lineas) {
+                if (linea.trim().isEmpty() || linea.startsWith("#")) continue;
+                
+                String[] datos = linea.split(",");
+                if (datos.length < 6) continue;
+                
+                int idCliente = Integer.parseInt(datos[0].trim());
+                String numeroPedido = datos[1].trim();
+                double volumenGLP = Double.parseDouble(datos[2].trim());
+                double posX = Double.parseDouble(datos[3].trim());
+                double posY = Double.parseDouble(datos[4].trim());
+                double tiempoMaxEntrega = Double.parseDouble(datos[5].trim());
+                
+                Pedido pedido = new Pedido();
+                pedido.setId(pedidos.size() + 1);
+                pedido.setIdCliente(idCliente);
+                pedido.setNumeroPedido(numeroPedido);
+                pedido.setVolumenGLP(volumenGLP);
+                
+                Nodo ubicacion = new Nodo(posX, posY);
+                pedido.setUbicacion(ubicacion);
+                
+                pedido.setFechaHoraRegistro(fechaHoraInicio);
+                pedido.setTiempoMaxEntrega(tiempoMaxEntrega);
+                pedido.setFechaHoraMaxEntrega(fechaHoraInicio.plusHours((long)tiempoMaxEntrega));
+                pedido.setEstado(EstadoPedido.PENDIENTE);
+                pedido.setCompletado(false);
+                
+                pedidos.add(pedido);
             }
-        } catch (IOException e) {
-            System.out.println("Error al leer el archivo: " + e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
     }
-    public void cargarAverias(String rutaArchivo) {
-        TipoAveria tipoAveria1 = new TipoAveria();
-        tipoAveria1.setId(1);
-        tipoAveria1.setTiempoInmovilizado(2);
-        tipoAveria1.setRegresaAlmacen(false);
-        TipoAveria tipoAveria2 = new TipoAveria();
-        tipoAveria2.setId(2);
-        tipoAveria2.setTiempoInmovilizado(2);
-        tipoAveria2.setRegresaAlmacen(true);
-        TipoAveria tipoAveria3 = new TipoAveria();
-        tipoAveria3.setId(3);
-        tipoAveria3.setTiempoInmovilizado(4);
-        tipoAveria3.setRegresaAlmacen(true);
-        List<TipoAveria> tipos = new ArrayList<>();
-        tipos.add(tipoAveria1);
-        tipos.add(tipoAveria2);
-        tipos.add(tipoAveria3);
-        try (BufferedReader br = new BufferedReader(new FileReader(rutaArchivo))) {
-            if(averias==null)averias=new ArrayList<>();
-            String linea;
-            while ((linea = br.readLine()) != null) {
-                String[] partes = linea.split("_");
-                int idAveria = Integer.parseInt(partes[0].replace("T", ""));
-                int turno = Integer.parseInt(partes[2].replace("TI", ""));
-                String codigoCamion = partes[1];
-                Averia averiaNueva = new Averia();
-                averiaNueva.setId(averias.size()+1);
-                averiaNueva.setTipo(tipos.get(idAveria-1));
-                averiaNueva.setTurnoOcurrencia(turno);
-                int idxCamion = buscarIdCamionPorCodigo(codigoCamion);
-                if(idxCamion != -1){
-                    averiaNueva.setIdCamion(idxCamion);
-                    flota.get(idxCamion).getAverias().add(averiaNueva);
-                    averias.add(averiaNueva);
+    public void cargarAverias(String contenido) {
+        try {
+            // Process content directly
+            String[] lineas = contenido.split("\\r?\\n");
+            for (String linea : lineas) {
+                if (linea.trim().isEmpty() || linea.startsWith("#")) continue;
+                
+                String[] datos = linea.split(",");
+                if (datos.length < 4) continue;
+                
+                String codigoCamion = datos[0].trim();
+                String fechaStr = datos[1].trim();
+                int tipoAveriaId = Integer.parseInt(datos[2].trim());
+                String descripcion = datos[3].trim();
+                
+                int idCamion = buscarIdCamionPorCodigo(codigoCamion);
+                if (idCamion == -1) continue;
+                
+                Camion camion = flota.get(idCamion - 1);
+                LocalDateTime fechaAveria = conversorFecha(fechaStr, fechaHoraInicio);
+                
+                TipoAveria tipoAveria = new TipoAveria();
+                tipoAveria.setId(tipoAveriaId);
+                
+                if (tipoAveriaId == 1) { // Tipo 1: Avería leve
+                    tipoAveria.setTiempoInmovilizado(2.0); // 2 horas
+                    tipoAveria.setRegresaAlmacen(false);
+                } else if (tipoAveriaId == 2) { // Tipo 2: Avería moderada
+                    tipoAveria.setTiempoInmovilizado(8.0); // 8 horas
+                    tipoAveria.setRegresaAlmacen(true);
+                } else { // Tipo 3: Avería grave
+                    tipoAveria.setTiempoInmovilizado(24.0); // 24 horas
+                    tipoAveria.setRegresaAlmacen(true);
                 }
+                
+                Averia averia = new Averia();
+                averia.setCamion(camion);
+                averia.setFechaHoraInicio(fechaAveria);
+                averia.setTipo(tipoAveria);
+                averia.determinarFechaFin(this);
+                
+                if (camion.getAverias() == null) {
+                    camion.setAverias(new ArrayList<>());
+                }
+                camion.getAverias().add(averia);
             }
-        } catch (IOException e) {
-            System.out.println("Error al leer el archivo: " + e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
     }
-    public void cargaBloqueos(String rutaArchivo){
-        try (BufferedReader br = new BufferedReader(new FileReader(rutaArchivo))) {
-            String linea;
-            if(bloqueos==null)bloqueos = new ArrayList<>();
-            if(fechaHoraInicio==null)return;
-            while ((linea = br.readLine()) != null) {
-                if (linea.trim().isEmpty()) continue;
-
-                // Separar tiempo y coordenadas
-                String[] partes = linea.split(":");
-                if (partes.length != 2) continue;
-
-                String tiempo = partes[0];
-                String coordenadasStr = partes[1];
-
-                // Separar inicio y fin
-                String[] rango = tiempo.split("-");
-                if (rango.length != 2) continue;
-
-                String inicioStr = rango[0]; // por ejemplo "01d06h00m"
-                String finStr = rango[1];    // por ejemplo "01d15h00m"
-
-                String[] coordenadas = coordenadasStr.split(",");
-
+    public void cargaBloqueos(String contenido){
+        try {
+            // Process content directly
+            String[] lineas = contenido.split("\\r?\\n");
+            for (String linea : lineas) {
+                if (linea.trim().isEmpty() || linea.startsWith("#")) continue;
+                
+                String[] datos = linea.split(",");
+                if (datos.length < 5) continue;
+                
+                String fechaInicioStr = datos[0].trim();
+                String fechaFinStr = datos[1].trim();
+                double posX1 = Double.parseDouble(datos[2].trim());
+                double posY1 = Double.parseDouble(datos[3].trim());
+                double posX2 = Double.parseDouble(datos[4].trim());
+                double posY2 = Double.parseDouble(datos[5].trim());
+                
+                LocalDateTime fechaInicio = conversorFecha(fechaInicioStr, fechaHoraInicio);
+                LocalDateTime fechaFin = conversorFecha(fechaFinStr, fechaHoraInicio);
+                
                 Bloqueo bloqueo = new Bloqueo();
-                bloqueo.setFechaHoraInicio(conversorFecha(inicioStr, fechaHoraInicio));
-                bloqueo.setFechaHoraFin(conversorFecha(finStr, fechaHoraInicio));
-                bloqueo.setRutasBloqueadas(new ArrayList<>());
-                int x, y;
-                for (int i = 0; i < coordenadas.length; i += 2) {
-                    x = Integer.parseInt(coordenadas[i].trim());
-                    y = Integer.parseInt(coordenadas[i+1].trim());
-                    Nodo bloqueado = new Nodo(x, y);
-                    bloqueo.getRutasBloqueadas().add(bloqueado);
+                bloqueo.setFechaHoraInicio(fechaInicio);
+                bloqueo.setFechaHoraFin(fechaFin);
+                bloqueo.setActivo(true);
+                
+                // Crear nodos para el bloqueo
+                Nodo nodo1 = new Nodo(posX1, posY1);
+                Nodo nodo2 = new Nodo(posX2, posY2);
+                
+                List<Nodo> nodosBloqueados = encontrarTramo(nodo1, nodo2);
+                bloqueo.setRutasBloqueadas(nodosBloqueados);
+                
+                if (bloqueos == null) {
+                    bloqueos = new ArrayList<>();
                 }
                 bloqueos.add(bloqueo);
             }
-        } catch (IOException e) {
-            System.err.println("Error al leer el archivo: " + e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -476,12 +499,41 @@ public class SistemaPLG {
         this.averiaStartTime = averiaStartTime;
     }
     public static LocalDateTime conversorFecha(String str, LocalDateTime base) {
-        int dias = Integer.parseInt(str.substring(0, 2));
-        int horas = Integer.parseInt(str.substring(3, 5));
-        int minutos = Integer.parseInt(str.substring(6, 8));
-        if(dias<1)dias=1;
-        return base.plusDays(dias-1)
-                .withHour(horas)
-                .withMinute(minutos);
+        try {
+            // Try parsing as ISO format (yyyy-MM-dd'T'HH:mm:ss)
+            if (str.contains("T")) {
+                return LocalDateTime.parse(str);
+            }
+            
+            // Try parsing as date only (yyyy-MM-dd)
+            if (str.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                return LocalDate.parse(str).atStartOfDay();
+            }
+            
+            // Try parsing as legacy format with d/h/m notation
+            if (str.contains("d") || str.contains("h") || str.contains("m")) {
+                String[] tiempoPartes = str.replace("d", " ").replace("h", " ").replace("m", " ").split(" ");
+                if (tiempoPartes.length >= 3) {
+                    double dias = Double.parseDouble(tiempoPartes[0]);
+                    double horas = Double.parseDouble(tiempoPartes[1]);
+                    double minutos = Double.parseDouble(tiempoPartes[2]);
+                    
+                    return base.plusDays((long)dias)
+                            .plusHours((long)horas)
+                            .plusMinutes((long)minutos);
+                }
+            }
+            
+            // Try parsing as simple date format (yyyyMMdd)
+            if (str.matches("\\d{8}")) {
+                return LocalDate.parse(str, java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd")).atStartOfDay();
+            }
+            
+            // Default fallback
+            return base;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return base; // Return base date if parsing fails
+        }
     }
 }
