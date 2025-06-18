@@ -27,6 +27,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   const [overlappingItems, setOverlappingItems] = useState([]);
   const [showOverlapMenu, setShowOverlapMenu] = useState(false);
   const [truckDirections, setTruckDirections] = useState(new Map());
+  const [showLegend, setShowLegend] = useState(true);
   const mapContainerRef = useRef(null);
 
   const getCurrentDestination = useCallback(async (truck) => {
@@ -371,6 +372,10 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
     }
   };
 
+  const toggleLegend = () => {
+    setShowLegend(!showLegend);
+  };
+
   return (
     <div className="map-container" ref={mapContainerRef}>
       <div className="map-visualization" style={{ width: containerWidth }}>
@@ -424,7 +429,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
           );
         })}
 
-        {/* Draw blocked routes */}
+        {/* Draw blocked routes with improved visibility */}
         {system.bloqueos.map((bloqueo, index) => {
           let isActive = false;
           if (currentTime) {
@@ -452,12 +457,37 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
                   strokeDasharray="10,10"
                   className="pulsing-line"
                 />
+                {/* Añadir un símbolo de bloqueo en el medio */}
+                <circle
+                  cx={(pos1.x + pos2.x) / 2}
+                  cy={(pos1.y + pos2.y) / 2}
+                  r="8"
+                  fill="#FF0000"
+                  stroke="#FFFFFF"
+                  strokeWidth="2"
+                />
+                <line
+                  x1={(pos1.x + pos2.x) / 2 - 5}
+                  y1={(pos1.y + pos2.y) / 2 - 5}
+                  x2={(pos1.x + pos2.x) / 2 + 5}
+                  y2={(pos1.y + pos2.y) / 2 + 5}
+                  stroke="#FFFFFF"
+                  strokeWidth="2"
+                />
+                <line
+                  x1={(pos1.x + pos2.x) / 2 - 5}
+                  y1={(pos1.y + pos2.y) / 2 + 5}
+                  x2={(pos1.x + pos2.x) / 2 + 5}
+                  y2={(pos1.y + pos2.y) / 2 - 5}
+                  stroke="#FFFFFF"
+                  strokeWidth="2"
+                />
               </svg>
             );
           });
         })}
 
-        {/* Draw trucks */}
+        {/* Draw trucks with direction arrows */}
         {Array.from(truckPositions.entries()).map(([truckId, position]) => {
           const truck = system.flota.find(t => t.truckId === truckId);
           if (!truck) return null;
@@ -465,6 +495,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
           const currentFuel = Number(truckFuels.get(truckId) || 0);
           const currentGLP = Number(truckGLPs.get(truckId) || 0);
           const pos = toScreenPosition(position.x, position.y);
+          const direction = truckDirections.get(truckId) || 'up';
           
           const currentDest = currentDestinations.get(truckId);
           if (currentDest) {
@@ -474,7 +505,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
           return (
             <div
               key={`truck-${truckId}`}
-              className={`truck-marker ${selectedItem?.type === 'truck' && selectedItem.id === truckId ? 'selected' : ''}`}
+              className={`truck-marker ${selectedItem?.type === 'truck' && selectedItem.id === truckId ? 'selected' : ''} direction-${direction}`}
               style={{
                 left: pos.x - 12,
                 top: pos.y - 12
@@ -488,6 +519,7 @@ Combustible final: ${Number(truck.fuelConsumed || 0).toFixed(2)}
 ${currentDest ? `\nEn: ${currentDest.destinationType}` : ''}`}
             >
               <img src={getTruckIcon(truckId)} alt="Truck" className="marker-icon" />
+              <div className={`direction-arrow direction-${direction}`}></div>
               <span className="marker-label">T{truckId}</span>
             </div>
           );
@@ -554,36 +586,49 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
           </div>
         )}
 
-        {/* Leyenda */}
-        <div className="map-legend">
-          <h4>Leyenda</h4>
-          <div className="legend-item">
-            <div className="legend-icon truck-legend">
-              <img src={truckIconUp} alt="Camión" className="legend-img" />
-            </div>
-            <span>Camión</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-icon cisterna-legend">
-              <img src={cisternaIcon} alt="Cisterna" className="legend-img" />
-            </div>
-            <span>Cisterna</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-icon pedido-legend">
-              <img src={pedidoIcon} alt="Pedido" className="legend-img" />
-            </div>
-            <span>Pedido</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-line route-legend"></div>
-            <span>Ruta</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-line blocked-legend"></div>
-            <span>Bloqueo</span>
-          </div>
+        {/* Botón para mostrar/ocultar leyenda */}
+        <div className="legend-toggle" onClick={toggleLegend}>
+          {showLegend ? 'Ocultar leyenda' : 'Mostrar leyenda'}
         </div>
+
+        {/* Leyenda ocultable */}
+        {showLegend && (
+          <div className="map-legend">
+            <div className="legend-header">
+              <h4>Leyenda</h4>
+              <button className="close-legend" onClick={toggleLegend}>×</button>
+            </div>
+            <div className="legend-item">
+              <div className="legend-icon truck-legend">
+                <img src={truckIconUp} alt="Camión" className="legend-img" />
+              </div>
+              <span>Camión</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-icon cisterna-legend">
+                <img src={cisternaIcon} alt="Cisterna" className="legend-img" />
+              </div>
+              <span>Cisterna</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-icon pedido-legend">
+                <img src={pedidoIcon} alt="Pedido" className="legend-img" />
+              </div>
+              <span>Pedido</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-line route-legend"></div>
+              <span>Ruta</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-block">
+                <div className="legend-block-line"></div>
+                <div className="legend-block-symbol">✕</div>
+              </div>
+              <span>Bloqueo</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Sidebar */}
