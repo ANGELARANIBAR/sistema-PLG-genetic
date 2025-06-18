@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { simulationService } from './simulationService';
 
 const API_BASE_URL = 'http://localhost:8080/api/upload';
@@ -40,12 +39,18 @@ async function uploadFile(file, fileType) {
     formData.append('file', file);
 
     try {
-        const response = await axios.post(`${API_BASE_URL}/${fileType}`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data'
-            }
+        const response = await fetch(`${API_BASE_URL}/${fileType}`, {
+            method: 'POST',
+            body: formData
+            // No need to specify Content-Type header with FormData, 
+            // browser sets it automatically with the correct boundary
         });
-        return response.data;
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return await response.json();
     } catch (error) {
         console.error(`Error uploading ${fileType} file:`, error);
         throw error;
