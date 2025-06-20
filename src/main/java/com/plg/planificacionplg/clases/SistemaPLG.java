@@ -313,7 +313,7 @@ public class SistemaPLG {
                 Pedido pedidoNuevo = new Pedido();
                 pedidoNuevo.setId(pedidos.size()+1);
                 pedidoNuevo.setIdCliente(idCliente);
-                pedidoNuevo.setNumeroPedido("PED-00"+pedidos.size());
+                pedidoNuevo.setNumeroPedido("PED-00"+pedidos.size()+1);
                 pedidoNuevo.setVolumenGLP(volumen);
                 pedidoNuevo.setUbicacion(new Nodo(x, y));
                 pedidoNuevo.setFechaHoraRegistro(fechaHoraInicio.plusMinutes((long)(tiempoSolicitud)));

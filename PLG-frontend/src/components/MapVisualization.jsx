@@ -27,6 +27,9 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   const [overlappingItems, setOverlappingItems] = useState([]);
   const [showOverlapMenu, setShowOverlapMenu] = useState(false);
   const [truckDirections, setTruckDirections] = useState(new Map());
+  const [pedidoEstado, setPedidoEstado] = useState(null);
+  const [pedidoEstadoLoading, setPedidoEstadoLoading] = useState(false);
+  const [pedidosEstados, setPedidosEstados] = useState({});
   const mapContainerRef = useRef(null);
 
   const getCurrentDestination = useCallback(async (truck) => {
@@ -253,6 +256,39 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
 
     setTruckDirections(newDirections);
   }, [truckPositions, system]);
+
+  // Fetch real-time estado for all pedidos
+  useEffect(() => {
+    let isMounted = true;
+    const fetchAllEstados = async () => {
+      if (!system || !system.pedidos || !currentTime) {
+        setPedidosEstados({});
+        return;
+      }
+      const estados = {};
+      await Promise.all(system.pedidos.map(async (pedido) => {
+        try {
+          const estado = await mapService.fetchPedidoEstado(pedido.id, currentTime);
+          estados[pedido.id] = estado;
+        } catch {
+          estados[pedido.id] = null;
+        }
+      }));
+      if (isMounted) setPedidosEstados(estados);
+    };
+    fetchAllEstados();
+    return () => { isMounted = false; };
+  }, [system, currentTime]);
+
+  // Prevent selecting a pedido that is ENTREGADO
+  useEffect(() => {
+    if (selectedItem && selectedItem.type === 'pedido') {
+      const estado = pedidosEstados[selectedItem.id];
+      if (estado === 'ENTREGADO') {
+        setSelectedItem(null);
+      }
+    }
+  }, [pedidosEstados, selectedItem]);
 
   if (!system || !startTime) {
     return <div className="loading-message">Loading...</div>;
@@ -549,24 +585,29 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
         })}
 
         {/* Draw pedidos */}
-        {system.pedidos.map((pedido, index) => {
-          const pos = toScreenPosition(pedido.ubicacion.x, pedido.ubicacion.y);
-          return (
-            <div
-              key={`pedido-${index}`}
-              className={`pedido-marker ${selectedItem?.type === 'pedido' && selectedItem.id === pedido.id ? 'selected' : ''}`}
-              style={{
-                left: pos.x - 12,
-                top: pos.y - 12
-              }}
-              onClick={(e) => handleMarkerClick(e, { type: 'pedido', id: pedido.id })}
-              title={`Pedido ${pedido.numeroPedido} - GLP: ${pedido.volumenGLP.toFixed(2)}`}
-            >
-              <img src={pedidoIcon} alt="Pedido" className="marker-icon" />
-              <span className="marker-label">P{index + 1}</span>
-            </div>
-          );
-        })}
+        {system.pedidos
+          .filter((pedido) => {
+            const estado = pedidosEstados[pedido.id] ?? pedido.estado;
+            return estado !== 'ENTREGADO';
+          })
+          .map((pedido, index) => {
+            const pos = toScreenPosition(pedido.ubicacion.x, pedido.ubicacion.y);
+            return (
+              <div
+                key={`pedido-${pedido.id}`}
+                className={`pedido-marker ${selectedItem?.type === 'pedido' && selectedItem.id === pedido.id ? 'selected' : ''}`}
+                style={{
+                  left: pos.x - 12,
+                  top: pos.y - 12
+                }}
+                onClick={(e) => handleMarkerClick(e, { type: 'pedido', id: pedido.id })}
+                title={`Pedido ${pedido.numeroPedido} - GLP: ${pedido.volumenGLP.toFixed(2)}`}
+              >
+                <img src={pedidoIcon} alt="Pedido" className="marker-icon" />
+                <span className="marker-label">P{pedido.id}</span>
+              </div>
+            );
+          })}
 
         {/* Replanning overlay */}
         {isReplanning && (
@@ -684,7 +725,7 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
                     <strong>Entrega Máxima:</strong> <span>{new Date(system.pedidos.find(p => p.id === selectedItem.id)?.fechaHoraMaxEntrega || '').toLocaleString()}</span>
                   </div>
                   <div className="info-item">
-                    <strong>Estado:</strong> <span>{system.pedidos.find(p => p.id === selectedItem.id)?.estado}</span>
+                    <strong>Estado:</strong> <span>{pedidoEstadoLoading ? 'Cargando...' : (pedidoEstado ?? system.pedidos.find(p => p.id === selectedItem.id)?.estado)}</span>
                   </div>
                   <div className="info-item">
                     <strong>Ubicación:</strong> <span>({system.pedidos.find(p => p.id === selectedItem.id)?.ubicacion.x}, {system.pedidos.find(p => p.id === selectedItem.id)?.ubicacion.y})</span>

@@ -204,5 +204,22 @@ export const mapService = {
             console.error('Error changing order state:', error);
             throw error;
         }
+    },
+
+    // Fetch pedido estado at specific time
+    async fetchPedidoEstado(pedidoId, time) {
+        if (!time) return null;
+        try {
+            const pad = (num) => String(num).padStart(2, '0');
+            const formattedTime = `${time.getFullYear()}-${pad(time.getMonth() + 1)}-${pad(time.getDate())}T${pad(time.getHours())}:${pad(time.getMinutes())}:${pad(time.getSeconds())}.${time.getMilliseconds()}`;
+            const response = await fetch(`${API_BASE_URL}/estado-pedido/${pedidoId}?time=${formattedTime}`);
+            if (!response.ok) {
+                return null;
+            }
+            return await response.text();
+        } catch (error) {
+            console.error(`Error fetching estado for pedido ${pedidoId}:`, error);
+            return null;
+        }
     }
 }; 

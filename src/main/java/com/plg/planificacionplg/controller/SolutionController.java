@@ -802,7 +802,26 @@ public class SolutionController {
 
         return PlanificacionPlgApplication.getPorcentajeEjecucion();
     }
+    @GetMapping("/estado-pedido/{pedidoId}")
+    public String getEstadoPedido(
+            @PathVariable int pedidoId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime time) {
 
+        Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
+        if (mejorSolucion == null) {
+            return "INEXISTENTE";
+        }
+        Pedido p = mejorSolucion.getSistemaPLG().getPedidos().get(pedidoId-1);
+        if(p != null && p.getFechaHoraEntrega()!=null) {
+            if(!p.getFechaHoraEntrega().plusMinutes(15).isAfter(time)){
+                return "ENTREGADO";
+            }
+            else{
+                return "PENDIENTE";
+            }
+        }
+        return "PENDIENTE";
+    }
     @GetMapping("/upload-files-status")
     public ResponseEntity<Map<String, Boolean>> getFilesStatus() {
         Map<String, Boolean> filesStatus = new HashMap<>();

@@ -289,6 +289,11 @@ public class Camion {
             }
             if(destinoFinal.getRuta().getNodos()==null)return -2;
 
+
+            if(destinoFinal instanceof EntregaPedido){
+                destinoFinal.getPedido().setFechaHoraEntrega(destinoFinal.getFechaHoraLlegada());
+            }
+
             destinoInicial = destinoFinal;
         }
         destinos.getLast().setFechaHoraSalida(destinos.getLast().getFechaHoraLlegada().plusMinutes(15));
