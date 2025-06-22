@@ -3,6 +3,7 @@ package com.plg.planificacionplg.clases;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 
 @Data
@@ -335,7 +336,7 @@ public class Individuo {
 
             if(considerarMantenimiento(camion)==-1) return;
 
-            int resultado = camion.construirRutaHaciaPedido(sistemaPLG);
+            int resultado = camion.construirRutaHaciaPedido(code, sistemaPLG);
 
             if (pedidosXcargasGLP.get(camionIdx).isEmpty() && pedidosAsignados.isEmpty() && (resultado == -3 || resultado == -5)) {
                 //cuando camion sin nada asignado da errores en planificación
@@ -388,7 +389,7 @@ public class Individuo {
             }
             camion.getDestinos().getFirst().setSaldoGLPCamion(camion.getCargaGLPActual());
             camion.getDestinos().getFirst().setSaldoCombustibleCamion(camion.getCombustibleActual());
-            int resultado = camion.construirRutaHaciaPedido(sistemaPLG);
+            int resultado = camion.construirRutaHaciaPedido(code, sistemaPLG);
             if (pedidosXcargasGLP.get(camion.getId()).isEmpty() && asignacion
                     .get(camion.getId()).isEmpty() && (resultado == -3 || resultado == -5)) {
                 //cuando camion sin nada asignado da errores en planificación
@@ -418,7 +419,13 @@ public class Individuo {
 
         //fitness = totalDistancia / (totalCombustible + 1e-5); // evitar división por cero
         //fitness = 10000 / (totalCombustible + 1e-5); // evitar división por cero
-        fitness = 1.0 / (0.4 * totalCombustible + 0.1 * totalTiempo + entregasTardias * 500 + 1e-5);
+        double k=1.0;
+        if(code==3 && sistemaPLG.getFechaHoraPrimerColapso()!=null){
+            //funcion sigmoide
+            k = 1.0 / (1.0 + Math.exp(-sistemaPLG.getFechaHoraPrimerColapso().toInstant(ZoneOffset.UTC).toEpochMilli()));
+        }
+
+        fitness = k / (0.4 * totalCombustible + 0.1 * totalTiempo + entregasTardias * 500 + 1e-5);
 
     }
 

@@ -35,6 +35,7 @@ public class SistemaPLG {
     private List<Averia> averias;
     private Camion camionCausanteReplan;    private boolean replanning = false;
     private LocalDateTime averiaStartTime = null;
+    private LocalDateTime fechaHoraPrimerColapso = null;
 
     // Constructor copia
     public SistemaPLG(SistemaPLG otro) {

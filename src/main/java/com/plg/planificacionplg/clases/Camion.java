@@ -254,7 +254,7 @@ public class Camion {
         return combustibleActual * 180 / calcularPesoTotal();
     }
 
-    public int construirRutaHaciaPedido(SistemaPLG sistemaPLG) {
+    public int construirRutaHaciaPedido(int code, SistemaPLG sistemaPLG) {
         Destino destinoInicial = destinos.get(0);
         int pedidosCant = destinos.size();
         int cantNodosInicial=pedidosCant, index = 0;
@@ -285,7 +285,10 @@ public class Camion {
             if(destinoFinal instanceof EntregaPedido &&
                     destinoFinal.getFechaHoraLlegada()
                             .isAfter(destinoFinal.getPedido().getFechaHoraMaxEntrega())){
-                return -1;
+                if(code != 3)return -1;
+                if(sistemaPLG.getFechaHoraPrimerColapso() == null
+                        || sistemaPLG.getFechaHoraPrimerColapso().isAfter(destinoFinal.getPedido().getFechaHoraMaxEntrega()))
+                    sistemaPLG.setFechaHoraPrimerColapso(destinoFinal.getPedido().getFechaHoraMaxEntrega());
             }
             if(destinoFinal.getRuta().getNodos()==null)return -2;
 
