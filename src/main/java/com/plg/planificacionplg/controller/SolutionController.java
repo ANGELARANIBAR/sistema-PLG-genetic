@@ -520,6 +520,40 @@ public class SolutionController {
         return ResponseEntity.accepted().build(); // 202 Accepted, sin esperar resultado
     }
 
+    @PostMapping("/ejecutar-operacion-diaria-con-fecha")
+    public ResponseEntity<Individuo> ejecutarAlgoritmoOperacionDiariaConFecha(@RequestBody FechaHoraInicioRequest request) {
+        if (request.getFechaHoraInicio() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Set the fechaHoraInicio before executing the algorithm
+        PlanificacionPlgApplication.setFechaHoraInicio(request.getFechaHoraInicio());
+
+        new Thread(() -> {
+
+            PlanificacionPlgApplication.ejecutarAlgoritmo(); // Lógica pesada
+        }).start();
+
+        return ResponseEntity.accepted().build(); // 202 Accepted, sin esperar resultado
+    }
+
+    @PostMapping("/ejecutar-colapso-con-fecha")
+    public ResponseEntity<Individuo> ejecutarAlgoritmoColapsoConFecha(@RequestBody FechaHoraInicioRequest request) {
+        if (request.getFechaHoraInicio() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Set the fechaHoraInicio before executing the algorithm
+        PlanificacionPlgApplication.setFechaHoraInicio(request.getFechaHoraInicio());
+
+        new Thread(() -> {
+
+            PlanificacionPlgApplication.ejecutarAlgoritmo(); // Lógica pesada
+        }).start();
+
+        return ResponseEntity.accepted().build(); // 202 Accepted, sin esperar resultado
+    }
+
     @GetMapping("/ejecutar-simulacion")
     public ResponseEntity<?> ejecutarSimulacion() {
         try {

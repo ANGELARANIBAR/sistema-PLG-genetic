@@ -59,10 +59,20 @@ export default function Simulacion() {
       const fechaHoraInicio = `${fecha}T${hora}:00`;
       
       // Initialize the fechaHoraInicio in the backend
-      await simulationService.initializeFechaHora(fechaHoraInicio);
-      
+      //await simulationService.initializeFechaHora(fechaHoraInicio);
+      if(escenario === "diario"){
+        console.log("Diario")
+        await simulationService.executeSimulationWithFecha(fechaHoraInicio);
+      }
+      else if(escenario === "semanal"){
+        console.log("Semanal")
+        await simulationService.executeSimulationWithFecha(fechaHoraInicio);
+      }
+      else{
+        console.log("Colapso")
+        await simulationService.executeSimulationWithFecha(fechaHoraInicio);
+      }
       // Execute the simulation with the specified fechaHoraInicio
-      await simulationService.executeSimulationWithFecha(fechaHoraInicio);
       
       setMessage("✅ Simulación iniciada correctamente con fecha y hora personalizada");
       

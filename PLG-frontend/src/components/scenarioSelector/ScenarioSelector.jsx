@@ -11,7 +11,7 @@ export default function ScenarioSelector({ value, onChange }) {
   const scenarios = [
     { key: "diario", label: "Operación diaria", icon: <TodayIcon />, clickable: true, disabled: false },
     { key: "semanal", label: "Semanal", icon: <CalendarMonthIcon />, clickable: true, disabled: false },
-    { key: "colapso", label: "Colapso logístico", icon: <WarningAmberIcon />, clickable: false, disabled: true },
+    { key: "colapso", label: "Colapso logístico", icon: <WarningAmberIcon />, clickable: true, disabled: false },
   ];
 
   return (

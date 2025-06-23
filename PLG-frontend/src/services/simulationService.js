@@ -24,7 +24,31 @@ export const simulationService = {
             throw error;
         }
     },
+// Execute operacion diaria with fechaHoraInicio
+    async executeOperacionDiariaWithFecha(fechaHoraInicio) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/ejecutar-operacion-diaria-con-fecha`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    fechaHoraInicio: fechaHoraInicio
+                })
+            });
+            if (response.status === 202)
+                return null; // o "accepted", "en proceso", etc.
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
+            return await response.json();
+            
+        } catch (error) {
+            console.error('Error executing simulation with fechaHoraInicio:', error);
+            throw error;
+        }
+    },
     // Execute simulation with fechaHoraInicio
     async executeSimulationWithFecha(fechaHoraInicio) {
         try {
@@ -50,7 +74,31 @@ export const simulationService = {
             throw error;
         }
     },
+// Execute colapso with fechaHoraInicio
+    async executeColapsoWithFecha(fechaHoraInicio) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/ejecutar-colapso-con-fecha`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    fechaHoraInicio: fechaHoraInicio
+                })
+            });
+            if (response.status === 202)
+                return null; // o "accepted", "en proceso", etc.
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
+            return await response.json();
+            
+        } catch (error) {
+            console.error('Error executing simulation with fechaHoraInicio:', error);
+            throw error;
+        }
+    },
     // Execute simulation without fechaHoraInicio (existing method)
     async executeSimulation() {
         try {
