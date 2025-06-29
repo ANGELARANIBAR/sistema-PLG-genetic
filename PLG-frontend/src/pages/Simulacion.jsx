@@ -62,7 +62,7 @@ export default function Simulacion() {
       //await simulationService.initializeFechaHora(fechaHoraInicio);
       if(escenario === "diario"){
         console.log("Diario")
-        await simulationService.executeSimulationWithFecha(fechaHoraInicio);
+        await simulationService.executeOperacionDiariaWithFecha(fechaHoraInicio);
       }
       else if(escenario === "semanal"){
         console.log("Semanal")
@@ -70,7 +70,7 @@ export default function Simulacion() {
       }
       else{
         console.log("Colapso")
-        await simulationService.executeSimulationWithFecha(fechaHoraInicio);
+        await simulationService.executeColapsoWithFecha(fechaHoraInicio);
       }
       // Execute the simulation with the specified fechaHoraInicio
       

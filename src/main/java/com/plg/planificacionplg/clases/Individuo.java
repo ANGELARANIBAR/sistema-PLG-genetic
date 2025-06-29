@@ -142,7 +142,7 @@ public class Individuo {
             c.setCombustibleEmpleado(0);
             c.setDistanciaTotal(0);
             c.setCargaGLPActual(0);
-            if(code==1) c.setEstado(EstadoCamion.DISPONIBLE);
+            if(code==1||code==3) c.setEstado(EstadoCamion.DISPONIBLE);
             c.setCombustibleActual(c.getTipo().getCapCombustibleMax());
 
             flota.add(c);
@@ -291,7 +291,7 @@ public class Individuo {
                 }
             }
 
-            if (code == 1) {
+            if (code == 1 || code == 3) {
                 Reabastecimiento origen = new Reabastecimiento();
                 origen.setCisterna(cisternas.get(0));
                 origen.setUbicacion(cisternas.get(0).getUbicacion());

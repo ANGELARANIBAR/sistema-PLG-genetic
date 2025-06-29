@@ -183,7 +183,6 @@ public class PlanificacionPlgApplication {
         sistemaPLG.setCamionesAveriados(new ArrayList<>());
         //System.out.println(sistemaPLG.getBloqueos());
 
-
         int tamPoblacion = 30;
         int generaciones = 5;
         double probCruce = 0.20;
@@ -192,6 +191,9 @@ public class PlanificacionPlgApplication {
         double capMaxFlota = 0.0;
         for(Camion c : sistemaPLG.getFlota()) {
             capMaxFlota +=c.getTipo().getCargaGLPMax();
+        }
+        if(escenario==3){
+            generaciones=5;
         }
         batchStartIndices = new ArrayList<>();
         batchStartIndices.add(0); // el primer batch siempre empieza en 0
@@ -205,7 +207,6 @@ public class PlanificacionPlgApplication {
                 batchStartIndices.add(i); // nuevo batch empieza aquí
                 cargaActual = 0.0;
             }
-
             cargaActual += carga;
         }
 
@@ -217,7 +218,14 @@ public class PlanificacionPlgApplication {
         System.out.println("Procesando batch Nro: " + 1);
         System.out.println("Cantidad pedidos: " + sistemaPLG.getPedidos().size());
         Genetico ga = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
-        mejorSolucion = ga.ejecutar(1, sistemaPLG);
+        if(escenario==3){
+            mejorSolucion = ga.ejecutar(escenario, sistemaPLG);
+        }
+        else{
+            mejorSolucion = ga.ejecutar(1, sistemaPLG);
+
+        }
+
         mejorSolucion.getSistemaPLG().imprimirPlanificacion();
         batchActual = 1;
 
