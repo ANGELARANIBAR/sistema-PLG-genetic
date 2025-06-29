@@ -35,9 +35,11 @@ public class Genetico {
         for (int i = 0; i < tamPoblacion; i++) {
             Individuo ind = new Individuo(numPedidos, numCamiones, sistema, code);
             ind.evaluar(code, sistema);
-            /*System.out.println(ind.getAsignacion());
+            /*
+            System.out.println(ind.getAsignacion());
             System.out.println(ind.getPedidosXcargasGLP());
-            Sytem.out.println("***************************************************************************************");*/
+            System.out.println("***************************************************************************************");
+            */
             poblacion.add(ind);
         }
 
@@ -65,7 +67,7 @@ public class Genetico {
                         Individuo nuevo = new Individuo(numPedidos, numCamiones, sistema, code);
                         nuevo.evaluar(code, sistema);
                         if (nuevo.getFitness() > 0) {
-                            nuevaGeneracion.add(nuevo); // + exploratorio
+                            nuevaGeneracion.add(nuevo); // ++ exploratorio
                             generados++;
                         }
                         intentos++;

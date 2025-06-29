@@ -5,14 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.swing.*;
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.time.Duration;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.io.*;
+import java.time.*;
 import java.util.*;
 
 @Data
@@ -36,6 +30,7 @@ public class SistemaPLG {
     private Camion camionCausanteReplan;    private boolean replanning = false;
     private LocalDateTime averiaStartTime = null;
     private LocalDateTime fechaHoraPrimerColapso = null;
+    private LocalDateTime fechaHoraFinEntregas = null;
 
     // Constructor copia
     public SistemaPLG(SistemaPLG otro) {
@@ -290,36 +285,70 @@ public class SistemaPLG {
         }
         return -1;
     }
+    public ArrayList<Pedido> cargarPedidosDesdeCarpeta(String rutaCarpeta, LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        File carpeta = new File(rutaCarpeta);
+        File[] archivos = carpeta.listFiles((dir, name) -> name.matches("ventas\\d{6}\\.txt"));
 
+        if (archivos == null) {
+            System.out.println("No se encontraron archivos.");
+            return new ArrayList<>();
+        }
 
-    public void cargarPedidos(String rutaArchivo) {
+        Arrays.sort(archivos); // Por orden cronológico
 
+        for (File archivo : archivos) {
+            String nombre = archivo.getName();           // ejemplo: ventas202503.txt
+            String anioMes = nombre.substring(6, 12);    // "202503"
+
+            int anio = Integer.parseInt(anioMes.substring(0, 4));
+            int mes = Integer.parseInt(anioMes.substring(4, 6));
+            YearMonth mesArchivo = YearMonth.of(anio, mes);
+            YearMonth mesInicio = YearMonth.from(fechaInicio);
+            YearMonth mesFin = YearMonth.from(fechaFin);
+
+            if (mesArchivo.isBefore(mesInicio) || mesArchivo.isAfter(mesFin)) {
+                continue;
+            }
+
+            // Usamos 1ero del mes como base
+            LocalDateTime fechaHoraInicioMes = LocalDateTime.of(anio, mes, 1, 0, 0);
+            cargarPedidos(archivo.getAbsolutePath(), fechaHoraInicioMes, fechaInicio, fechaFin);
+        }
+        pedidos.sort(Comparator.comparing(Pedido::getFechaHoraMaxEntrega));
+        for (int i = 0; i < pedidos.size(); i++) {
+            Pedido p = pedidos.get(i);
+            p.setId(i+1);
+        }
+        return new ArrayList<>(pedidos);
+    }
+
+    public void cargarPedidos(String rutaArchivo, LocalDateTime fechaHoraInicioMes, LocalDateTime fechaInicio, LocalDateTime fechaFin) {
         try (BufferedReader br = new BufferedReader(new FileReader(rutaArchivo))) {
-            if(pedidos==null)pedidos=new ArrayList<>();
+            if (pedidos == null) pedidos = new ArrayList<>();
             String linea;
+            LocalDateTime fechaRegPedido;
             while ((linea = br.readLine()) != null) {
                 String[] partes = linea.split(":");
-                String[] tiempoPartes = partes[0].replace("d", " ").replace("h", " ").replace("m", " ").split(" ");
-
-                double tiempoSolicitud = Double.parseDouble(tiempoPartes[0]) * 1440 + // Días a minutos
-                        Double.parseDouble(tiempoPartes[1]) * 60 +  // Horas a minutos
-                        Double.parseDouble(tiempoPartes[2]);        // Minutos
-
+                fechaRegPedido = conversorFecha(partes[0], fechaHoraInicioMes);
+                if(fechaRegPedido.isAfter(fechaFin)||fechaRegPedido.isBefore(fechaInicio)){
+                    continue;
+                }
                 String[] datos = partes[1].split(",");
                 double x = Double.parseDouble(datos[0]);
                 double y = Double.parseDouble(datos[1]);
                 int idCliente = Integer.parseInt(datos[2].replace("c-", ""));
                 double volumen = Double.parseDouble(datos[3].replace("m3", ""));
-                double tiempoMaxEntrega = Double.parseDouble(datos[4].replace("h", "")) * 60; // Horas a minutos
+                double tiempoMaxEntrega = Double.parseDouble(datos[4].replace("h", "")) * 3600;
+
                 Pedido pedidoNuevo = new Pedido();
-                pedidoNuevo.setId(pedidos.size()+1);
+                pedidoNuevo.setId(pedidos.size() + 1);
                 pedidoNuevo.setIdCliente(idCliente);
-                pedidoNuevo.setNumeroPedido("PED-00"+pedidos.size()+1);
+                pedidoNuevo.setNumeroPedido("PED-00" + (pedidos.size() + 1));
                 pedidoNuevo.setVolumenGLP(volumen);
                 pedidoNuevo.setUbicacion(new Nodo(x, y));
-                pedidoNuevo.setFechaHoraRegistro(fechaHoraInicio.plusMinutes((long)(tiempoSolicitud)));
+                pedidoNuevo.setFechaHoraRegistro(fechaRegPedido);
                 pedidoNuevo.setTiempoMaxEntrega(tiempoMaxEntrega);
-                pedidoNuevo.setFechaHoraMaxEntrega(fechaHoraInicio.plusMinutes((long)(pedidoNuevo.getTiempoMaxEntrega()+tiempoSolicitud)));
+                pedidoNuevo.setFechaHoraMaxEntrega(pedidoNuevo.getFechaHoraRegistro().plusSeconds((long) tiempoMaxEntrega));
                 pedidoNuevo.setEstado(EstadoPedido.PENDIENTE);
                 pedidoNuevo.setCompletado(false);
                 pedidoNuevo.setCamiones(new ArrayList<>());
@@ -329,7 +358,6 @@ public class SistemaPLG {
         } catch (IOException e) {
             System.out.println("Error al leer el archivo: " + e.getMessage());
         }
-
     }
     public void cargarAverias(String rutaArchivo) {
         TipoAveria tipoAveria1 = new TipoAveria();
@@ -372,7 +400,42 @@ public class SistemaPLG {
         }
 
     }
-    public void cargaBloqueos(String rutaArchivo){
+    public LocalDateTime obtenerFechaDesdeNombreArchivo(String nombreArchivo) {
+        try {
+            // Ejemplo nombreArchivo = "202502.bloqueos"
+            String base = nombreArchivo.split("\\.")[0]; // "202502"
+            int anio = Integer.parseInt(base.substring(0, 4));
+            int mes = Integer.parseInt(base.substring(4, 6));
+            return LocalDateTime.of(anio, mes, 1, 0, 0);
+        } catch (Exception e) {
+            System.err.println("Formato inválido de nombre de archivo: " + nombreArchivo);
+            return null;
+        }
+    }
+
+    public void cargarBloqueosDesdeCarpeta(String rutaCarpeta) {
+        File carpeta = new File(rutaCarpeta);
+        if (!carpeta.isDirectory()) {
+            System.err.println("La ruta proporcionada no es una carpeta válida.");
+            return;
+        }
+
+        File[] archivos = carpeta.listFiles((dir, nombre) -> nombre.endsWith(".bloqueos.txt"));
+        if (archivos == null || archivos.length == 0) {
+            System.out.println("No se encontraron archivos '.bloqueos' en la carpeta.");
+            return;
+        }
+        for (File archivo : archivos) {
+            // Obtener LocalDateTime desde el nombre del archivo
+            LocalDateTime fechaHoraInicio = obtenerFechaDesdeNombreArchivo(archivo.getName());
+            if(this.fechaHoraInicio.minusMonths(1).isAfter(fechaHoraInicio))continue;
+            if (fechaHoraInicio != null) {
+                cargaBloqueos(archivo.getAbsolutePath(), fechaHoraInicio);
+            }
+        }
+    }
+
+    public void cargaBloqueos(String rutaArchivo, LocalDateTime fechaHoraInicio){
         try (BufferedReader br = new BufferedReader(new FileReader(rutaArchivo))) {
             String linea;
             if(bloqueos==null)bloqueos = new ArrayList<>();
@@ -480,9 +543,6 @@ public class SistemaPLG {
         int dias = Integer.parseInt(str.substring(0, 2));
         int horas = Integer.parseInt(str.substring(3, 5));
         int minutos = Integer.parseInt(str.substring(6, 8));
-        if(dias<1)dias=1;
-        return base.plusDays(dias-1)
-                .withHour(horas)
-                .withMinute(minutos);
+        return base.withDayOfMonth(dias).withHour(horas).withMinute(minutos);
     }
 }

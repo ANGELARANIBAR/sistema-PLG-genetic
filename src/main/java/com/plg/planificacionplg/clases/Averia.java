@@ -46,8 +46,8 @@ public class Averia {
     private int turnoOcurrencia;
     public void determinarFechaFin(SistemaPLG sistemaPLG){
         // no se considera el tiempo inmobilizado en el calculo de la fecha de disponibilidad
+        fechaHoraFin = fechaHoraInicio.plusMinutes((long)tipo.getTiempoInmovilizado()*60);
         if(tipo.getId()==1){
-            fechaHoraFin = fechaHoraInicio.plusMinutes((long)tipo.getTiempoInmovilizado()*60);
         }
         else{
             int turno = 0;

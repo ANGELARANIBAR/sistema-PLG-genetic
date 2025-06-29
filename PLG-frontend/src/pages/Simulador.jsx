@@ -23,32 +23,60 @@ import { mapService } from "../services/mapService";
  * ‣ Panel lateral con información del estado
  */
 
+const API_BASE = "/api/solution";
+
 export default function Simulador() {
     // Simulation control states
     const [currentTime, setCurrentTime] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
     const [simulationStarted, setSimulationStarted] = useState(false);
+    const [fechaHoraFinEntregas, setFechaHoraFinEntregas] = useState(null);
+    const [isContinuing, setIsContinuing] = useState(false);
     
     // UI states
     const [navbarHeight, setNavbarHeight] = useState(65);
 
-    // Load start time when component mounts
+    // Load start time and fechaHoraFinEntregas when component mounts
     useEffect(() => {
-        const loadStartTime = async () => {
+        const loadStartTimeAndFin = async () => {
             try {
                 const startTimeString = await mapService.fetchStartTime();
                 setCurrentTime(new Date(startTimeString));
                 setSimulationStarted(true);
             } catch (error) {
-                console.error('Error loading start time:', error);
-                // Fallback to current time if service fails
                 setCurrentTime(new Date());
                 setSimulationStarted(true);
             }
+            // Fetch fechaHoraFinEntregas
+            try {
+                const res = await fetch(`${API_BASE}/fecha-hora-fin-entregas`);
+                const data = await res.json();
+                if (data) setFechaHoraFinEntregas(new Date(data));
+            } catch (e) {
+                setFechaHoraFinEntregas(null);
+            }
         };
-        loadStartTime();
+        loadStartTimeAndFin();
     }, []);
+
+    // Watch for currentTime >= fechaHoraFinEntregas to continue simulation
+    useEffect(() => {
+        if (!currentTime || !fechaHoraFinEntregas || isContinuing) return;
+        if (currentTime >= fechaHoraFinEntregas) {
+            setIsContinuing(true);
+            fetch(`${API_BASE}/continue-simulation`, { method: "POST" })
+                .then(() => {
+                    // After continuing, fetch new fechaHoraFinEntregas
+                    return fetch(`${API_BASE}/fecha-hora-fin-entregas`);
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data) setFechaHoraFinEntregas(new Date(data));
+                })
+                .finally(() => setIsContinuing(false));
+        }
+    }, [currentTime, fechaHoraFinEntregas, isContinuing]);
 
     // Simulation time progression
     useEffect(() => {

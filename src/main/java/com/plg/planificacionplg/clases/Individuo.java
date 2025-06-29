@@ -29,6 +29,7 @@ public class Individuo {
             if(sistema.getPedidos().get(i-1).getEstado()==EstadoPedido.PENDIENTE) pedidos.add(sistema.getPedidos().get(i-1).getId());
         }
         Collections.shuffle(pedidos);
+        int nIntentos=0;Boolean sePuedoAsociarPedido = false;
         if(nIndividuo<5){
             asignarEquitativamente(numCamiones, pedidos, sistema);
 
@@ -37,12 +38,21 @@ public class Individuo {
             Random rand = new Random();
             for (int pedido : pedidos) {
                 int camion=1+rand.nextInt(numCamiones-1);
+                nIntentos=0;
+                sePuedoAsociarPedido = true;
                 while((sistema.getCamionCausanteReplan()!=null && sistema.getCamionCausanteReplan().getId()==(camion)) ||
                         (sistema.getFlota().get(camion-1).getTipo().getCargaGLPMax()<sistema.getPedidos().get(pedido-1).getVolumenGLP()) ||
                         esCamionAveriadoTipo(sistema, camion, 0)){
+                    nIntentos++;
+                    if(pedidos.size()*2<nIntentos){
+                        sePuedoAsociarPedido = false;
+                        break;
+                    }
                     camion = 1+rand.nextInt(numCamiones-1);
                 }
-                asignacion.get(camion).add(pedido);
+                if(sePuedoAsociarPedido){
+                    asignacion.get(camion).add(pedido);
+                }
             }
         }
 
@@ -82,10 +92,16 @@ public class Individuo {
             Random randCargaGLP = new Random();
             int cantPedRestantes = asignacion.get(i).size(), acc = 0;
             while(cantPedRestantes > 0){
+                nIntentos = 0;
                 int cantPedObjetivos = 1+randCargaGLP.nextInt(cantPedRestantes); //minimo 1
                 if(cargasGLP.isEmpty())ini=0;
                 else ini = cargasGLP.size()-1;
-                while(!sistema.puedeCargar(i-1, asignacion, ini, cantPedObjetivos)){
+                while(!sistema.puedeCargar(i-1, asignacion, ini, acc+cantPedObjetivos)){
+                    nIntentos++;
+                    if(nIntentos>cantPedRestantes*2){
+                        cantPedObjetivos = 1;
+                        break;
+                    }
                     cantPedObjetivos = 1+randCargaGLP.nextInt(cantPedRestantes); //minimo 1
                 }
                 acc += cantPedObjetivos;
@@ -135,14 +151,7 @@ public class Individuo {
             if(sistema.getCamionesAveriados()!=null)
                 for(Camion c : sistema.getCamionesAveriados()){
                     sistemaPLG.getCamionesAveriados().add(flota.get(c.getId()-1));
-                    //if(!sistema.getFechaHoraInicio().isAfter(c.getDestinos().getFirst().getFechaHoraSalida())){
-                    //}
                 }
-            /*if (sistema.getCamionCausanteReplan()!=null){
-                sistemaPLG.setCamionCausanteReplan(flota.get(sistema.getCamionCausanteReplan().getId()-1));
-                sistemaPLG.getCamionesAveriados().add(sistemaPLG.getCamionCausanteReplan());
-            }*/
-
         }
         for(Pedido pedido: sistema.getPedidos()){
             Pedido p = new Pedido(pedido);
@@ -232,9 +241,6 @@ public class Individuo {
         List<Camion> flota = sistemaPLG.getFlota();
         List<Pedido> pedidos = sistemaPLG.getPedidos();
         List<Cisterna> cisternas = sistemaPLG.getCisternas();
-        //if(sistemaPLG.getCamionCausanteReplan()!=null && sistemaPLG.getCamionCausanteReplan().getAverias().getLast().getTipo().getId()==1) {
-            //setEstadoInicialAveriado(sistemaPLG.getCamionCausanteReplan(), sistema);
-        //}
         for(Camion camAveriado : sistemaPLG.getCamionesAveriados()){
             if(camAveriado.getAverias().getLast().getTipo().getId()==1)
                 setEstadoInicialAveriado(camAveriado, sistema);
@@ -283,7 +289,6 @@ public class Individuo {
                     fitness = 0.0;
                     return;
                 }
-                //GLPInicial -= camion.getCargaGLPActual();
             }
 
             if (code == 1) {
@@ -347,6 +352,10 @@ public class Individuo {
                 //System.out.println("Problema: " + resultado);
                 return;
             }
+            if(sistemaPLG.getFechaHoraFinEntregas()==null || ( !camion.getDestinos().isEmpty() &&
+                    camion.getDestinos().getLast().getFechaHoraLlegada() != null &&
+                    sistemaPLG.getFechaHoraFinEntregas().isBefore(camion.getDestinos().getLast().getFechaHoraLlegada())))
+                sistemaPLG.setFechaHoraFinEntregas(camion.getDestinos().getLast().getFechaHoraLlegada());
 
         }
         //if(sistemaPLG.getCamionCausanteReplan()!=null && sistemaPLG.getCamionCausanteReplan().getAverias().getLast().getTipo().getId()==1){
@@ -485,7 +494,7 @@ public class Individuo {
                 }
             }
             if (pedidoInvalido) {
-                System.out.println("⚠️ Pedido " + pedidoId + " es demasiado grande para cualquier camión. Se omite.");
+                //System.out.println("Pedido " + pedidoId + " es demasiado grande para cualquier camión. Se omite.");
                 continue; // No se puede asignar este pedido
             }
 

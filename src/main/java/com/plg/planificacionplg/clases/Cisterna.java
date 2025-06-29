@@ -270,23 +270,23 @@ public class Cisterna {
 
             // Resultado
             if (exito1) {
-                System.out.println("✅ 1Retiro registrado con éxito.");
+                System.out.println("1Retiro registrado con éxito.");
             } else {
-                System.out.println("❌ 1No hay suficiente GLP para ese horario.");
+                System.out.println("1No hay suficiente GLP para ese horario.");
             }
             if (exito) {
-                System.out.println("✅ Retiro registrado con éxito.");
+                System.out.println("Retiro registrado con éxito.");
             } else {
-                System.out.println("❌ No hay suficiente GLP para ese horario.");
+                System.out.println("No hay suficiente GLP para ese horario.");
             }
         }
 
         // Mostrar operaciones registradas
         for (OperacionesGLPCisterna op : cisterna.getOperacionesGLPCisterna()) {
             System.out.println("🕒 " + op.getFechaHoraOperacion() +
-                    " | 🚛 " + op.getCamion().getPlaca() +
-                    " | 🔻 " + op.getCantSalidaGLP() +
-                    " | 📦 Saldo: " + op.getSaldoGLP());
+                    " |  " + op.getCamion().getPlaca() +
+                    " |  " + op.getCantSalidaGLP() +
+                    " |  Saldo: " + op.getSaldoGLP());
         }
     }
 

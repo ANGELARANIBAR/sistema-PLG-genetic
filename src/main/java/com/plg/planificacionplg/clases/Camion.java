@@ -84,7 +84,7 @@ public class Camion {
     
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "destino_en_curso_id")
-    private Destino destinoEnCurso;    
+    private Destino destinoEnCurso;
     
     public Camion() {
         averias = new ArrayList<>();
@@ -216,9 +216,9 @@ public class Camion {
 
     public Nodo calcularUbicacion(LocalDateTime fechahora) {
 
-        if(destinos.isEmpty())return new Nodo(0, 0);
+        if(destinos.isEmpty())return new Nodo(12, 8);
         Destino anterior = destinos.get(0);
-        if(anterior.getFechaHoraSalida()==null || destinos.getLast().getFechaHoraLlegada()==null)return new Nodo(0, 0);
+        if(anterior.getFechaHoraSalida()==null || destinos.getLast().getFechaHoraLlegada()==null)return new Nodo(12, 8);
         if(fechahora.isBefore(anterior.getFechaHoraSalida()))return anterior.getUbicacion();
         if(anterior.getFechaHoraSalida().equals(fechahora)) {return anterior.getUbicacion();}
         ubicacionActual = anterior.getUbicacion();
@@ -327,7 +327,8 @@ public class Camion {
             }
             indicePedidoActual++;
 
-            if(tipo.getCargaGLPMax()<faltanteGLP){return -1;}
+            if(tipo.getCargaGLPMax()<faltanteGLP){
+                return -1;}
             double combustibleEmpleadoMejorDist = 0.0;
             List<List<Destino>> canditatos = new ArrayList<>();
             List<Camion> camionesPrueba = new ArrayList<>();

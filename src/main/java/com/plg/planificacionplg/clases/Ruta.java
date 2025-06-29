@@ -142,6 +142,9 @@ public class Ruta {
                     }
                 }
             } else {
+                if(bloqueo.getFechaHoraInicio().isAfter(llegada)) {
+                    return false;
+                }
                 //System.out.println("Bloqueo está fuera de tiempo.");
             }
         }
