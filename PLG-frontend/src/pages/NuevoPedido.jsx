@@ -19,7 +19,7 @@ export default function NuevoPedido() {
     coordenadas: '',
     correoElectronico: '',
     cargaGLP: '',
-    fechaPedido: '2025-03-23 10:30',
+    fechaPedido: '',
     plazoEntrega: '',
     observaciones: ''
   });
@@ -100,8 +100,8 @@ export default function NuevoPedido() {
 
           <div className="form-field-wrapper">
             <FormField
-              titulo="Plazo de entrega (min)*"
-              placeholder="Ingrese el número de minutos del plazo"
+              titulo="Plazo de entrega (horas)*"
+              placeholder="Ingrese el número de horas del plazo"
               value={formData.plazoEntrega}
               onChange={handleChange('plazoEntrega')}
               type="number"
