@@ -27,60 +27,29 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import { fetchPedidos } from "../services/pedidosService";
-import { getPedidos, filterPedidosByEstado, searchPedidosByCliente } from "../services/pedidosData";
 import "./Pedidos.css";
 
 export default function Pedidos() {
   const [tabValue, setTabValue] = useState(0);
   const [pedidos, setPedidos] = useState([]);
-  const [filteredPedidos, setFilteredPedidos] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const cargarPedidos = async () => {
       try {
-        setIsLoading(true);
-        // Usar la función getPedidos que incluye fallback a datos dummy
-        const data = await getPedidos();
+        const data = await fetchPedidos();
         setPedidos(data);
-        setFilteredPedidos(data);
       } catch (error) {
         console.error("Error al cargar los pedidos:", error);
-        // En caso de error total, usar array vacío
-        setPedidos([]);
-        setFilteredPedidos([]);
-      } finally {
-        setIsLoading(false);
       }
     };
 
     cargarPedidos();
   }, []);
 
-  // Filtrar pedidos cuando cambie el tab o el término de búsqueda
-  useEffect(() => {
-    let filtered = pedidos;
-    
-    // Filtrar por estado según el tab activo
-    const estadoFiltros = ['todos', 'pendiente', 'en_proceso', 'entregado'];
-    const estadoActivo = estadoFiltros[tabValue];
-    filtered = filterPedidosByEstado(filtered, estadoActivo);
-    
-    // Filtrar por término de búsqueda
-    filtered = searchPedidosByCliente(filtered, searchTerm);
-    
-    setFilteredPedidos(filtered);
-  }, [pedidos, tabValue, searchTerm]);
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
-
-  const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value);
-  };
-
   const handleNuevoPedido = () => {
     navigate('/nuevo-pedido');
   };
@@ -168,9 +137,10 @@ export default function Pedidos() {
   input.click();
 };
 
+
   // Render the status chip based on the estado
   const renderEstadoChip = (estado) => {
-    if (estado === "entregado") {
+    if (estado === "ENTREGADO") {
       return (
         <Chip 
           label="Entregado" 
@@ -178,7 +148,7 @@ export default function Pedidos() {
           className={`status-chip status-completado`}
         />
       );
-    } else if (estado === "pendiente") {
+    } else if (estado === "PENDIENTE") {
       return (
         <Chip 
           label="Pendiente" 
@@ -186,23 +156,24 @@ export default function Pedidos() {
           className={`status-chip status-pendiente`}
         />
       );
-    } else if (estado === "en_proceso") {
+    } else if (estado === "ASIGNADO" || estado === "EN_RUTA") {
       return (
         <Chip 
           label="En progreso" 
           size="small" 
-          className={`status-chip status-en-progreso`}
+          className={`status-chip status-pendiente`}
         />
       );
-    } else {
+    } else if (estado === "VENCIDO") {
       return (
         <Chip 
-          label={estado} 
+          label="Vencido" 
           size="small" 
-          className={`status-chip status-default`}
+          className={`status-chip status-pendiente`}
         />
       );
     }
+    return null;
   };
 
   return (
@@ -220,12 +191,11 @@ export default function Pedidos() {
           alignItems: "center",
           flexWrap: "wrap",
         }}
-      >        <TextField
+      >
+        <TextField
           placeholder="Buscar pedido..."
           variant="outlined"
           size="small"
-          value={searchTerm}
-          onChange={handleSearchChange}
           sx={{
             flexGrow: 1,          
             minWidth: 250,    
@@ -261,7 +231,8 @@ export default function Pedidos() {
       </Box>
 
 
-      <Box sx={{ borderBottom: 1, borderColor: "divider" }}>        <Tabs
+      <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+        <Tabs
           value={tabValue}
           onChange={handleTabChange}
           indicatorColor="primary"
@@ -269,9 +240,9 @@ export default function Pedidos() {
           className="filter-tabs"
         >
           <Tab icon={<BarChartIcon />} iconPosition="start" label="Todos" />
-          <Tab icon={<ScheduleIcon />} iconPosition="start" label="Pendientes" />
-          <Tab icon={<HourglassEmptyIcon />} iconPosition="start" label="En progreso" />
-          <Tab icon={<CheckCircleIcon />} iconPosition="start" label="Entregados" />
+          <Tab icon={<ScheduleIcon />} iconPosition="start" label="En progreso" />
+          <Tab icon={<CheckCircleIcon />} iconPosition="start" label="Completos" />
+          <Tab icon={<HourglassEmptyIcon />} iconPosition="start" label="Pendientes" />
         </Tabs>
       </Box>
 
@@ -287,30 +258,25 @@ export default function Pedidos() {
               <TableCell>Estado</TableCell>
               <TableCell>Acciones</TableCell>
             </TableRow>
-          </TableHead>          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center">
-                  Cargando pedidos...
-                </TableCell>
-              </TableRow>
-            ) : filteredPedidos.length === 0 ? (
+          </TableHead>
+          <TableBody>
+            {pedidos.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} align="center">
                   No hay pedidos disponibles.
                 </TableCell>
               </TableRow>
             ) : (
-              filteredPedidos.map((pedido, index) => (
-                <TableRow key={pedido.id || index}>
+              pedidos.map((pedido, index) => (
+                <TableRow key={index}>
                   <TableCell>{pedido.id}</TableCell>
-                  <TableCell>{pedido.nombreCliente}</TableCell>
-                  <TableCell>{pedido.cargaGLP}</TableCell>
-                  <TableCell>{pedido.plazoEntrega} h</TableCell>
+                  <TableCell>{pedido.cliente}</TableCell>
+                  <TableCell>{pedido.volumen}</TableCell>
+                  <TableCell>{pedido.plazoHoras} h</TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       <AssignmentIcon fontSize="small" sx={{ mr: 1 }} />
-                      {pedido.fechaPedido}
+                      {new Date(pedido.fechaRegistro).toLocaleString("es-PE")}
                     </Box>
                   </TableCell>
                   <TableCell>{renderEstadoChip(pedido.estado)}</TableCell>

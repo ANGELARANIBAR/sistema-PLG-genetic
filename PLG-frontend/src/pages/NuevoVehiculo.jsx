@@ -1,119 +1,148 @@
-import React, { useState } from 'react';
-import {
-  Box,
-  Typography,
+import React from 'react';
+import { 
+  Box, 
+  Typography, 
+  TextField, 
+  Button, 
   Paper,
-  Button
+  Grid,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
-import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import { useNavigate } from 'react-router-dom';
-import FormField from '../components/formField/FormField';
 import './NuevoVehiculo.css';
 
 export default function NuevoVehiculo() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    tipo: '',
-    pesoBruto: '',
-    cargaGLP: '',
-    pesoCargaGLP: '',
-    unidades: ''
-  });
-
-  const handleChange = (field) => (event) => {
-    setFormData({
-      ...formData,
-      [field]: event.target.value
-    });
-  };
 
   const handleCancel = () => {
     navigate('/flota');
   };
 
   const handleSave = () => {
-    console.log('Saving vehicle type data:', formData);
-    // Aquí se agregaría la lógica para guardar el nuevo tipo de vehículo
+    // Here you would add code to save the vehicle data
+    // For now, just navigate back to the flota page
     navigate('/flota');
-  };  return (
-    <Box sx={{ px: 3, pt: 2, pb: 5, backgroundColor: '#f9fafb', minHeight: '100vh' }}>      <Typography variant="h4" component="h1" className="main-title">
-        Registrar nuevo tipo de vehículo
+  };
+
+  return (
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" component="h1" fontWeight="700" gutterBottom>
+        Registrar nuevo vehículo
       </Typography>
-
-      <Typography variant="body1" className="subtitle">
-        Complete el formulario para registrar un nuevo tipo de camión cisterna en el sistema. Todos los campos son obligatorios.
+      
+      <Typography variant="body1" color="text.secondary" sx={{ mt: 1, mb: 3 }}>
+        Complete el formulario para registrar un nuevo vehículo a la flota.
       </Typography>
-
-      <Paper sx={{ p: 4, borderRadius: 2, backgroundColor: 'white' }}>
-        <div className="form-container">
-          <div className="form-field-wrapper">
-            <FormField
-              titulo="Tipo*"
-              placeholder="Ingrese el código del tipo (ej: TA, TB)"
-              value={formData.tipo}
-              onChange={handleChange('tipo')}
-              icono={<LocalShippingIcon fontSize="small" />}
+      
+      <Paper variant="outlined" sx={{ p: 4, borderRadius: 2 }}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle2" fontWeight="500" gutterBottom>
+              Placa*
+            </Typography>
+            <TextField 
+              fullWidth
+              placeholder="Ingrese la placa del vehículo"
+              size="small"
             />
-          </div>          <div className="form-field-wrapper">
-            <FormField
-              titulo="Peso Bruto (Toneladas)*"
-              placeholder="Ingrese el peso del vehículo vacío"
-              value={formData.pesoBruto}
-              onChange={handleChange('pesoBruto')}
-              type="number"
-              step="0.1"
-            />
-          </div>
-
-          <div className="form-field-wrapper">
-            <FormField
-              titulo="Carga GLP (m³)*"
-              placeholder="Ingrese la capacidad del tanque"
-              value={formData.cargaGLP}
-              onChange={handleChange('cargaGLP')}
-              type="number"
-            />
-          </div>
-
-          <div className="form-field-wrapper">
-            <FormField
-              titulo="Peso Carga GLP (Toneladas)*"
-              placeholder="Ingrese el peso del GLP cuando está lleno"
-              value={formData.pesoCargaGLP}
-              onChange={handleChange('pesoCargaGLP')}
-              type="number"
-              step="0.1"
-            />
-          </div>
-
-          <div className="form-field-wrapper">
-            <FormField
-              titulo="Unidades*"
-              placeholder="Ingrese el número de unidades disponibles"
-              value={formData.unidades}
-              onChange={handleChange('unidades')}
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle2" fontWeight="500" gutterBottom>
+              Tipo*
+            </Typography>
+            <FormControl fullWidth size="small">
+              <Select
+                displayEmpty
+                defaultValue=""
+              >
+                <MenuItem value="">Seleccione el tipo</MenuItem>
+                <MenuItem value="A">Tipo A</MenuItem>
+                <MenuItem value="B">Tipo B</MenuItem>
+                <MenuItem value="C">Tipo C</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle2" fontWeight="500" gutterBottom>
+              Carga GLP (m³)*
+            </Typography>
+            <TextField 
+              fullWidth
+              placeholder="Ingrese la capacidad de carga"
+              size="small"
               type="number"
             />
-          </div>
-        </div>
-
-        <div className="buttons-container">
-          <Button
-            variant="outlined"
-            onClick={handleCancel}
-            className="cancel-button"
-          >
-            Cancelar
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleSave}
-            className="save-button"
-          >
-            Guardar
-          </Button>
-        </div>
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle2" fontWeight="500" gutterBottom>
+              Fecha de fabricación*
+            </Typography>
+            <TextField 
+              fullWidth
+              placeholder="YYYY-MM-DD"
+              size="small"
+              type="date"
+              InputLabelProps={{
+                shrink: true,
+              }}
+            />
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle2" fontWeight="500" gutterBottom>
+              Estado*
+            </Typography>
+            <FormControl fullWidth size="small">
+              <Select
+                displayEmpty
+                defaultValue="disponible"
+              >
+                <MenuItem value="disponible">Disponible</MenuItem>
+                <MenuItem value="mantenimiento">En mantenimiento</MenuItem>
+                <MenuItem value="reparacion">En reparación</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          
+          <Grid item xs={12}>
+            <Typography variant="subtitle2" fontWeight="500" gutterBottom>
+              Observaciones
+            </Typography>
+            <TextField 
+              fullWidth
+              placeholder="Ingrese cualquier observación sobre el vehículo"
+              multiline
+              rows={4}
+            />
+          </Grid>
+          
+          <Grid item xs={12}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+              <Button 
+                variant="outlined" 
+                className="cancel-button"
+                onClick={handleCancel}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                variant="contained" 
+                color="secondary"
+                className="save-button"
+                onClick={handleSave}
+              >
+                Guardar
+              </Button>
+            </Box>
+          </Grid>
+        </Grid>
       </Paper>
     </Box>
   );
-}
+} 

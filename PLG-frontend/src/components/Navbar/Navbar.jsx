@@ -12,31 +12,22 @@ import {
   ListItemText,
   useMediaQuery,
   useTheme,
-  Container,
-  Menu,
-  MenuItem,
-  Divider,
-  Typography
+  Container
 } from "@mui/material";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import MenuIcon from "@mui/icons-material/Menu";
-import LogoutIcon from "@mui/icons-material/Logout";
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import { useAuth } from "../../hooks/useAuth.jsx";
 import logo from "../../assets/logo-plg.png";
 import "./Navbar.css";
 
 export default function Navbar() {
   const location = useLocation();
-  const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const { user, logout } = useAuth();  const navItems = [
+
+  const navItems = [
     { path: "/pedidos", label: "Pedidos" },
     { path: "/flota", label: "Flota" },
-    { path: "/configuracion", label: "Configuración" },
     { path: "/simulacion", label: "Simulación" }
   ];
 
@@ -45,20 +36,6 @@ export default function Navbar() {
       return;
     }
     setDrawerOpen(open);
-  };
-
-  const handleUserMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleUserMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleLogout = () => {
-    logout();
-    handleUserMenuClose();
-    navigate('/login');
   };
 
   const drawer = (
@@ -120,45 +97,14 @@ export default function Navbar() {
               ))}
             </Box>
           )}
-            <Button 
+          
+          <Button 
             color="inherit" 
             className="admin-button"
-            startIcon={<AccountCircleIcon />}
-            onClick={handleUserMenuOpen}
+            startIcon={<div className="admin-icon">👤</div>}
           >
-            {user?.usuario || 'Admin'}
+            Admin
           </Button>
-
-          {/* Menú de usuario */}
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleUserMenuClose}
-            anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'right',
-            }}
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-          >
-            <MenuItem disabled>
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <Typography variant="body2" fontWeight="600">
-                  {user?.usuario || 'Usuario'}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Sistema PLG
-                </Typography>
-              </Box>
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={handleLogout}>
-              <LogoutIcon sx={{ mr: 1 }} />
-              Cerrar Sesión
-            </MenuItem>
-          </Menu>
         </Toolbar>
       </Container>
 
