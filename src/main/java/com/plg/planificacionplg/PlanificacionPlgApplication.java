@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -15,6 +16,8 @@ public class PlanificacionPlgApplication {
     private static final double MAX_DOUBLE = Double.MAX_VALUE;
     @Setter @Getter
     private static Individuo mejorSolucion;
+    @Setter @Getter
+    private static Individuo mejorSolucionSiguiente;
     @Setter @Getter
     private static double porcentajeEjecucion;
     @Setter @Getter
@@ -131,11 +134,11 @@ public class PlanificacionPlgApplication {
         int cantCamionesInicial = 0;
         for (int i = 0; i < flotaXTipoCam.get(tipoCamion1.getId()-1); i++) {
             Camion camion = new Camion();   // Cisterna media
-            camion.setId(i+1);
-            camion.setIdxPorTipo(i);
+            camion.setIdxPorTipo(i+1);
+            camion.setId(camion.getIdxPorTipo()+cantCamionesInicial);
             camion.setTipo(tipoCamion1);
-            camion.setCodigo(tipoCamion1.getCodigo() + String.format("%02d", i));
-            camion.setPlaca("ABC-00" + String.valueOf(i));
+            camion.setCodigo(tipoCamion1.getCodigo() + String.format("%02d", camion.getIdxPorTipo()));
+            camion.setPlaca("ABC-00" + String.valueOf(camion.getId()));
             camion.setEstado(EstadoCamion.DISPONIBLE);
             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
             //camion.setCargaGLPActual(camion.getTipo().getCargaGLPMax());
@@ -144,11 +147,11 @@ public class PlanificacionPlgApplication {
         cantCamionesInicial = sistemaPLG.getFlota().size();
         for (int i = 0; i < flotaXTipoCam.get(tipoCamion2.getId()-1); i++) {
             Camion camion = new Camion();   // Cisterna media
-            camion.setId(i+cantCamionesInicial);
-            camion.setIdxPorTipo(i - cantCamionesInicial);
+            camion.setIdxPorTipo(i+1);
+            camion.setId(camion.getIdxPorTipo()+cantCamionesInicial);
             camion.setTipo(tipoCamion2);
             camion.setCodigo(tipoCamion2.getCodigo() + String.format("%02d", camion.getIdxPorTipo()));
-            camion.setPlaca("ABC-00" + String.valueOf(i));
+            camion.setPlaca("ABC-00" + String.valueOf(camion.getId()));
             camion.setEstado(EstadoCamion.DISPONIBLE);
             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
             sistemaPLG.getFlota().add(camion);
@@ -156,11 +159,11 @@ public class PlanificacionPlgApplication {
         cantCamionesInicial = sistemaPLG.getFlota().size();
         for (int i = 0; i < flotaXTipoCam.get(tipoCamion3.getId()-1); i++) {
             Camion camion = new Camion();   // Cisterna media
-            camion.setId(i+cantCamionesInicial);
-            camion.setIdxPorTipo(i - cantCamionesInicial);
+            camion.setIdxPorTipo(i+1);
+            camion.setId(camion.getIdxPorTipo()+cantCamionesInicial);
             camion.setTipo(tipoCamion3);
             camion.setCodigo(tipoCamion3.getCodigo() + String.format("%02d", camion.getIdxPorTipo()));
-            camion.setPlaca("ABC-00" + String.valueOf(i));
+            camion.setPlaca("ABC-00" + String.valueOf(camion.getId()));
             camion.setEstado(EstadoCamion.DISPONIBLE);
             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
             sistemaPLG.getFlota().add(camion);
@@ -168,11 +171,11 @@ public class PlanificacionPlgApplication {
         cantCamionesInicial = sistemaPLG.getFlota().size();
         for (int i = 0; i < flotaXTipoCam.get(tipoCamion4.getId()-1); i++) {
             Camion camion = new Camion();   // Cisterna media
-            camion.setId(i+cantCamionesInicial);
-            camion.setIdxPorTipo(i - cantCamionesInicial);
+            camion.setIdxPorTipo(i+1);
+            camion.setId(camion.getIdxPorTipo()+cantCamionesInicial);
             camion.setTipo(tipoCamion4);
             camion.setCodigo(tipoCamion4.getCodigo() + String.format("%02d", camion.getIdxPorTipo()));
-            camion.setPlaca("ABC-00" + String.valueOf(i));
+            camion.setPlaca("ABC-00" + String.valueOf(camion.getId()));
             camion.setEstado(EstadoCamion.DISPONIBLE);
             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
             sistemaPLG.getFlota().add(camion);
@@ -203,7 +206,7 @@ public class PlanificacionPlgApplication {
         for (int i = 0; i < sistemaPLG.getPedidos().size(); i++) {
             double carga = sistemaPLG.getPedidos().get(i).getVolumenGLP();
 
-            if (cargaActual + carga > capMaxFlota) {
+            if (cargaActual + carga > capMaxFlota*0.8) {
                 batchStartIndices.add(i); // nuevo batch empieza aquí
                 cargaActual = 0.0;
             }
@@ -225,16 +228,17 @@ public class PlanificacionPlgApplication {
             mejorSolucion = ga.ejecutar(1, sistemaPLG);
 
         }
-
-        mejorSolucion.getSistemaPLG().imprimirPlanificacion();
-        batchActual = 1;
-
         // Load maintenance and averias
         mejorSolucion.getSistemaPLG().cargarMantenimientos(
                 MANTENIMIENTO_FILE,
                 LocalTime.MIN, LocalTime.MAX
         );
         mejorSolucion.getSistemaPLG().cargarAverias(AVERIAS_FILE);
+        mejorSolucion.getSistemaPLG().imprimirPlanificacion();
+        batchActual = 1;
+        procesarSiguienteBatch();
+
+
 
         double min = 0.35;
         double max = 0.75;
@@ -418,15 +422,13 @@ public class PlanificacionPlgApplication {
                     probCruce = 0.3;
                     probMutacion = 0.15;
                     porcentajeElite = 0.2;
-                    //replanificado.imprimirPlanificacion();
                     Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
                     mejorSolucion = ga2.ejecutar(2, replanificado);
                     mejorSolucion.getSistemaPLG().imprimirPlanificacion();
 
                     mejorSolucion.getSistemaPLG().setReplanning(false);
                     mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
-
-                    PlanificacionPlgApplication.setMejorSolucion(mejorSolucion);
+//                    PlanificacionPlgApplication.setMejorSolucion(mejorSolucion);
 
 
                 } finally {
@@ -436,16 +438,40 @@ public class PlanificacionPlgApplication {
             }
         }
     }
-    public static void replanificar(LocalDateTime inicioReplan, ArrayList<Pedido>pedidosnuevos){
+    public static void replanificar(Individuo mejorSolucion, LocalDateTime inicioReplan, ArrayList<Pedido>pedidosnuevos){
         SistemaPLG replanificado = new SistemaPLG(mejorSolucion.getSistemaPLG());
-        replanificado.getPedidos().addAll(pedidosnuevos);
+        mejorSolucion.getSistemaPLG().estadoDePedidosALas(inicioReplan);
+        replanificado.setPedidos(pedidosnuevos);
+//        for(Pedido p : mejorSolucion.getSistemaPLG().getPedidos()){
+//            if(p.getEstado()!=EstadoPedido.ENTREGADO){
+//                Pedido reemplazado = replanificado.getPedidos().get(p.getId()-1);
+//                replanificado.getPedidos().remove(p.getId()-1);
+//                replanificado.getPedidos().add(p.getId()-1, p);
+//                replanificado.getPedidos().add(reemplazado);
+//                reemplazado.setId(replanificado.getPedidos().size()+1);
+//            }
+//        }
+        for(Cisterna cist : mejorSolucion.getSistemaPLG().getCisternas()){
+            OperacionesGLPCisterna op = new OperacionesGLPCisterna();
+            op.setFechaHoraOperacion(inicioReplan.plusMinutes(1));
+            int idxLastOpCis = Collections.binarySearch(
+                    cist.getOperacionesGLPCisterna(),
+                    op,
+                    Comparator.comparing(OperacionesGLPCisterna::getFechaHoraOperacion)
+            );
+
+            if (idxLastOpCis < 0) {
+                idxLastOpCis = -idxLastOpCis - 1;
+            }
+            if (idxLastOpCis < cist.getOperacionesGLPCisterna().size()) {
+                cist.getOperacionesGLPCisterna().subList(idxLastOpCis, cist.getOperacionesGLPCisterna().size()).clear();
+            }
+        }
         replanificado.setCisternas(mejorSolucion.getSistemaPLG().getCisternas());
         mejorSolucion.getSistemaPLG().setReplanning(true);
         mejorSolucion.getSistemaPLG().setAveriaStartTime(inicioReplan);
-        // Replanification process
-        mejorSolucion.getSistemaPLG().estadoDePedidosALas(inicioReplan);
+        // Replanificacion process
         replanificado.setFlota(new ArrayList<>());
-        replanificado.setPedidos(new ArrayList<>(mejorSolucion.getSistemaPLG().getPedidos()));
         replanificado.setFechaHoraInicio(inicioReplan);
         replanificado.setCamionCausanteReplan(null);
         try{
@@ -518,19 +544,56 @@ public class PlanificacionPlgApplication {
             double probCruce = 0.3;
             double probMutacion = 0.15;
             double porcentajeElite = 0.2;
-            replanificado.imprimirPlanificacion();
             Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
+            System.out.println("%%%%%%%%%%%%%%%%%%%%REPLANNING%%%%%%%%%%%%%%%%%%%%");
             mejorSolucion = ga2.ejecutar(2, replanificado);
             mejorSolucion.getSistemaPLG().imprimirPlanificacion();
 
             mejorSolucion.getSistemaPLG().setReplanning(false);
             mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
-
             PlanificacionPlgApplication.setMejorSolucion(mejorSolucion);
-
 
         } finally {
             mejorSolucion.getSistemaPLG().setReplanning(false);
+        }
+    }
+    public static void procesarSiguienteBatch(){
+        try {
+            Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
+            if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {
+                return;
+            }
+            int batchActual = PlanificacionPlgApplication.getBatchActual();
+            List<Integer> batchStartIndices = PlanificacionPlgApplication.getBatchStartIndices();
+            List<Pedido> listaPedidosTotal = PlanificacionPlgApplication.getListaPedidosTotal();
+            if (batchStartIndices == null || batchActual >= batchStartIndices.size()) {
+                return;
+            }
+            LocalDateTime inicio = mejorSolucion.getSistemaPLG().getFechaHoraFinEntregas();
+            int inicioBatch = batchStartIndices.get(batchActual);
+            System.out.println("Procesando batch Nro: " + (batchActual+1));
+            int finBatch = (batchActual + 1 < batchStartIndices.size()) ? batchStartIndices.get(batchActual + 1) : listaPedidosTotal.size();
+            if (inicioBatch >= finBatch || inicioBatch >= listaPedidosTotal.size()) {
+                return;
+            }
+            List<Pedido> batch = listaPedidosTotal.subList(inicioBatch, finBatch);
+            ArrayList<Pedido> pedidosNuevos = new ArrayList<>(batch);
+            // Reasignar IDs para el batch
+            for (int j = 0; j < pedidosNuevos.size(); j++) {
+                pedidosNuevos.get(j).setId(j + 1); // o j si prefieres que empiece en 0
+            }
+            System.out.println("Cantidad pedidos: " + pedidosNuevos.size());
+            Individuo mejorSolucionActual = PlanificacionPlgApplication.getMejorSolucion();
+            if(batchActual!=1)
+                PlanificacionPlgApplication.setMejorSolucion(PlanificacionPlgApplication.getMejorSolucionSiguiente());
+            mejorSolucionSiguiente = new Individuo();
+            mejorSolucionSiguiente.setSistemaPLG(new SistemaPLG());
+            mejorSolucionSiguiente.getSistemaPLG().deepCopy(mejorSolucionActual.getSistemaPLG());
+            PlanificacionPlgApplication.replanificar(PlanificacionPlgApplication.getMejorSolucionSiguiente(),inicio, pedidosNuevos);
+            PlanificacionPlgApplication.setBatchActual(batchActual + 1);
+            return;
+        } catch (Exception e) {
+            return;
         }
     }
 }

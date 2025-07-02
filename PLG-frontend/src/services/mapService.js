@@ -10,8 +10,8 @@ export const mapService = {
             }
             return await response.json();
         } catch (error) {
-            console.error('Error fetching system data:', error);
-            throw error;
+            //console.error('Waiting for fetching system data:', error);
+            //throw error;
         }
     },
 
@@ -24,7 +24,7 @@ export const mapService = {
             }
             return await response.json();
         } catch (error) {
-            console.error('Error fetching start time:', error);
+            //console.error('Error fetching start time:', error);
             throw error;
         }
     },
@@ -43,7 +43,7 @@ export const mapService = {
             }
             return await response.json();
         } catch (error) {
-            console.error(`Error fetching truck ${truckId} position:`, error);
+            //console.error(`Error fetching truck ${truckId} position:`, error);
             return null;
         }
     },
@@ -62,7 +62,7 @@ export const mapService = {
             }
             return await response.json();
         } catch (error) {
-            console.error(`Error fetching truck ${truckId} fuel:`, error);
+            //console.error(`Error fetching truck ${truckId} fuel:`, error);
             return null;
         }
     },
@@ -81,7 +81,7 @@ export const mapService = {
             }
             return await response.json();
         } catch (error) {
-            console.error(`Error fetching truck ${truckId} GLP:`, error);
+            //console.error(`Error fetching truck ${truckId} GLP:`, error);
             return null;
         }
     },
@@ -125,7 +125,7 @@ export const mapService = {
             
             return JSON.parse(textResponse);
         } catch (error) {
-            console.error(`Error fetching truck ${truckId} destination:`, error);
+            //console.error(`Error fetching truck ${truckId} destination:`, error);
             return null;
         }
     },
@@ -144,7 +144,7 @@ export const mapService = {
             }
             return await response.text();
         } catch (error) {
-            console.error(`Error fetching truck ${truckId} state:`, error);
+            //console.error(`Error fetching truck ${truckId} state:`, error);
             return null;
         }
     },
@@ -218,7 +218,20 @@ export const mapService = {
             }
             return await response.text();
         } catch (error) {
-            console.error(`Error fetching estado for pedido ${pedidoId}:`, error);
+            //console.error(`Error fetching estado for pedido ${pedidoId}:`, error);
+            return null;
+        }
+    },
+
+    // Fetch info about the first logistics collapse (primer colapso)
+    async fetchPrimerColapsoInfo() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/primer-colapso-info`);
+            if (!response.ok) {
+                return null;
+            }
+            return await response.json();
+        } catch (error) {
             return null;
         }
     }

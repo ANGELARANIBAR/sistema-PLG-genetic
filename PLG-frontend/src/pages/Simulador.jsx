@@ -8,7 +8,8 @@ import {
     AccordionDetails,
     Divider,
     Paper,
-    TextField
+    TextField,
+    Alert
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -33,6 +34,7 @@ export default function Simulador() {
     const [simulationStarted, setSimulationStarted] = useState(false);
     const [fechaHoraFinEntregas, setFechaHoraFinEntregas] = useState(null);
     const [isContinuing, setIsContinuing] = useState(false);
+    const [colapsoInfo, setColapsoInfo] = useState(null);
     
     // UI states
     const [navbarHeight, setNavbarHeight] = useState(65);
@@ -62,9 +64,11 @@ export default function Simulador() {
 
     // Watch for currentTime >= fechaHoraFinEntregas to continue simulation
     useEffect(() => {
+        
         if (!currentTime || !fechaHoraFinEntregas || isContinuing) return;
         if (currentTime >= fechaHoraFinEntregas) {
             setIsContinuing(true);
+            console.log("Llamndo a nuevo batch")
             fetch(`${API_BASE}/continue-simulation`, { method: "POST" })
                 .then(() => {
                     // After continuing, fetch new fechaHoraFinEntregas
@@ -97,6 +101,23 @@ export default function Simulador() {
             }
         };
     }, [isPlaying, playbackSpeed, currentTime]);
+
+    // Poll for primer colapso info
+    useEffect(() => {
+        let intervalId;
+        const checkColapso = async () => {
+            const info = await mapService.fetchPrimerColapsoInfo();
+            if (info && info.colapso) {
+                setColapsoInfo(info);
+                setIsPlaying(false);
+            } else {
+                setColapsoInfo(null);
+            }
+        };
+        checkColapso();
+        intervalId = setInterval(checkColapso, 2000);
+        return () => clearInterval(intervalId);
+    }, []);
 
     const handlePauseSimulation = () => {
         setIsPlaying(false);
@@ -166,7 +187,17 @@ export default function Simulador() {
                     <Typography variant="h5" fontWeight="bold" gutterBottom>
                         Simulación PLG
                     </Typography>
-                    
+                    {colapsoInfo && colapsoInfo.colapso && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">¡Colapso logístico detectado!</Typography>
+                            <Typography variant="body2">Fecha y hora del primer colapso: <b>{new Date(colapsoInfo.fechaHoraPrimerColapso).toLocaleString()}</b></Typography>
+                            <Typography variant="body2">Pedido causante: <b>{colapsoInfo.pedidoCausanteId}</b></Typography>
+                            <Typography variant="body2">Límite de entrega: <b>{new Date(colapsoInfo.limiteEntrega).toLocaleString()}</b></Typography>
+                            <Typography variant="body2">Hora simulada de entrega: <b>{new Date(colapsoInfo.horaSimuladaEntrega).toLocaleString()}</b></Typography>
+                            <Typography variant="body2">Entrega a cargo del camión: <b>{colapsoInfo.camionEntrega}</b></Typography>
+                            <Typography variant="body2" color="error" fontWeight="bold">La simulación ha sido pausada.</Typography>
+                        </Alert>
+                    )}
                     <Button
                         variant="outlined"
                         color="error"
@@ -216,9 +247,12 @@ export default function Simulador() {
                                     <Button
                                         variant={isPlaying ? "contained" : "outlined"}
                                         startIcon={isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-                                        onClick={() => setIsPlaying(!isPlaying)}
+                                        onClick={() => {
+                                            if (!colapsoInfo || !colapsoInfo.colapso) setIsPlaying(!isPlaying);
+                                        }}
                                         fullWidth
                                         color={isPlaying ? "secondary" : "primary"}
+                                        disabled={colapsoInfo && colapsoInfo.colapso}
                                     >
                                         {isPlaying ? 'Pausar' : 'Reproducir'}
                                     </Button>

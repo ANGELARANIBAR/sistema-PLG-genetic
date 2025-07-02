@@ -21,6 +21,7 @@ public class SistemaPLG {
     private double maxXmapa;
     private double maxYmapa;
     private List<Pedido> pedidos;
+    private Destino destinoColapso;
     private List<Pedido> pedidosTodos;
     private double distanciaManzana;
     private LocalDateTime fechaHoraInicio;
@@ -57,6 +58,8 @@ public class SistemaPLG {
         }
         this.distanciaManzana = otro.distanciaManzana;
         this.fechaHoraInicio = otro.fechaHoraInicio;
+        this.destinoColapso = otro.destinoColapso;
+        this.fechaHoraPrimerColapso = otro.fechaHoraPrimerColapso;
         this.turnosFin = otro.turnosFin;
         this.averias = otro.averias;
         if(otro.camionCausanteReplan != null) {
@@ -544,5 +547,69 @@ public class SistemaPLG {
         int horas = Integer.parseInt(str.substring(3, 5));
         int minutos = Integer.parseInt(str.substring(6, 8));
         return base.withDayOfMonth(dias).withHour(horas).withMinute(minutos);
+    }
+
+    /**
+     * Deep copy all fields from 'otro' into this instance.
+     */
+    public void deepCopy(SistemaPLG otro) {
+        this.id = otro.id;
+        this.cisternas = new ArrayList<>();
+        if (otro.cisternas != null) {
+            for (Cisterna cisterna : otro.cisternas) {
+                this.cisternas.add(new Cisterna(cisterna));
+            }
+        }
+        this.flota = new ArrayList<>();
+        if (otro.flota != null) {
+            for (Camion camion : otro.flota) {
+                Camion nuevoCamion = new Camion();
+                nuevoCamion.deepCopy(camion);
+                this.flota.add(nuevoCamion);
+            }
+        }
+        if (otro.camionesAveriados != null) {
+            this.camionesAveriados = new ArrayList<>();
+            for (Camion camion : otro.camionesAveriados) {
+                this.camionesAveriados.add(flota.get(camion.getId()-1));
+            }
+        } else {
+            this.camionesAveriados = null;
+        }
+        this.bloqueos = otro.bloqueos;
+        this.tiempoEntregaMin = otro.tiempoEntregaMin;
+        this.maxXmapa = otro.maxXmapa;
+        this.maxYmapa = otro.maxYmapa;
+        this.pedidos = new ArrayList<>();
+        if (otro.pedidos != null) {
+            for (Pedido pedido : otro.pedidos) {
+                this.pedidos.add(new Pedido(pedido));
+            }
+        }
+        this.pedidosTodos = new ArrayList<>();
+        if (otro.pedidosTodos != null) {
+            for (Pedido pedido : otro.pedidosTodos) {
+                this.pedidosTodos.add(new Pedido(pedido));
+            }
+        }
+        this.distanciaManzana = otro.distanciaManzana;
+        this.fechaHoraInicio = otro.fechaHoraInicio;
+        this.destinoColapso = (otro.destinoColapso != null) ? otro.destinoColapso.copiar() : null;
+        this.fechaHoraPrimerColapso = otro.fechaHoraPrimerColapso;
+        this.fechaHoraFinEntregas = otro.fechaHoraFinEntregas;
+        this.turnosFin = (otro.turnosFin != null) ? new ArrayList<>(otro.turnosFin) : null;
+        this.averias = new ArrayList<>();
+        if (otro.averias != null) {
+            for (Averia averia : otro.averias) {
+                this.averias.add(averia);
+            }
+        }
+        if (otro.camionCausanteReplan != null && this.flota != null && !this.flota.isEmpty()) {
+            this.camionCausanteReplan = this.flota.get(otro.camionCausanteReplan.getId() - 1);
+        } else {
+            this.camionCausanteReplan = null;
+        }
+        this.replanning = otro.replanning;
+        this.averiaStartTime = otro.averiaStartTime;
     }
 }

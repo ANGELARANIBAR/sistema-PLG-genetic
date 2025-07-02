@@ -14,7 +14,7 @@ public class Individuo {
 
     private double fitness;
     private SistemaPLG sistemaPLG;
-
+public Individuo(){}
     public Individuo(int numPedidos, int numCamiones, SistemaPLG sistema, int code) {
         numCamiones += 1;
         numPedidos += 1;
@@ -72,19 +72,6 @@ public class Individuo {
                     }
                 }
             }
-            /*
-            if(sistema.getCamionCausanteReplan().getAverias()
-                    .getLast().getTipo().getId()==1 ){
-                for(Pedido ped : sistema.getCamionCausanteReplan().getPedidosAsignados()){
-                    if(ped.getEstado()==EstadoPedido.ASIGNADO){
-                        asignacion.get(sistema.getCamionCausanteReplan().getId()).add(ped.getId());
-                    }
-                }
-            }
-            else{
-                //directo a inicio
-            }
-            */
         }
         for (int i = 1; i < numCamiones; i++) {
             int ini=0;
@@ -124,7 +111,7 @@ public class Individuo {
         return false;
     }
 
-    private void inicializarSistemaPLG(int code, SistemaPLG sistema) {
+    public void inicializarSistemaPLG(int code, SistemaPLG sistema) {
         List<Camion> flota = new ArrayList<>();
         List<Pedido> pedidos = new ArrayList<>();
         List<Cisterna> cisternas = new ArrayList<>();

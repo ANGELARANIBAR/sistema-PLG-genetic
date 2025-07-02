@@ -75,6 +75,8 @@ public class Ruta {
             Nodo actual = abiertos.poll();
             if (actual.sonIguales(destino)) {
                 this.distanciaTotal = gScore.get(destino);
+//                double tiempoLlegada = (gScore.get(actual))/ velocidadCamion;
+//                if (estaBloqueado(actual, fechaSalida, sistemaPLG, tiempoLlegada)) return null; //ruta invalida
                 nodos = reconstruirCamino(cameFrom, actual);
                 tiempoEmpleado = this.distanciaTotal / velocidadCamion;
                 return nodos;
@@ -86,7 +88,7 @@ public class Ruta {
                 double tiempoLlegada = tentativeG / velocidadCamion;
                 //if (estaTramoBloqueado(actual, vecino, sistemaPLG, tiempoLlegada)) continue;
 
-                if (estaBloqueado(vecino, fechaSalida, sistemaPLG, tiempoLlegada)) continue;
+                if (!vecino.sonIguales(destino) && estaBloqueado(vecino, fechaSalida, sistemaPLG, tiempoLlegada)) continue;
                 vecino.setLlegada(sistemaPLG.getFechaHoraInicio().plusSeconds((long)tiempoLlegada*60));
                 if (tentativeG < gScore.getOrDefault(vecino, Double.MAX_VALUE)) {
                     cameFrom.put(vecino, actual);
@@ -189,7 +191,7 @@ public class Ruta {
     public static void main(String[] args) {
             // Crear nodos de origen y destino
             Nodo origen = new Nodo(0, 0);
-            Nodo destino = new Nodo(19, 19);
+            Nodo destino = new Nodo(2, 1);
 
             // Crear sistema con dimensiones y distancia entre manzanas
             SistemaPLG sistemaPLG = new SistemaPLG();
@@ -205,7 +207,7 @@ public class Ruta {
 
             Bloqueo bloqueo = new Bloqueo();
             bloqueo.setFechaHoraInicio(LocalDateTime.now().minusMinutes(10));
-            bloqueo.setFechaHoraFin(LocalDateTime.now().plusMinutes(2));
+            bloqueo.setFechaHoraFin(LocalDateTime.now().plusMinutes(8));
             bloqueo.setRutasBloqueadas(Arrays.asList(bloqueado1, bloqueado2, bloqueado3));
 
             sistemaPLG.setBloqueos(Arrays.asList(bloqueo));

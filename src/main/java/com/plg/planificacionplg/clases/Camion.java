@@ -287,8 +287,13 @@ public class Camion {
                             .isAfter(destinoFinal.getPedido().getFechaHoraMaxEntrega())){
                 if(code != 3)return -1;
                 if(sistemaPLG.getFechaHoraPrimerColapso() == null
-                        || sistemaPLG.getFechaHoraPrimerColapso().isAfter(destinoFinal.getPedido().getFechaHoraMaxEntrega()))
+                        || sistemaPLG.getFechaHoraPrimerColapso().isAfter(destinoFinal.getPedido().getFechaHoraMaxEntrega())){
                     sistemaPLG.setFechaHoraPrimerColapso(destinoFinal.getPedido().getFechaHoraMaxEntrega());
+                    destinoFinal.getPedido().setCamiones(new ArrayList<>());
+                    destinoFinal.getPedido().getCamiones().add(this);
+                    sistemaPLG.setDestinoColapso(destinoFinal);
+                }
+
             }
             if(destinoFinal.getRuta().getNodos()==null)return -2;
 
@@ -631,6 +636,41 @@ public class Camion {
             return 1;
         }
         return 1;
+    }
+
+    /**
+     * Deep copy all fields from 'otro' into this instance.
+     */
+    public void deepCopy(Camion otro) {
+        this.id = otro.id;
+        this.idxPorTipo = otro.idxPorTipo;
+        this.codigo = otro.codigo;
+        this.placa = otro.placa;
+        this.tipo = otro.tipo;
+        this.combustibleActual = otro.combustibleActual;
+        this.cargaGLPActual = otro.cargaGLPActual;
+        this.pesoTotal = otro.pesoTotal;
+        this.combustibleEmpleado = otro.combustibleEmpleado;
+        this.distanciaTotal = otro.distanciaTotal;
+        this.estado = otro.estado;
+//        this.pedidosAsignados = new ArrayList<>();
+//        if (otro.pedidosAsignados != null) {
+//            this.pedidosAsignados.addAll(otro.pedidosAsignados); // Shallow copy, as Pedido is likely shared
+//        }
+        this.destinos = otro.destinos;
+//        this.destinos = new ArrayList<>();
+//        if (otro.destinos != null) {
+//            for (Destino destino : otro.destinos) {
+//                this.destinos.add(destino != null ? destino.copiar() : null);
+//            }
+//        }
+        this.ubicacionActual = otro.ubicacionActual;
+        this.idxDestinoEnCurso = otro.idxDestinoEnCurso;
+        this.mantenimientos = (otro.mantenimientos != null) ? new ArrayList<>(otro.mantenimientos) : null;
+        this.averias = (otro.averias != null) ? new ArrayList<>(otro.averias) : null;
+        //this.cargasGLP = (otro.cargasGLP != null) ? new ArrayList<>(otro.cargasGLP) : null;
+        this.indicePedidoActual = otro.indicePedidoActual;
+        this.destinoEnCurso = (otro.destinoEnCurso != null) ? otro.destinoEnCurso.copiar() : null;
     }
 
 }

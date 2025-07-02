@@ -845,6 +845,7 @@ public class SolutionController {
         if (mejorSolucion == null) {
             return "INEXISTENTE";
         }
+        if(pedidoId>mejorSolucion.getSistemaPLG().getPedidos().size())return "ENTREGADO";
         Pedido p = mejorSolucion.getSistemaPLG().getPedidos().get(pedidoId-1);
         if(p != null && p.getFechaHoraEntrega()!=null) {
             if(!p.getFechaHoraEntrega().plusMinutes(15).isAfter(time)){
@@ -879,35 +880,77 @@ public class SolutionController {
     @PostMapping("/continue-simulation")
     public ResponseEntity<String> continueSimulation() {
         try {
-            Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
-            if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {
-                return ResponseEntity.badRequest().body("No hay simulación activa");
-            }
-            int batchActual = PlanificacionPlgApplication.getBatchActual();
-            List<Integer> batchStartIndices = PlanificacionPlgApplication.getBatchStartIndices();
-            List<Pedido> listaPedidosTotal = PlanificacionPlgApplication.getListaPedidosTotal();
-            if (batchStartIndices == null || batchActual >= batchStartIndices.size()) {
-                return ResponseEntity.ok("No hay más batches para procesar");
-            }
-            LocalDateTime inicio = mejorSolucion.getSistemaPLG().getFechaHoraFinEntregas();
-            int inicioBatch = batchStartIndices.get(batchActual);
-            System.out.println("Procesando batch Nro: " + batchActual);
-            int finBatch = (batchActual + 1 < batchStartIndices.size()) ? batchStartIndices.get(batchActual + 1) : listaPedidosTotal.size();
-            if (inicioBatch >= finBatch || inicioBatch >= listaPedidosTotal.size()) {
-                return ResponseEntity.ok("No hay más batches para procesar");
-            }
-            PlanificacionPlgApplication.setBatchActual(batchActual + 1);
-            List<Pedido> batch = listaPedidosTotal.subList(inicioBatch, finBatch);
-            ArrayList<Pedido> pedidosNuevos = new ArrayList<>(batch);
-            // Reasignar IDs para el batch
-            for (int j = 0; j < pedidosNuevos.size(); j++) {
-                pedidosNuevos.get(j).setId(j + 1); // o j si prefieres que empiece en 0
-            }
-            System.out.println("Cantidad pedidos: " + pedidosNuevos.size());
-            PlanificacionPlgApplication.replanificar(inicio, pedidosNuevos);
-            return ResponseEntity.ok("Simulación continuada al siguiente batch");
+            PlanificacionPlgApplication.procesarSiguienteBatch();
+
+            return ResponseEntity.badRequest().body("No hay simulación activa");
+//            Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
+//            if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {
+//                return ResponseEntity.badRequest().body("No hay simulación activa");
+//            }
+//            int batchActual = PlanificacionPlgApplication.getBatchActual();
+//            List<Integer> batchStartIndices = PlanificacionPlgApplication.getBatchStartIndices();
+//            List<Pedido> listaPedidosTotal = PlanificacionPlgApplication.getListaPedidosTotal();
+//            if (batchStartIndices == null || batchActual >= batchStartIndices.size()) {
+//                return ResponseEntity.ok("No hay más batches para procesar");
+//            }
+//            if(mejorSolucion.getSistemaPLG().getFechaHoraPrimerColapso()!=null){
+//                System.out.println("Fecha y hora del primer colapso logístico: " + mejorSolucion.getSistemaPLG().getFechaHoraPrimerColapso());
+//                System.out.println("Pedido causante del colapso: " + mejorSolucion.getSistemaPLG().getDestinoColapso().getPedido().getId());
+//                System.out.println("Limite de entrega: " + mejorSolucion.getSistemaPLG().getDestinoColapso().getPedido().getFechaHoraMaxEntrega());
+//                System.out.println("Hora simulada de entrega: " + mejorSolucion.getSistemaPLG().getDestinoColapso().getFechaHoraLlegada());
+//                System.out.println("Entrega a cargo del camion: " + mejorSolucion.getSistemaPLG().getDestinoColapso().getPedido().getCamiones().getLast().getCodigo());
+//
+//                return ResponseEntity.ok("Colapso logístico alcanzado");
+//            }
+//            LocalDateTime inicio = mejorSolucion.getSistemaPLG().getFechaHoraFinEntregas();
+//            int inicioBatch = batchStartIndices.get(batchActual);
+//            System.out.println("Procesando batch Nro: " + (batchActual + 1));
+//            int finBatch = (batchActual + 1 < batchStartIndices.size()) ? batchStartIndices.get(batchActual + 1) : listaPedidosTotal.size();
+//            if (inicioBatch >= finBatch || inicioBatch >= listaPedidosTotal.size()) {
+//                return ResponseEntity.ok("No hay más batches para procesar");
+//            }
+//            PlanificacionPlgApplication.setBatchActual(batchActual + 1);
+//            List<Pedido> batch = listaPedidosTotal.subList(inicioBatch, finBatch);
+//            ArrayList<Pedido> pedidosNuevos = new ArrayList<>(batch);
+//            // Reasignar IDs para el batch
+//            for (int j = 0; j < pedidosNuevos.size(); j++) {
+//                pedidosNuevos.get(j).setId(j + 1); // o j si prefieres que empiece en 0
+//            }
+//            System.out.println("Cantidad pedidos: " + pedidosNuevos.size());
+//            PlanificacionPlgApplication.replanificar(PlanificacionPlgApplication.getMejorSolucion(), inicio, pedidosNuevos);
+//            return ResponseEntity.ok("Simulación continuada al siguiente batch");
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Error al continuar la simulación: " + e.getMessage());
         }
+    }
+
+    /**
+     * Returns info about the first logistics collapse (primer colapso) if it exists.
+     */
+    @GetMapping("/primer-colapso-info")
+    public ResponseEntity<Map<String, Object>> getPrimerColapsoInfo() {
+        Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
+        Map<String, Object> response = new HashMap<>();
+        if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {
+            response.put("colapso", false);
+            response.put("pauseSimulation", false);
+            return ResponseEntity.ok(response);
+        }
+        SistemaPLG sistema = mejorSolucion.getSistemaPLG();
+        if (sistema.getFechaHoraPrimerColapso() != null && sistema.getDestinoColapso() != null && sistema.getDestinoColapso().getPedido() != null) {
+            response.put("colapso", true);
+            response.put("fechaHoraPrimerColapso", sistema.getFechaHoraPrimerColapso());
+            response.put("pedidoCausanteId", sistema.getDestinoColapso().getPedido().getId());
+            response.put("limiteEntrega", sistema.getDestinoColapso().getPedido().getFechaHoraMaxEntrega());
+            response.put("horaSimuladaEntrega", sistema.getDestinoColapso().getFechaHoraLlegada());
+            List<Camion> camiones = sistema.getDestinoColapso().getPedido().getCamiones();
+            String camionCodigo = (camiones != null && !camiones.isEmpty()) ? camiones.get(camiones.size() - 1).getCodigo() : null;
+            response.put("camionEntrega", camionCodigo);
+            response.put("pauseSimulation", true);
+        } else {
+            response.put("colapso", false);
+            response.put("pauseSimulation", false);
+        }
+        return ResponseEntity.ok(response);
     }
 } 
