@@ -30,6 +30,8 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   const [pedidoEstado, setPedidoEstado] = useState(null);
   const [pedidoEstadoLoading, setPedidoEstadoLoading] = useState(false);
   const [pedidosEstados, setPedidosEstados] = useState({});
+  const [showLegend, setShowLegend] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(null);
   const mapContainerRef = useRef(null);
 
   const getCurrentDestination = useCallback(async (truck) => {
@@ -201,6 +203,8 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
     const handleClickOutside = () => {
       setContextMenu(null);
       setShowOverlapMenu(false);
+      setShowTooltip(null);
+      setShowLegend(false);
     };
 
     document.addEventListener('click', handleClickOutside);
@@ -297,8 +301,8 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   // Calculate scale factors to fit the map in the viewport
   const getContainerDimensions = () => {
     if (mapContainerRef.current) {
-      const containerWidth = mapContainerRef.current.clientWidth - 300; // Subtract sidebar width
-      const containerHeight = mapContainerRef.current.clientHeight - 20; // Subtract padding
+      const containerWidth = mapContainerRef.current.clientWidth - 20; // Just padding
+      const containerHeight = mapContainerRef.current.clientHeight - 20; // Just padding
       return { containerWidth, containerHeight };
     }
     return { containerWidth: 800, containerHeight: 600 };
@@ -357,7 +361,12 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
       setOverlappingItems(items);
       setShowOverlapMenu({ x: e.clientX, y: e.clientY });
     } else {
-      setSelectedItem(item);
+      // Show tooltip instead of selecting
+      setShowTooltip({
+        item,
+        x: e.clientX,
+        y: e.clientY
+      });
     }
   };
 
@@ -408,8 +417,8 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   };
 
   return (
-    <div className="map-container" ref={mapContainerRef}>
-      <div className="map-visualization" style={{ width: containerWidth }}>
+    <div className="map-container" ref={mapContainerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <div className="map-visualization" style={{ width: containerWidth, height: containerHeight }}>
         {/* Draw grid */}
         <svg className="grid-svg">
           {Array.from({ length: Math.ceil(system.maxXmapa) + 1 }, (_, x) => (
@@ -536,18 +545,13 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
           return (
             <div
               key={`truck-${truckId}`}
-              className={`truck-marker ${selectedItem?.type === 'truck' && selectedItem.id === truckId ? 'selected' : ''} direction-${direction}`}
+              className={`truck-marker direction-${direction}`}
               style={{
                 left: pos.x - 12,
                 top: pos.y - 12
               }}
               onClick={(e) => handleMarkerClick(e, { type: 'truck', id: truckId })}
               onContextMenu={(e) => handleTruckRightClick(e, truckId)}
-              title={`Camión ${truck.codigo}
-Combustible: ${currentFuel.toFixed(2)}
-GLP: ${currentGLP.toFixed(2)}
-Combustible final: ${Number(truck.fuelConsumed || 0).toFixed(2)}
-${currentDest ? `\nEn: ${currentDest.destinationType}` : ''}`}
             >
               <img src={getTruckIcon(truckId)} alt="Truck" className="marker-icon" />
               <div className={`direction-arrow direction-${direction}`}></div>
@@ -563,20 +567,12 @@ ${currentDest ? `\nEn: ${currentDest.destinationType}` : ''}`}
           return (
             <div
               key={`cisterna-${index}`}
-              className={`cisterna-marker ${cisterna.principal ? 'principal' : 'secundaria'} ${selectedItem?.type === 'cisterna' && selectedItem.id === index ? 'selected' : ''}`}
+              className={`cisterna-marker ${cisterna.principal ? 'principal' : 'secundaria'}`}
               style={{
                 left: pos.x - 12,
                 top: pos.y - 12
               }}
               onClick={(e) => handleMarkerClick(e, { type: 'cisterna', id: index })}
-              title={`${cisterna.principal ? 'Principal' : 'Secundaria'} Cisterna
-GLP Actual: ${currentGLP.toFixed(2)} / ${cisterna.capacidadTotal.toFixed(2)}
-Hora Abastecimiento: ${cisterna.horaAbastecimento}
-${cisterna.operacionesGLPCisterna?.length ? `
-Últimas operaciones:
-${cisterna.operacionesGLPCisterna.slice(-3).map(op => 
-`- ${new Date(op.fechaHoraOperacion).toLocaleString()}: ${op.cantSalidaGLP.toFixed(2)} GLP (Camión ${op.placaCamion})`
-).join('\n')}` : ''}`}
             >
               <img src={cisternaIcon} alt="Cisterna" className="marker-icon" />
               <span className="marker-label">C{index + 1}</span>
@@ -595,13 +591,12 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
             return (
               <div
                 key={`pedido-${pedido.id}`}
-                className={`pedido-marker ${selectedItem?.type === 'pedido' && selectedItem.id === pedido.id ? 'selected' : ''}`}
+                className="pedido-marker"
                 style={{
                   left: pos.x - 12,
                   top: pos.y - 12
                 }}
                 onClick={(e) => handleMarkerClick(e, { type: 'pedido', id: pedido.id })}
-                title={`Pedido ${pedido.numeroPedido} - GLP: ${pedido.volumenGLP.toFixed(2)}`}
               >
                 <img src={pedidoIcon} alt="Pedido" className="marker-icon" />
                 <span className="marker-label">P{pedido.id}</span>
@@ -623,197 +618,254 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
         )}
       </div>
 
-      {/* Sidebar */}
-      <div className="map-sidebar">
-        {selectedItem ? (
-          selectedItem.type === 'truck' ? (
-            <div className="info-section">
-              <h3>Información de Camión</h3>
-              <div className="info-content">
-                <div className="info-item">
-                  <strong>Código:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.codigo}</span>
-                </div>
-                <div className="info-item">
-                  <strong>Placa:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.plate}</span>
-                </div>
-                <div className="info-item">
-                  <strong>Combustible actual:</strong> <span>{Number(truckFuels.get(selectedItem.id) || 0).toFixed(2)}</span>
-                </div>
-                <div className="info-item">
-                  <strong>GLP actual:</strong> <span>{Number(truckGLPs.get(selectedItem.id) || 0).toFixed(2)}</span>
-                </div>
-                <div className="info-item">
-                  <strong>Combustible final:</strong> <span>{Number(system?.flota.find(t => t.truckId === selectedItem.id)?.fuelConsumed || 0).toFixed(2)}</span>
-                </div>
-                {system?.flota.find(t => t.truckId === selectedItem.id) && (
-                  <div className="info-item">
-                    <strong>Estado camión:</strong> <span>{truckStates.get(selectedItem.id) || 'N/A'}</span>
-                  </div>
-                )}
-              </div>
-              <div className="averia-buttons">
-                <h4>Registrar avería</h4>
-                <div className="button-container">
-                  <button 
-                    onClick={() => handleAveriaOption(1)} 
-                    className="tipo-averia"
-                  >
-                    Tipo 1
-                  </button>
-                  <button 
-                    onClick={() => handleAveriaOption(2)} 
-                    className="tipo-averia"
-                  >
-                    Tipo 2
-                  </button>
-                  <button 
-                    onClick={() => handleAveriaOption(3)} 
-                    className="tipo-averia"
-                  >
-                    Tipo 3
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : selectedItem.type === 'cisterna' ? (
-            <div className="info-section">
-              <h3>Información de Cisterna</h3>
-              {system?.cisternas[selectedItem.id] && (
-                <div className="info-content">
-                  <div className="info-item">
-                    <strong>Tipo:</strong> <span>{system.cisternas[selectedItem.id].principal ? 'Principal' : 'Secundaria'}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>GLP Actual:</strong> <span>{(cisternaGLPs.get(system.cisternas[selectedItem.id].id) ?? system.cisternas[selectedItem.id].cargaGLPActual).toFixed(2)}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Capacidad Total:</strong> <span>{system.cisternas[selectedItem.id].capacidadTotal.toFixed(2)}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Hora de Abastecimiento:</strong> <span>{system.cisternas[selectedItem.id].horaAbastecimento}</span>
-                  </div>
-                  {system.cisternas[selectedItem.id].operacionesGLPCisterna?.length > 0 && (
-                    <div className="operaciones-section">
-                      <strong>Últimas Operaciones:</strong>
-                      <div className="operaciones-list">
-                        {system.cisternas[selectedItem.id].operacionesGLPCisterna.slice(-3).map((op, idx) => (
-                          <div key={idx} className="operacion-item">
-                            {new Date(op.fechaHoraOperacion).toLocaleString()}: {op.cantSalidaGLP.toFixed(2)} GLP (Camión {op.placaCamion})
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="info-section">
-              <h3>Información de Pedido</h3>
-              {system?.pedidos.find(p => p.id === selectedItem.id) && (
-                <div className="info-content">
-                  <div className="info-item">
-                    <strong>Código de Pedido:</strong> <span>{system.pedidos.find(p => p.id === selectedItem.id)?.numeroPedido}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Volumen GLP:</strong> <span>{system.pedidos.find(p => p.id === selectedItem.id)?.volumenGLP.toFixed(2)}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Hora Registro:</strong> <span>{new Date(system.pedidos.find(p => p.id === selectedItem.id)?.fechaHoraRegistro || '').toLocaleString()}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Entrega Máxima:</strong> <span>{new Date(system.pedidos.find(p => p.id === selectedItem.id)?.fechaHoraMaxEntrega || '').toLocaleString()}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Estado:</strong> <span>{pedidoEstadoLoading ? 'Cargando...' : (pedidoEstado ?? system.pedidos.find(p => p.id === selectedItem.id)?.estado)}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Ubicación:</strong> <span>({system.pedidos.find(p => p.id === selectedItem.id)?.ubicacion.x}, {system.pedidos.find(p => p.id === selectedItem.id)?.ubicacion.y})</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Combustible total:</strong> <span>{system.pedidos.find(p => p.id === selectedItem.id)?.consumoCombustibleTotal.toFixed(2)}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        ) : (
-          <div className="empty-selection">
-            <div className="empty-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 17L12 22L22 17" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 12L12 17L22 12" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <p>Seleccione un camión, cisterna o pedido para ver detalles</p>
-          </div>
-        )}
+      {/* Legend Toggle Button */}
+      <button
+        className="legend-toggle"
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowLegend(!showLegend);
+        }}
+        style={{
+          position: 'absolute',
+          bottom: '20px',
+          left: '20px',
+          width: '50px',
+          height: '50px',
+          backgroundColor: '#1976d2',
+          color: 'white',
+          border: 'none',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+          zIndex: 1000
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <div style={{ width: '20px', height: '2px', backgroundColor: 'white' }}></div>
+          <div style={{ width: '20px', height: '2px', backgroundColor: 'white' }}></div>
+          <div style={{ width: '20px', height: '2px', backgroundColor: 'white' }}></div>
+        </div>
+        <span style={{ fontSize: '8px', marginTop: '2px' }}>LEYENDA</span>
+      </button>
 
-        {/* Leyenda fija en la columna de información */}
-        <div className="sidebar-legend">
-          <h4>Leyenda</h4>
+      {/* Legend Panel */}
+      {showLegend && (
+        <div
+          className="legend-panel"
+          style={{
+            position: 'absolute',
+            bottom: '80px',
+            left: '20px',
+            backgroundColor: 'white',
+            border: '1px solid #ccc',
+            borderRadius: '8px',
+            padding: '15px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            zIndex: 1001,
+            minWidth: '200px'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold' }}>Leyenda</h4>
           <div className="legend-content">
-            <div className="legend-item">
-              <div className="legend-icon truck-legend">
-                <img src={truckIconUp} alt="Camión" className="legend-img" />
-              </div>
-              <span>Camión</span>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+              <img src={truckIconUp} alt="Camión" style={{ width: '20px', height: '20px', marginRight: '8px' }} />
+              <span style={{ fontSize: '12px' }}>Camión</span>
             </div>
-            <div className="legend-item">
-              <div className="legend-icon cisterna-legend">
-                <img src={cisternaIcon} alt="Cisterna" className="legend-img" />
-              </div>
-              <span>Cisterna</span>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+              <img src={cisternaIcon} alt="Cisterna" style={{ width: '20px', height: '20px', marginRight: '8px' }} />
+              <span style={{ fontSize: '12px' }}>Cisterna</span>
             </div>
-            <div className="legend-item">
-              <div className="legend-icon pedido-legend">
-                <img src={pedidoIcon} alt="Pedido" className="legend-img" />
-              </div>
-              <span>Pedido</span>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+              <img src={pedidoIcon} alt="Pedido" style={{ width: '20px', height: '20px', marginRight: '8px' }} />
+              <span style={{ fontSize: '12px' }}>Pedido</span>
             </div>
-            <div className="legend-item">
-              <div className="legend-line route-legend"></div>
-              <span>Ruta</span>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+              <div style={{ 
+                width: '20px', 
+                height: '2px', 
+                backgroundColor: '#666', 
+                marginRight: '8px',
+                borderRadius: '1px'
+              }}></div>
+              <span style={{ fontSize: '12px' }}>Ruta</span>
             </div>
-            <div className="legend-item">
-              <div className="legend-block">
-                <div className="legend-block-line"></div>
-                <div className="legend-block-symbol">✕</div>
-              </div>
-              <span>Bloqueo</span>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div style={{ 
+                width: '20px', 
+                height: '2px', 
+                backgroundColor: '#FF0000', 
+                marginRight: '8px',
+                borderRadius: '1px'
+              }}></div>
+              <span style={{ fontSize: '12px' }}>Bloqueo</span>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Tooltip */}
+      {showTooltip && (() => {
+        // Calculate tooltip position to keep it visible
+        const tooltipWidth = 300;
+        const tooltipHeight = 200; // Estimated height
+        const padding = 10;
+        
+        let tooltipX = showTooltip.x + padding;
+        let tooltipY = showTooltip.y + padding;
+        
+        // Check right boundary
+        if (tooltipX + tooltipWidth > window.innerWidth) {
+          tooltipX = showTooltip.x - tooltipWidth - padding;
+        }
+        
+        // Check bottom boundary
+        if (tooltipY + tooltipHeight > window.innerHeight) {
+          tooltipY = showTooltip.y - tooltipHeight - padding;
+        }
+        
+        // Ensure tooltip doesn't go off the left edge
+        if (tooltipX < padding) {
+          tooltipX = padding;
+        }
+        
+        // Ensure tooltip doesn't go off the top edge
+        if (tooltipY < padding) {
+          tooltipY = padding;
+        }
+        
+        return (
+          <div
+            className="tooltip-panel"
+            style={{
+              position: 'fixed',
+              top: tooltipY,
+              left: tooltipX,
+              backgroundColor: 'rgba(0, 0, 0, 0.9)',
+              color: 'white',
+              padding: '12px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              zIndex: 2000,
+              maxWidth: '300px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {showTooltip.item.type === 'truck' && (() => {
+            const truck = system?.flota.find(t => t.truckId === showTooltip.item.id);
+            const currentFuel = Number(truckFuels.get(showTooltip.item.id) || 0);
+            const currentGLP = Number(truckGLPs.get(showTooltip.item.id) || 0);
+            const currentDest = currentDestinations.get(showTooltip.item.id);
+            return (
+              <div>
+                <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Camión {truck?.codigo}</div>
+                <div><strong>Placa:</strong> {truck?.plate}</div>
+                <div><strong>Combustible:</strong> {currentFuel.toFixed(2)}</div>
+                <div><strong>GLP:</strong> {currentGLP.toFixed(2)}</div>
+                <div><strong>Estado:</strong> {truckStates.get(showTooltip.item.id) || 'N/A'}</div>
+                {currentDest && <div><strong>En:</strong> {currentDest.destinationType}</div>}
+                <div style={{ marginTop: '8px', fontSize: '10px', color: '#ccc' }}>
+                  Clic derecho para registrar avería
+                </div>
+              </div>
+            );
+          })()}
+          
+          {showTooltip.item.type === 'cisterna' && (() => {
+            const cisterna = system?.cisternas[showTooltip.item.id];
+            const currentGLP = cisternaGLPs.get(cisterna?.id) ?? cisterna?.cargaGLPActual;
+            return (
+              <div>
+                <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+                  Cisterna {cisterna?.principal ? 'Principal' : 'Secundaria'}
+                </div>
+                <div><strong>GLP Actual:</strong> {currentGLP?.toFixed(2)}</div>
+                <div><strong>Capacidad:</strong> {cisterna?.capacidadTotal?.toFixed(2)}</div>
+                <div><strong>Hora Abastecimiento:</strong> {cisterna?.horaAbastecimento}</div>
+              </div>
+            );
+          })()}
+          
+          {showTooltip.item.type === 'pedido' && (() => {
+            const pedido = system?.pedidos.find(p => p.id === showTooltip.item.id);
+            const estado = pedidosEstados[showTooltip.item.id] ?? pedido?.estado;
+            return (
+              <div>
+                <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Pedido {pedido?.numeroPedido}</div>
+                <div><strong>Volumen GLP:</strong> {pedido?.volumenGLP?.toFixed(2)}</div>
+                <div><strong>Estado:</strong> {estado}</div>
+                <div><strong>Registro:</strong> {new Date(pedido?.fechaHoraRegistro || '').toLocaleString()}</div>
+                <div><strong>Entrega Máxima:</strong> {new Date(pedido?.fechaHoraMaxEntrega || '').toLocaleString()}</div>
+                <div><strong>Ubicación:</strong> ({pedido?.ubicacion.x}, {pedido?.ubicacion.y})</div>
+              </div>
+            );
+          })()}
+        </div>
+        );
+      })()}
 
       {/* Context Menu */}
       {contextMenu && (
         <div
           className="context-menu"
           style={{
+            position: 'fixed',
             top: contextMenu.y,
-            left: contextMenu.x
+            left: contextMenu.x,
+            backgroundColor: 'white',
+            border: '1px solid #ccc',
+            borderRadius: '6px',
+            padding: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            zIndex: 2000
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>Registrar Avería</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ marginBottom: '8px', fontWeight: 'bold', fontSize: '12px' }}>Registrar Avería</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <button 
               onClick={() => handleAveriaOption(1)} 
-              className="tipo-averia"
+              style={{
+                padding: '6px 12px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                backgroundColor: '#f5f5f5',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
             >
               Tipo 1
             </button>
             <button 
               onClick={() => handleAveriaOption(2)} 
-              className="tipo-averia"
+              style={{
+                padding: '6px 12px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                backgroundColor: '#f5f5f5',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
             >
               Tipo 2
             </button>
             <button 
               onClick={() => handleAveriaOption(3)} 
-              className="tipo-averia"
+              style={{
+                padding: '6px 12px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                backgroundColor: '#f5f5f5',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
             >
               Tipo 3
             </button>
@@ -826,19 +878,38 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
         <div 
           className="overlap-menu"
           style={{
+            position: 'fixed',
             top: showOverlapMenu.y,
-            left: showOverlapMenu.x
+            left: showOverlapMenu.x,
+            backgroundColor: 'white',
+            border: '1px solid #ccc',
+            borderRadius: '6px',
+            padding: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            zIndex: 2000
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>Seleccionar elemento</div>
+          <div style={{ marginBottom: '8px', fontWeight: 'bold', fontSize: '12px' }}>Seleccionar elemento</div>
           <div className="overlap-items">
             {overlappingItems.map((item, index) => (
               <div 
                 key={`overlap-${index}`}
-                className="overlap-item"
+                style={{
+                  padding: '4px 8px',
+                  cursor: 'pointer',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  marginBottom: '2px'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                 onClick={() => {
-                  setSelectedItem(item);
+                  setShowTooltip({
+                    item,
+                    x: showOverlapMenu.x,
+                    y: showOverlapMenu.y
+                  });
                   setShowOverlapMenu(false);
                 }}
               >

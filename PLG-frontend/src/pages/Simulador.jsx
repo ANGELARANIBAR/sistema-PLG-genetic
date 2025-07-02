@@ -38,6 +38,7 @@ export default function Simulador() {
     
     // UI states
     const [navbarHeight, setNavbarHeight] = useState(65);
+    const [isPanelVisible, setIsPanelVisible] = useState(true);
 
     // Load start time and fechaHoraFinEntregas when component mounts
     useEffect(() => {
@@ -150,39 +151,66 @@ export default function Simulador() {
     }
 
     return (
-        <Box sx={{ display: 'flex', height: `calc(100vh - ${navbarHeight}px)` }}>
-            {/* Main content area with MapVisualization */}            <Box sx={{ 
+        <Box sx={{ display: 'flex', height: `calc(100vh - ${navbarHeight}px)`, position: 'relative' }}>
+            {/* Main content area with MapVisualization */}
+            <Box sx={{ 
                 flexGrow: 1, 
                 position: 'relative',
-                width: 'calc(100vw - 350px)', // Subtract panel width
+                width: isPanelVisible ? 'calc(100vw - 350px)' : '100vw',
                 height: '100%',
                 overflow: "hidden",
-                backgroundColor: "#fafafa"
+                backgroundColor: "#fafafa",
+                transition: 'width 0.3s ease'
             }}>
                 {/* MapVisualization component */}
                 <MapVisualization 
                     currentTime={currentTime} 
                     onPauseSimulation={handlePauseSimulation}
                 />
+                
+                {/* Toggle button for panel */}
+                <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => setIsPanelVisible(!isPanelVisible)}
+                    sx={{
+                        position: 'absolute',
+                        top: 10,
+                        right: 10,
+                        minWidth: 'auto',
+                        width: 40,
+                        height: 40,
+                        zIndex: 1000,
+                        backgroundColor: 'primary.main',
+                        '&:hover': {
+                            backgroundColor: 'primary.dark',
+                        }
+                    }}
+                >
+                    {isPanelVisible ? '→' : '←'}
+                </Button>
             </Box>
 
-            {/* Right fixed panel - always visible */}
+            {/* Right panel - collapsible */}
             <Box
                 sx={{
-                    width: 350,
+                    width: isPanelVisible ? 350 : 0,
                     height: '100%',
                     backgroundColor: 'white',
-                    borderLeft: '1px solid #e0e0e0',
+                    borderLeft: isPanelVisible ? '1px solid #e0e0e0' : 'none',
                     overflowY: 'auto',
+                    overflowX: 'hidden',
                     flexShrink: 0,
-                    position: 'relative'
+                    position: 'relative',
+                    transition: 'width 0.3s ease'
                 }}
             >
-                <Box sx={{ 
-                    p: 2,
-                    height: '100%',
-                    overflowY: 'auto'
-                }}>
+                {isPanelVisible && (
+                    <Box sx={{ 
+                        p: 2,
+                        height: '100%',
+                        overflowY: 'auto'
+                    }}>
                     {/* Header */}
                     <Typography variant="h5" fontWeight="bold" gutterBottom>
                         Simulación PLG
@@ -305,6 +333,7 @@ export default function Simulador() {
                         </AccordionDetails>
                     </Accordion>
                 </Box>
+                )}
             </Box>
         </Box>
     );
