@@ -838,7 +838,8 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
                 borderRadius: '4px',
                 backgroundColor: '#f5f5f5',
                 cursor: 'pointer',
-                fontSize: '12px'
+                fontSize: '12px',
+                color: '#000000'
               }}
             >
               Tipo 1
@@ -851,7 +852,8 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
                 borderRadius: '4px',
                 backgroundColor: '#f5f5f5',
                 cursor: 'pointer',
-                fontSize: '12px'
+                fontSize: '12px',
+                color: '#000000'
               }}
             >
               Tipo 2
@@ -864,7 +866,8 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
                 borderRadius: '4px',
                 backgroundColor: '#f5f5f5',
                 cursor: 'pointer',
-                fontSize: '12px'
+                fontSize: '12px',
+                color: '#000000'
               }}
             >
               Tipo 3
