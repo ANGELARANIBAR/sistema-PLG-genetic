@@ -317,6 +317,7 @@ public class SistemaPLG {
             LocalDateTime fechaHoraInicioMes = LocalDateTime.of(anio, mes, 1, 0, 0);
             cargarPedidos(archivo.getAbsolutePath(), fechaHoraInicioMes, fechaInicio, fechaFin);
         }
+        if(pedidos==null)return new ArrayList<>();
         pedidos.sort(Comparator.comparing(Pedido::getFechaHoraMaxEntrega));
         for (int i = 0; i < pedidos.size(); i++) {
             Pedido p = pedidos.get(i);

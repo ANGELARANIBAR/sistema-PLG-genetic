@@ -30,7 +30,7 @@ public class Genetico {
 
         List<Individuo> poblacion = new ArrayList<>();
         Random rand = new Random();
-        numIndividuosExploratorios = (int)(tamPoblacion*0.7);
+        numIndividuosExploratorios = (int)(tamPoblacion*0.2);
         // Inicializar población aleatora controlada
         for (int i = 0; i < tamPoblacion; i++) {
             Individuo ind = new Individuo(numPedidos, numCamiones, sistema, code);
@@ -42,9 +42,7 @@ public class Genetico {
             */
             poblacion.add(ind);
         }
-
         Individuo mejorSolucion = Collections.max(poblacion, Comparator.comparingDouble(Individuo::getFitness)).clonar(code);
-
         for (int gen = 0; gen < generaciones; gen++) {
             PlanificacionPlgApplication.setPorcentajeEjecucion(100.0 * (gen + 1) / generaciones);
             List<Individuo> nuevaGeneracion = new ArrayList<>();
@@ -57,22 +55,29 @@ public class Genetico {
             }
 
             int iter = 0;
-            while (nuevaGeneracion.size() < tamPoblacion) { //si no hay pedidos validos se queda
-                if (iter > tamPoblacion/2) {
+            int maxIntentosGlobal = 10; // máximo de intentos permitidos por generación
+            int intentosGlobales = 0;
+            while ((intentosGlobales < maxIntentosGlobal
+            || nuevaGeneracion.isEmpty())) { //si no hay pedidos validos se queda
+                if (iter > tamPoblacion*0.8) {
+//                    System.out.println("exploratorio inicio");
                     int generados = 0;
                     int intentos = 0;
-                    int maxIntentos = 100; // evita bucles infinitos
+                    int maxIntentos = 10; // evita bucles infinitos
 
                     while (generados < numIndividuosExploratorios && intentos < maxIntentos && nuevaGeneracion.size() < tamPoblacion) {
                         Individuo nuevo = new Individuo(numPedidos, numCamiones, sistema, code);
                         nuevo.evaluar(code, sistema);
                         if (nuevo.getFitness() > 0) {
                             nuevaGeneracion.add(nuevo); // ++ exploratorio
+//                            System.out.println("fitness: "+nuevo.getFitness());
                             generados++;
                         }
                         intentos++;
+                        intentosGlobales++;
                     }
 
+//                    System.out.println("exploratorio fin");
                     iter = 0; // reiniciar el contador de intentos fallidos
                 }
 
@@ -93,6 +98,7 @@ public class Genetico {
                     nuevaGeneracion.add(hijo);
                 }
                 iter = iter+1;
+                intentosGlobales++;
             }
 
             poblacion = nuevaGeneracion;

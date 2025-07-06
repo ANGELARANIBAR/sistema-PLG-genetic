@@ -450,6 +450,24 @@ public class SolutionController {
         return mejorSolucion != null && mejorSolucion.getSistemaPLG().isReplanning();
     }
 
+    @GetMapping("/batch-refresh-status")
+    public Map<String, Object> getBatchRefreshStatus() {
+        Map<String, Object> response = new HashMap<>();
+        boolean needsRefresh = PlanificacionPlgApplication.isBatchRefreshNeeded();
+        
+//        System.out.println("Batch refresh status check - needsRefresh: " + needsRefresh);
+        
+        response.put("needsRefresh", needsRefresh);
+        
+        // Reset the flag after sending the response
+        if (needsRefresh) {
+            PlanificacionPlgApplication.setBatchRefreshNeeded(false);
+            System.out.println("Batch refresh flag reset to false");
+        }
+        
+        return response;
+    }
+
     @GetMapping("/truck-destination/{truckId}")
     public DestinationDTO getTruckDestination(
             @PathVariable int truckId,
@@ -880,6 +898,35 @@ public class SolutionController {
     @PostMapping("/continue-simulation")
     public ResponseEntity<String> continueSimulation() {
         try {
+            //esperar hasta que sea ture
+//            if(PlanificacionPlgApplication.getSigListo()){
+//                PlanificacionPlgApplication.setSigListo(false);
+//                PlanificacionPlgApplication.setMejorSolucion(PlanificacionPlgApplication.getMejorSolucionSiguiente());
+//                PlanificacionPlgApplication.setBatchRefreshNeeded(true);
+//            }
+            new Thread(() -> {
+                Individuo copia = PlanificacionPlgApplication.getMejorSolucionSiguiente();
+                while (true) {
+                    // Esperar hasta que sigListo sea true
+                    if (PlanificacionPlgApplication.getSigListo()) {
+                        // Guardar copia local para evitar sobrescritura
+
+                        // Actualizar valores
+                        PlanificacionPlgApplication.setMejorSolucion(copia);
+                        PlanificacionPlgApplication.setBatchRefreshNeeded(true);
+                        PlanificacionPlgApplication.setSigListo(false);
+                    }
+
+                    try {
+                        Thread.sleep(100); // evitar sobrecargar CPU
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break; // salir si el hilo es interrumpido
+                    }
+                }
+            }).start();
+
+            // segundo plano
             PlanificacionPlgApplication.procesarSiguienteBatch();
 
             return ResponseEntity.badRequest().body("No hay simulación activa");

@@ -16,6 +16,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import MapVisualization from "../components/MapVisualization";
 import { mapService } from "../services/mapService";
+import { useBatchRefreshMonitor } from "../hooks/useBatchRefreshMonitor";
 
 /**
  * Simulador.jsx — Simulador con MapVisualization y controles de tiempo
@@ -35,9 +36,32 @@ export default function Simulador() {
     const [fechaHoraFinEntregas, setFechaHoraFinEntregas] = useState(null);
     const [isContinuing, setIsContinuing] = useState(false);
     const [colapsoInfo, setColapsoInfo] = useState(null);
+    const [showAutoPlayNotification, setShowAutoPlayNotification] = useState(false);
     
     // UI states
     const [navbarHeight, setNavbarHeight] = useState(65);
+
+    // Monitor for batch refresh notifications
+    useBatchRefreshMonitor(true, 2000);
+
+    // Check if we should auto-play after a refresh
+    useEffect(() => {
+        const shouldAutoPlay = sessionStorage.getItem('autoPlayAfterRefresh');
+        if (shouldAutoPlay === 'true') {
+            // Clear the flag
+            sessionStorage.removeItem('autoPlayAfterRefresh');
+            // Show notification
+            setShowAutoPlayNotification(true);
+            // Auto-play the simulation after a short delay to ensure everything is loaded
+            setTimeout(() => {
+                setIsPlaying(true);
+                // Hide notification after 5 seconds
+                setTimeout(() => {
+                    setShowAutoPlayNotification(false);
+                }, 5000);
+            }, 2000);
+        }
+    }, []);
 
     // Load start time and fechaHoraFinEntregas when component mounts
     useEffect(() => {
@@ -196,6 +220,12 @@ export default function Simulador() {
                             <Typography variant="body2">Hora simulada de entrega: <b>{new Date(colapsoInfo.horaSimuladaEntrega).toLocaleString()}</b></Typography>
                             <Typography variant="body2">Entrega a cargo del camión: <b>{colapsoInfo.camionEntrega}</b></Typography>
                             <Typography variant="body2" color="error" fontWeight="bold">La simulación ha sido pausada.</Typography>
+                        </Alert>
+                    )}
+                    {showAutoPlayNotification && (
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">Simulación reiniciada automáticamente</Typography>
+                            <Typography variant="body2">La simulación se ha reiniciado después del procesamiento del nuevo batch y comenzará a reproducirse automáticamente.</Typography>
                         </Alert>
                     )}
                     <Button

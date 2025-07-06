@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -16,6 +15,8 @@ public class PlanificacionPlgApplication {
     private static final double MAX_DOUBLE = Double.MAX_VALUE;
     @Setter @Getter
     private static Individuo mejorSolucion;
+    @Setter @Getter
+    private static Boolean sigListo = false;
     @Setter @Getter
     private static Individuo mejorSolucionSiguiente;
     @Setter @Getter
@@ -31,6 +32,9 @@ public class PlanificacionPlgApplication {
     @Setter @Getter
     private static List<Integer> batchStartIndices;
 
+    @Setter @Getter
+    private static boolean batchRefreshNeeded = false;
+
     // Rutas base para los archivos de datos
     private static final String BASE_DIR = "src/main/java/com/plg/planificacionplg/test/";
     private static final String PEDIDOS_FILE = BASE_DIR + "pedidos.20250419/";
@@ -40,7 +44,8 @@ public class PlanificacionPlgApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(PlanificacionPlgApplication.class, args);
-        //ejecutarAlgoritmo(2);
+//        fechaHoraInicio = LocalDateTime.of(2025, 3, 23, 10, 30);
+//        ejecutarAlgoritmo(2);
     }
 
 
@@ -188,8 +193,8 @@ public class PlanificacionPlgApplication {
 
         int tamPoblacion = 30;
         int generaciones = 5;
-        double probCruce = 0.20;
-        double probMutacion = 0.15;
+        double probCruce = 0.10;
+        double probMutacion = 0.10;
         double porcentajeElite = 0.1;
         double capMaxFlota = 0.0;
         for(Camion c : sistemaPLG.getFlota()) {
@@ -235,10 +240,9 @@ public class PlanificacionPlgApplication {
         );
         mejorSolucion.getSistemaPLG().cargarAverias(AVERIAS_FILE);
         mejorSolucion.getSistemaPLG().imprimirPlanificacion();
+        PlanificacionPlgApplication.setBatchRefreshNeeded(true);
         batchActual = 1;
         procesarSiguienteBatch();
-
-
 
         double min = 0.35;
         double max = 0.75;
@@ -425,12 +429,8 @@ public class PlanificacionPlgApplication {
                     Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
                     mejorSolucion = ga2.ejecutar(2, replanificado);
                     mejorSolucion.getSistemaPLG().imprimirPlanificacion();
-
                     mejorSolucion.getSistemaPLG().setReplanning(false);
                     mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
-//                    PlanificacionPlgApplication.setMejorSolucion(mejorSolucion);
-
-
                 } finally {
                     mejorSolucion.getSistemaPLG().setReplanning(false);
                 }
@@ -468,7 +468,7 @@ public class PlanificacionPlgApplication {
             }
         }
         replanificado.setCisternas(mejorSolucion.getSistemaPLG().getCisternas());
-        mejorSolucion.getSistemaPLG().setReplanning(true);
+        mejorSolucion.getSistemaPLG().setReplanning(false);//mostrar mensaje
         mejorSolucion.getSistemaPLG().setAveriaStartTime(inicioReplan);
         // Replanificacion process
         replanificado.setFlota(new ArrayList<>());
@@ -539,11 +539,11 @@ public class PlanificacionPlgApplication {
                 }
                 replanificado.getFlota().add(nuevoCamion);
             }
-            int tamPoblacion = 30;
+            int tamPoblacion = 20;
             int generaciones = 5;
-            double probCruce = 0.3;
-            double probMutacion = 0.15;
-            double porcentajeElite = 0.2;
+            double probCruce = 0.1;
+            double probMutacion = 0.1;
+            double porcentajeElite = 0.1;
             Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
             System.out.println("%%%%%%%%%%%%%%%%%%%%REPLANNING%%%%%%%%%%%%%%%%%%%%");
             mejorSolucion = ga2.ejecutar(2, replanificado);
@@ -551,7 +551,8 @@ public class PlanificacionPlgApplication {
 
             mejorSolucion.getSistemaPLG().setReplanning(false);
             mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
-            PlanificacionPlgApplication.setMejorSolucion(mejorSolucion);
+
+            PlanificacionPlgApplication.setSigListo(true);
 
         } finally {
             mejorSolucion.getSistemaPLG().setReplanning(false);
@@ -580,20 +581,16 @@ public class PlanificacionPlgApplication {
             ArrayList<Pedido> pedidosNuevos = new ArrayList<>(batch);
             // Reasignar IDs para el batch
             for (int j = 0; j < pedidosNuevos.size(); j++) {
-                pedidosNuevos.get(j).setId(j + 1); // o j si prefieres que empiece en 0
+                pedidosNuevos.get(j).setId(j + 1);
             }
             System.out.println("Cantidad pedidos: " + pedidosNuevos.size());
             Individuo mejorSolucionActual = PlanificacionPlgApplication.getMejorSolucion();
-            if(batchActual!=1)
-                PlanificacionPlgApplication.setMejorSolucion(PlanificacionPlgApplication.getMejorSolucionSiguiente());
             mejorSolucionSiguiente = new Individuo();
             mejorSolucionSiguiente.setSistemaPLG(new SistemaPLG());
             mejorSolucionSiguiente.getSistemaPLG().deepCopy(mejorSolucionActual.getSistemaPLG());
             PlanificacionPlgApplication.replanificar(PlanificacionPlgApplication.getMejorSolucionSiguiente(),inicio, pedidosNuevos);
             PlanificacionPlgApplication.setBatchActual(batchActual + 1);
-            return;
         } catch (Exception e) {
-            return;
         }
     }
 }
