@@ -27,7 +27,7 @@ export default function Navbar() {
 
   const navItems = [
     { path: "/pedidos", label: "Pedidos" },
-    { path: "/flota", label: "Flota" },
+    { path: "/configuracion", label: "Configuración" },
     { path: "/simulacion", label: "Simulación" }
   ];
 

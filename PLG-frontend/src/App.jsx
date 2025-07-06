@@ -8,6 +8,7 @@ import NuevoPedido from "./pages/NuevoPedido";
 import Flota from "./pages/Flota";
 import NuevoVehiculo from "./pages/NuevoVehiculo";
 import Simulador from "./pages/Simulador";
+import Configuracion from "./pages/Configuracion";
 import Home from "./pages/Home";
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/simulacion" element={<Simulacion />} />
         <Route path="/pedidos" element={<Pedidos />} />
         <Route path="/flota" element={<Flota />} />
+        <Route path="/configuracion" element={<Configuracion />} />
         <Route path="/planificacion" element={<Planificacion />} />
         <Route path="/nuevo-pedido" element={<NuevoPedido />} />
         <Route path="/nuevo-vehiculo" element={<NuevoVehiculo />} />
