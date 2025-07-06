@@ -20,6 +20,8 @@ public class PlanificacionPlgApplication {
     @Setter @Getter
     private static Individuo mejorSolucionSiguiente;
     @Setter @Getter
+    private static Individuo mejorSolucionAnterior;
+    @Setter @Getter
     private static double porcentajeEjecucion;
     @Setter @Getter
     private static LocalDateTime fechaHoraInicio;
@@ -439,18 +441,28 @@ public class PlanificacionPlgApplication {
         }
     }
     public static void replanificar(Individuo mejorSolucion, LocalDateTime inicioReplan, ArrayList<Pedido>pedidosnuevos){
-        SistemaPLG replanificado = new SistemaPLG(mejorSolucion.getSistemaPLG());
-        mejorSolucion.getSistemaPLG().estadoDePedidosALas(inicioReplan);
+        SistemaPLG replanificado = mejorSolucion.getSistemaPLG();
+        mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
         replanificado.setPedidos(pedidosnuevos);
+
+//        mejorSolucion.getSistemaPLG().estadoDePedidosALas(inicioReplan);
 //        for(Pedido p : mejorSolucion.getSistemaPLG().getPedidos()){
 //            if(p.getEstado()!=EstadoPedido.ENTREGADO){
-//                Pedido reemplazado = replanificado.getPedidos().get(p.getId()-1);
-//                replanificado.getPedidos().remove(p.getId()-1);
-//                replanificado.getPedidos().add(p.getId()-1, p);
-//                replanificado.getPedidos().add(reemplazado);
-//                reemplazado.setId(replanificado.getPedidos().size()+1);
+//                Pedido pedidoCopia = new Pedido(p);
+//                if(p.getId()<replanificado.getPedidos().size()){
+//                    Pedido reemplazado = replanificado.getPedidos().get(p.getId()-1);
+//                    replanificado.getPedidos().remove(p.getId()-1);
+//                    replanificado.getPedidos().add(p.getId()-1, pedidoCopia);
+//                    replanificado.getPedidos().add(reemplazado);
+//                    reemplazado.setId(replanificado.getPedidos().size()+1);
+//                }
+//                else{
+//                    replanificado.getPedidos().add(pedidoCopia); //en caso el batch sea mas pequeno que el anterior
+//                    pedidoCopia.setId(replanificado.getPedidos().size()+1);
+//                }
 //            }
 //        }
+
         for(Cisterna cist : mejorSolucion.getSistemaPLG().getCisternas()){
             OperacionesGLPCisterna op = new OperacionesGLPCisterna();
             op.setFechaHoraOperacion(inicioReplan.plusMinutes(1));
@@ -551,7 +563,8 @@ public class PlanificacionPlgApplication {
 
             mejorSolucion.getSistemaPLG().setReplanning(false);
             mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
-
+            PlanificacionPlgApplication.setMejorSolucionSiguiente(mejorSolucion);
+            PlanificacionPlgApplication.setMejorSolucionAnterior(mejorSolucion);
             PlanificacionPlgApplication.setSigListo(true);
 
         } finally {

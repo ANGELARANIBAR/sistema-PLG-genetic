@@ -85,7 +85,8 @@ public class Pedido{
         this.fechaHoraMaxEntrega = otro.getFechaHoraMaxEntrega();
         this.tiempoMaxEntrega = otro.getTiempoMaxEntrega();
         this.estado = otro.getEstado();
-        this.completado = otro.isCompletado();        this.camiones = new ArrayList<>(otro.getCamiones());
+        this.completado = otro.isCompletado();
+        this.camiones = new ArrayList<>(otro.getCamiones());
         this.consumoCombustibleTotal = otro.getConsumoCombustibleTotal();
     }
     

@@ -812,7 +812,7 @@ public class SolutionController {
             double probCruce = 0.3;
             double probMutacion = 0.15;
             double porcentajeElite = 0.2;
-            replanificado.imprimirPlanificacion();
+            //replanificado.imprimirPlanificacion();
             Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
             mejorSolucion = ga2.ejecutar(2, replanificado);
             mejorSolucion.getSistemaPLG().imprimirPlanificacion();
@@ -898,23 +898,18 @@ public class SolutionController {
     @PostMapping("/continue-simulation")
     public ResponseEntity<String> continueSimulation() {
         try {
-            //esperar hasta que sea ture
-//            if(PlanificacionPlgApplication.getSigListo()){
-//                PlanificacionPlgApplication.setSigListo(false);
-//                PlanificacionPlgApplication.setMejorSolucion(PlanificacionPlgApplication.getMejorSolucionSiguiente());
-//                PlanificacionPlgApplication.setBatchRefreshNeeded(true);
-//            }
+            System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%CONTINUANDP SIM%%%%%%%%%%%%%%%%%%%%%%%%");
             new Thread(() -> {
-                Individuo copia = PlanificacionPlgApplication.getMejorSolucionSiguiente();
+                Individuo copia = PlanificacionPlgApplication.getMejorSolucionAnterior();
+//                System.out.println("Impresion de prueba de lo que corresponde a un nuevo batch pe");
+//                copia.getSistemaPLG().imprimirPlanificacion();
                 while (true) {
                     // Esperar hasta que sigListo sea true
                     if (PlanificacionPlgApplication.getSigListo()) {
-                        // Guardar copia local para evitar sobrescritura
-
-                        // Actualizar valores
+                        PlanificacionPlgApplication.setSigListo(false);
                         PlanificacionPlgApplication.setMejorSolucion(copia);
                         PlanificacionPlgApplication.setBatchRefreshNeeded(true);
-                        PlanificacionPlgApplication.setSigListo(false);
+                        break;
                     }
 
                     try {
@@ -928,8 +923,8 @@ public class SolutionController {
 
             // segundo plano
             PlanificacionPlgApplication.procesarSiguienteBatch();
-
-            return ResponseEntity.badRequest().body("No hay simulación activa");
+//
+            return ResponseEntity.ok("Simulación continuada al siguiente batch");
 //            Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
 //            if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {
 //                return ResponseEntity.badRequest().body("No hay simulación activa");

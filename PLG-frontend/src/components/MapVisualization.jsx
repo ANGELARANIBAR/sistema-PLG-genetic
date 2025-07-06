@@ -30,6 +30,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   const [pedidoEstado, setPedidoEstado] = useState(null);
   const [pedidoEstadoLoading, setPedidoEstadoLoading] = useState(false);
   const [pedidosEstados, setPedidosEstados] = useState({});
+  const [planificationPercentage, setPlanificationPercentage] = useState(null);
   const mapContainerRef = useRef(null);
 
   const getCurrentDestination = useCallback(async (truck) => {
@@ -290,8 +291,39 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
     }
   }, [pedidosEstados, selectedItem]);
 
+  // Fetch planification percentage periodically
+  useEffect(() => {
+    const fetchPercentage = async () => {
+      try {
+        const percentage = await mapService.fetchPlanificationPercentage();
+        if (percentage !== null) {
+          setPlanificationPercentage(percentage);
+        }
+      } catch (error) {
+        console.error('Error fetching planification percentage:', error);
+      }
+    };
+
+    // Fetch immediately
+    fetchPercentage();
+
+    // Set up interval to fetch every 2 seconds
+    const interval = setInterval(fetchPercentage, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   if (!system || !startTime) {
-    return <div className="loading-message">Loading...</div>;
+    return (
+      <div className="loading-message">
+        <div>Cargando simulación...</div>
+        {planificationPercentage !== null && (
+          <div style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
+            Progreso de planificación: {planificationPercentage.toFixed(1)}%
+          </div>
+        )}
+      </div>
+    );
   }
 
   // Calculate scale factors to fit the map in the viewport

@@ -35,6 +35,11 @@ export default function Simulador() {
     const [simulationStarted, setSimulationStarted] = useState(false);
     const [fechaHoraFinEntregas, setFechaHoraFinEntregas] = useState(null);
     const [isContinuing, setIsContinuing] = useState(false);
+    const [lastProcessedFechaHoraFin, setLastProcessedFechaHoraFin] = useState(() => {
+        // Try to get from sessionStorage on initialization
+        const stored = sessionStorage.getItem('lastProcessedFechaHoraFin');
+        return stored ? new Date(stored) : null;
+    });
     const [colapsoInfo, setColapsoInfo] = useState(null);
     const [showAutoPlayNotification, setShowAutoPlayNotification] = useState(false);
     
@@ -90,9 +95,18 @@ export default function Simulador() {
     useEffect(() => {
         
         if (!currentTime || !fechaHoraFinEntregas || isContinuing) return;
+        
+        // Check if we've already processed this specific fechaHoraFinEntregas
+        if (lastProcessedFechaHoraFin && lastProcessedFechaHoraFin.getTime() === fechaHoraFinEntregas.getTime()) {
+            return;
+        }
+        
         if (currentTime >= fechaHoraFinEntregas) {
             setIsContinuing(true);
-            console.log("Llamndo a nuevo batch")
+            setLastProcessedFechaHoraFin(fechaHoraFinEntregas);
+            // Store in sessionStorage to persist across page refreshes
+            sessionStorage.setItem('lastProcessedFechaHoraFin', fechaHoraFinEntregas.toISOString());
+            console.log("Llamando a nuevo batch")
             fetch(`${API_BASE}/continue-simulation`, { method: "POST" })
                 .then(() => {
                     // After continuing, fetch new fechaHoraFinEntregas
@@ -100,11 +114,13 @@ export default function Simulador() {
                 })
                 .then(res => res.json())
                 .then(data => {
-                    if (data) setFechaHoraFinEntregas(new Date(data));
+                    if (data) {
+                        setFechaHoraFinEntregas(new Date(data));
+                    }
                 })
                 .finally(() => setIsContinuing(false));
         }
-    }, [currentTime, fechaHoraFinEntregas, isContinuing]);
+    }, [currentTime, fechaHoraFinEntregas, isContinuing, lastProcessedFechaHoraFin]);
 
     // Simulation time progression
     useEffect(() => {
@@ -142,6 +158,17 @@ export default function Simulador() {
         intervalId = setInterval(checkColapso, 2000);
         return () => clearInterval(intervalId);
     }, []);
+
+    // Clear stored lastProcessedFechaHoraFin when we get a new fechaHoraFinEntregas
+    useEffect(() => {
+        if (fechaHoraFinEntregas && lastProcessedFechaHoraFin) {
+            if (fechaHoraFinEntregas.getTime() !== lastProcessedFechaHoraFin.getTime()) {
+                // New fechaHoraFinEntregas received, clear the stored value
+                sessionStorage.removeItem('lastProcessedFechaHoraFin');
+                setLastProcessedFechaHoraFin(null);
+            }
+        }
+    }, [fechaHoraFinEntregas, lastProcessedFechaHoraFin]);
 
     const handlePauseSimulation = () => {
         setIsPlaying(false);

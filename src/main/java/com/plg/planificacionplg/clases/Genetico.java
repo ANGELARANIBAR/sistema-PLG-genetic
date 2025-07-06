@@ -32,16 +32,25 @@ public class Genetico {
         Random rand = new Random();
         numIndividuosExploratorios = (int)(tamPoblacion*0.2);
         // Inicializar población aleatora controlada
+//        System.out.println("Inicio replan");
+
         for (int i = 0; i < tamPoblacion; i++) {
+//            System.out.println("ind " + (i+1));
+//            System.out.println("ped " + (numPedidos+1));
+//            System.out.println("cam " + (numCamiones+1));
+//            System.out.println("sis " + (sistema.getPedidos().size()+1));
+
             Individuo ind = new Individuo(numPedidos, numCamiones, sistema, code);
+
+//            System.out.println(ind.getAsignacion());
+//            System.out.println(ind.getPedidosXcargasGLP());
+//            System.out.println("***************************************************************************************");
+
             ind.evaluar(code, sistema);
-            /*
-            System.out.println(ind.getAsignacion());
-            System.out.println(ind.getPedidosXcargasGLP());
-            System.out.println("***************************************************************************************");
-            */
             poblacion.add(ind);
         }
+//        System.out.println("Inicio replan");
+
         Individuo mejorSolucion = Collections.max(poblacion, Comparator.comparingDouble(Individuo::getFitness)).clonar(code);
         for (int gen = 0; gen < generaciones; gen++) {
             PlanificacionPlgApplication.setPorcentajeEjecucion(100.0 * (gen + 1) / generaciones);
@@ -57,10 +66,10 @@ public class Genetico {
             int iter = 0;
             int maxIntentosGlobal = 10; // máximo de intentos permitidos por generación
             int intentosGlobales = 0;
+
             while ((intentosGlobales < maxIntentosGlobal
             || nuevaGeneracion.isEmpty())) { //si no hay pedidos validos se queda
                 if (iter > tamPoblacion*0.8) {
-//                    System.out.println("exploratorio inicio");
                     int generados = 0;
                     int intentos = 0;
                     int maxIntentos = 10; // evita bucles infinitos

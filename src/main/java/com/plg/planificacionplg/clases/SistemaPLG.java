@@ -157,7 +157,8 @@ public class SistemaPLG {
         Camion c = flota.get(idCamion-1);
         if(c.getDestinos().isEmpty())return 0.0;
         Destino anterior = c.getDestinos().get(0), d;
-        if(anterior.getFechaHoraSalida()==null || (c.getDestinos().get(1)!=null && c.getDestinos().get(1).getFechaHoraLlegada()==null))return anterior.getSaldoGLPCamion();
+        if(anterior.getFechaHoraSalida()==null || c.getDestinos().size() == 1
+                || (c.getDestinos().get(1)!=null && c.getDestinos().get(1).getFechaHoraLlegada()==null))return anterior.getSaldoGLPCamion();
         if(anterior instanceof Replanficacion &&
                 fecha.isBefore(anterior.getFechaHoraSalida())) {
             if((((Replanficacion) anterior).getOperaciones()!=null)){
@@ -198,6 +199,7 @@ public class SistemaPLG {
         Camion camion = new Camion(c);
         if(c.getDestinos().isEmpty())return camion;
         Destino anterior = c.getDestinos().get(0), d;
+        if (c.getDestinos().size() == 1) return camion;
         if(anterior.getFechaHoraSalida()==null || (c.getDestinos().get(1)!=null && c.getDestinos().get(1).getFechaHoraLlegada()==null))
             return camion;
         if(anterior.getFechaHoraSalida().isAfter(fecha)){

@@ -234,5 +234,18 @@ export const mapService = {
         } catch (error) {
             return null;
         }
+    },
+
+    // Fetch planification percentage
+    async fetchPlanificationPercentage() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/porcentaje-ejecucion`);
+            if (!response.ok) {
+                return null;
+            }
+            return await response.json();
+        } catch (error) {
+            return null;
+        }
     }
 }; 

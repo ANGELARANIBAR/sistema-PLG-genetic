@@ -13,10 +13,10 @@ export const useBatchRefreshMonitor = (enabled = true, intervalMs = 2000, onRefr
             try {
                 const response = await simulationService.getBatchRefreshStatus();
                 
-                console.log('Batch refresh check:', response);
+                //console.log('Batch refresh check:', response);
                 
                 if (response.needsRefresh) {
-                    console.log('Batch refresh needed. Refreshing page...');
+                    //console.log('Batch refresh needed. Refreshing page...');
                     // Add a small delay to ensure the backend has processed everything
                     setTimeout(() => {
                         // Store a flag in sessionStorage to indicate we should auto-play after refresh
