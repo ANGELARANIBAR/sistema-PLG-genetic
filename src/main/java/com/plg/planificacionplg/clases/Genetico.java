@@ -49,7 +49,7 @@ public class Genetico {
             ind.evaluar(code, sistema);
             poblacion.add(ind);
         }
-//        System.out.println("Inicio replan");
+
 
         Individuo mejorSolucion = Collections.max(poblacion, Comparator.comparingDouble(Individuo::getFitness)).clonar(code);
         for (int gen = 0; gen < generaciones; gen++) {
@@ -64,6 +64,13 @@ public class Genetico {
                     nuevaGeneracion.add(poblacion.get(i).clonar(code));
                 }
             }
+            while(nuevaGeneracion.isEmpty()){
+                Individuo nuevo = new Individuo(numPedidos, numCamiones, sistema, code);
+                nuevo.evaluar(code, sistema);
+                if (nuevo.getFitness() > 0) {
+                    nuevaGeneracion.add(nuevo);
+                }
+            }
 
             int iter = 0;
             int maxIntentosGlobal = 20; // máximo de intentos permitidos por generación
@@ -74,7 +81,7 @@ public class Genetico {
                 if (iter > tamPoblacion*0.8) {
                     int generados = 0;
                     int intentos = 0;
-                    int maxIntentos = 100; // evita bucles infinitos
+                    int maxIntentos = 10; // evita bucles infinitos
 
                     while (generados < numIndividuosExploratorios && intentos < maxIntentos && nuevaGeneracion.size() < tamPoblacion) {
                         Individuo nuevo = new Individuo(numPedidos, numCamiones, sistema, code);

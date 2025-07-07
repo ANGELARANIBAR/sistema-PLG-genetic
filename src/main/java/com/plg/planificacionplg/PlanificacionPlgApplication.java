@@ -502,6 +502,10 @@ public class PlanificacionPlgApplication {
                     }
                 }
                 sigListo = false;
+
+                System.out.println("inicio "+inicio);
+                System.out.println("flota "+mejorSolucionSiguiente.getSistemaPLG().getFlota().size());
+                System.out.println("ped "+mejorSolucionSiguiente.getSistemaPLG().getPedidos().size());
                 PlanificacionPlgApplication.replanificar(PlanificacionPlgApplication.getMejorSolucionSiguiente(), inicio, pedidosNuevos);
 
                 while (PlanificacionPlgApplication.isWaitingForContinueSimulation()) {

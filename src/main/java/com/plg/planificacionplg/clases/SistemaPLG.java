@@ -568,6 +568,7 @@ public class SistemaPLG {
             for (Camion camion : otro.flota) {
                 Camion nuevoCamion = new Camion();
                 nuevoCamion.deepCopy(camion);
+                nuevoCamion.setDestinos(new ArrayList<>());
                 this.flota.add(nuevoCamion);
             }
         }
