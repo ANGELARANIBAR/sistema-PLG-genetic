@@ -16,7 +16,7 @@ public class PlanificacionPlgApplication {
     @Setter @Getter
     private static Individuo mejorSolucion;
     @Setter @Getter
-    private static Boolean sigListo = false;
+    private static Boolean sigListo = true;
     @Setter @Getter
     private static Individuo mejorSolucionSiguiente;
     @Setter @Getter
@@ -36,6 +36,12 @@ public class PlanificacionPlgApplication {
 
     @Setter @Getter
     private static boolean batchRefreshNeeded = false;
+
+    @Setter @Getter
+    private static boolean waitingForContinueSimulation = true;
+
+    @Setter @Getter
+    private static boolean allBatchesProcessed = false;
 
     // Rutas base para los archivos de datos
     private static final String BASE_DIR = "src/main/java/com/plg/planificacionplg/test/";
@@ -244,7 +250,9 @@ public class PlanificacionPlgApplication {
         mejorSolucion.getSistemaPLG().imprimirPlanificacion();
         PlanificacionPlgApplication.setBatchRefreshNeeded(true);
         batchActual = 1;
-        procesarSiguienteBatch();
+        
+        // Process all remaining batches
+        procesarTodosLosBatches();
 
         double min = 0.35;
         double max = 0.75;
@@ -440,6 +448,92 @@ public class PlanificacionPlgApplication {
             }
         }
     }
+    
+    public static void procesarTodosLosBatches() {
+        try {
+            Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
+            if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {
+                return;
+            }
+            
+            int batchActual = PlanificacionPlgApplication.getBatchActual();
+            List<Integer> batchStartIndices = PlanificacionPlgApplication.getBatchStartIndices();
+            List<Pedido> listaPedidosTotal = PlanificacionPlgApplication.getListaPedidosTotal();
+            
+            if (batchStartIndices == null || batchActual >= batchStartIndices.size()) {
+                return;
+            }
+            
+            // Process all remaining batches
+            while (batchActual < batchStartIndices.size()) {
+                LocalDateTime inicio = mejorSolucion.getSistemaPLG().getFechaHoraFinEntregas();
+                int inicioBatch = batchStartIndices.get(batchActual);
+                System.out.println("Procesando batch Nro: " + (batchActual + 1));
+                System.out.println("Fecha fin de entregas: "+ inicio);
+                int finBatch = (batchActual + 1 < batchStartIndices.size()) ? batchStartIndices.get(batchActual + 1) : listaPedidosTotal.size();
+                if (inicioBatch >= finBatch || inicioBatch >= listaPedidosTotal.size()) {
+                    break;
+                }
+                
+                List<Pedido> batch = listaPedidosTotal.subList(inicioBatch, finBatch);
+                ArrayList<Pedido> pedidosNuevos = new ArrayList<>(batch);
+                
+                // Reasignar IDs para el batch
+                for (int j = 0; j < pedidosNuevos.size(); j++) {
+                    pedidosNuevos.get(j).setId(j + 1);
+                }
+                
+                System.out.println("Cantidad pedidos: " + pedidosNuevos.size());
+                
+                // Create a copy of the current solution for the next batch
+                Individuo mejorSolucionActual = PlanificacionPlgApplication.getMejorSolucion();
+                mejorSolucionSiguiente = new Individuo();
+                mejorSolucionSiguiente.setSistemaPLG(new SistemaPLG());
+                mejorSolucionSiguiente.getSistemaPLG().deepCopy(mejorSolucionActual.getSistemaPLG());
+                
+                // Process the batch
+                PlanificacionPlgApplication.setBatchActual(batchActual + 1);
+                while (!PlanificacionPlgApplication.sigListo) {
+                    try {
+                        Thread.sleep(100); // Check every 100ms
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+                sigListo = false;
+                PlanificacionPlgApplication.replanificar(PlanificacionPlgApplication.getMejorSolucionSiguiente(), inicio, pedidosNuevos);
+
+                while (PlanificacionPlgApplication.isWaitingForContinueSimulation()) {
+                    try {
+                        Thread.sleep(100); // Check every 100ms
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+                // After processing the second batch, pause and wait for continueSimulation API
+                PlanificacionPlgApplication.setWaitingForContinueSimulation(true);
+                System.out.println("Pausing after second batch. Waiting for continueSimulation API...");
+                // Update the main solution with the next batch result
+
+                PlanificacionPlgApplication.setMejorSolucion(mejorSolucionSiguiente);
+                PlanificacionPlgApplication.setBatchRefreshNeeded(true);
+                mejorSolucion = mejorSolucionSiguiente;
+                System.out.println("Continuing with remaining batches...");
+
+                batchActual = PlanificacionPlgApplication.getBatchActual();
+            }
+            
+            // Mark all batches as processed
+            PlanificacionPlgApplication.setAllBatchesProcessed(true);
+            System.out.println("All batches have been processed successfully.");
+        } catch (Exception e) {
+            System.err.println("Error processing batches: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
     public static void replanificar(Individuo mejorSolucion, LocalDateTime inicioReplan, ArrayList<Pedido>pedidosnuevos){
         SistemaPLG replanificado = mejorSolucion.getSistemaPLG();
         mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();

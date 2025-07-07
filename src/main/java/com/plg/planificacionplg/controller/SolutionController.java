@@ -450,6 +450,22 @@ public class SolutionController {
         return mejorSolucion != null && mejorSolucion.getSistemaPLG().isReplanning();
     }
 
+    @GetMapping("/is-waiting-for-continue")
+    public boolean isWaitingForContinue() {
+        return PlanificacionPlgApplication.isWaitingForContinueSimulation();
+    }
+
+    @GetMapping("/batch-info")
+    public Map<String, Object> getBatchInfo() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("currentBatch", PlanificacionPlgApplication.getBatchActual());
+        response.put("totalBatches", PlanificacionPlgApplication.getBatchStartIndices() != null ? 
+            PlanificacionPlgApplication.getBatchStartIndices().size() : 0);
+        response.put("waitingForContinue", PlanificacionPlgApplication.isWaitingForContinueSimulation());
+        response.put("allBatchesProcessed", PlanificacionPlgApplication.isAllBatchesProcessed());
+        return response;
+    }
+
     @GetMapping("/batch-refresh-status")
     public Map<String, Object> getBatchRefreshStatus() {
         Map<String, Object> response = new HashMap<>();
@@ -898,32 +914,11 @@ public class SolutionController {
     @PostMapping("/continue-simulation")
     public ResponseEntity<String> continueSimulation() {
         try {
-            System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%CONTINUANDP SIM%%%%%%%%%%%%%%%%%%%%%%%%");
-            new Thread(() -> {
-                Individuo copia = PlanificacionPlgApplication.getMejorSolucionAnterior();
-//                System.out.println("Impresion de prueba de lo que corresponde a un nuevo batch pe");
-//                copia.getSistemaPLG().imprimirPlanificacion();
-                while (true) {
-                    // Esperar hasta que sigListo sea true
-                    if (PlanificacionPlgApplication.getSigListo()) {
-                        PlanificacionPlgApplication.setSigListo(false);
-                        PlanificacionPlgApplication.setMejorSolucion(copia);
-                        PlanificacionPlgApplication.setBatchRefreshNeeded(true);
-                        break;
-                    }
-
-                    try {
-                        Thread.sleep(100); // evitar sobrecargar CPU
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        break; // salir si el hilo es interrumpido
-                    }
-                }
-            }).start();
-
-            // segundo plano
-            PlanificacionPlgApplication.procesarSiguienteBatch();
-//
+            System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%CONTINUANDO SIM%%%%%%%%%%%%%%%%%%%%%%%%");
+            
+            // Reset the waiting flag to continue processing
+            PlanificacionPlgApplication.setWaitingForContinueSimulation(false);
+            
             return ResponseEntity.ok("Simulación continuada al siguiente batch");
 //            Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
 //            if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {

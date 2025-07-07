@@ -60,11 +60,13 @@ public class Genetico {
             int numElite = (int) (tamPoblacion * porcentajeElite);
             poblacion.sort(Comparator.comparingDouble(Individuo::getFitness).reversed());
             for (int i = 0; i < numElite; i++) {
-                nuevaGeneracion.add(poblacion.get(i).clonar(code));
+                if(poblacion.get(i).getFitness() > 0.0) {
+                    nuevaGeneracion.add(poblacion.get(i).clonar(code));
+                }
             }
 
             int iter = 0;
-            int maxIntentosGlobal = 10; // máximo de intentos permitidos por generación
+            int maxIntentosGlobal = 20; // máximo de intentos permitidos por generación
             int intentosGlobales = 0;
 
             while ((intentosGlobales < maxIntentosGlobal
@@ -72,7 +74,7 @@ public class Genetico {
                 if (iter > tamPoblacion*0.8) {
                     int generados = 0;
                     int intentos = 0;
-                    int maxIntentos = 10; // evita bucles infinitos
+                    int maxIntentos = 100; // evita bucles infinitos
 
                     while (generados < numIndividuosExploratorios && intentos < maxIntentos && nuevaGeneracion.size() < tamPoblacion) {
                         Individuo nuevo = new Individuo(numPedidos, numCamiones, sistema, code);
