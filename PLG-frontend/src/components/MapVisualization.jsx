@@ -408,7 +408,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
     }
 
     try {
-      onPauseSimulation();
+      //onPauseSimulation();
       await mapService.registrarAveria(truckId, tipoAveria, currentTime);
     } catch (error) {
       console.error('Error registering averia:', error);

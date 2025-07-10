@@ -60,7 +60,7 @@ public class Genetico {
             int numElite = (int) (tamPoblacion * porcentajeElite);
             poblacion.sort(Comparator.comparingDouble(Individuo::getFitness).reversed());
             for (int i = 0; i < numElite; i++) {
-                if(poblacion.get(i).getFitness() > 0.0) {
+                if(poblacion.size()>i && poblacion.get(i).getFitness() > 0.0) { //outboudn
                     nuevaGeneracion.add(poblacion.get(i).clonar(code));
                 }
             }
@@ -71,11 +71,12 @@ public class Genetico {
                     nuevaGeneracion.add(nuevo);
                 }
             }
+            System.out.println("Al menos una solucion hallada");
 
             int iter = 0;
             int maxIntentosGlobal = 20; // máximo de intentos permitidos por generación
             int intentosGlobales = 0;
-
+            if(sistema.getCamionCausanteReplan()!=null)maxIntentosGlobal=0;
             while ((intentosGlobales < maxIntentosGlobal
             || nuevaGeneracion.isEmpty())) { //si no hay pedidos validos se queda
                 if (iter > tamPoblacion*0.8) {

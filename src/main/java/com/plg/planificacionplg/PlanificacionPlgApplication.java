@@ -29,10 +29,12 @@ public class PlanificacionPlgApplication {
     @Setter @Getter
     private static int batchActual;
     @Setter @Getter
+    private static double capMaxFlota;
+    @Setter @Getter
     private static List<Pedido>listaPedidosTotal;
 
     @Setter @Getter
-    private static List<Integer> batchStartIndices;
+    private static int inicioBatchActual;
 
     @Setter @Getter
     private static boolean batchRefreshNeeded = false;
@@ -204,15 +206,14 @@ public class PlanificacionPlgApplication {
         double probCruce = 0.10;
         double probMutacion = 0.10;
         double porcentajeElite = 0.1;
-        double capMaxFlota = 0.0;
+        capMaxFlota = 0.0;
         for(Camion c : sistemaPLG.getFlota()) {
             capMaxFlota +=c.getTipo().getCargaGLPMax();
         }
         if(escenario==3){
             generaciones=5;
         }
-        batchStartIndices = new ArrayList<>();
-        batchStartIndices.add(0); // el primer batch siempre empieza en 0
+        inicioBatchActual = 0; // el primer batch siempre empieza en 0
 
         double cargaActual = 0.0;
 
@@ -220,13 +221,13 @@ public class PlanificacionPlgApplication {
             double carga = sistemaPLG.getPedidos().get(i).getVolumenGLP();
 
             if (cargaActual + carga > capMaxFlota*0.8) {
-                batchStartIndices.add(i); // nuevo batch empieza aquí
-                cargaActual = 0.0;
+                inicioBatchActual = i; // nuevo batch empieza aquí
+                break;
             }
             cargaActual += carga;
         }
 
-        int finBatch1 = (batchStartIndices.size() > 1) ? batchStartIndices.get(1) : listaPedidosTotal.size();
+        int finBatch1 = (listaPedidosTotal.size() > inicioBatchActual) ? inicioBatchActual : listaPedidosTotal.size();
         List<Pedido> primerBatch = listaPedidosTotal.subList(0, finBatch1);
         sistemaPLG.setPedidos(new ArrayList<>(primerBatch));
 
@@ -457,24 +458,45 @@ public class PlanificacionPlgApplication {
             }
             
             int batchActual = PlanificacionPlgApplication.getBatchActual();
-            List<Integer> batchStartIndices = PlanificacionPlgApplication.getBatchStartIndices();
             List<Pedido> listaPedidosTotal = PlanificacionPlgApplication.getListaPedidosTotal();
             
-            if (batchStartIndices == null || batchActual >= batchStartIndices.size()) {
+            if (inicioBatchActual == 0 || listaPedidosTotal.size() < inicioBatchActual) {
                 return;
             }
             
             // Process all remaining batches
-            while (batchActual < batchStartIndices.size()) {
+            while (inicioBatchActual < (listaPedidosTotal.size()+1)) {
                 LocalDateTime inicio = mejorSolucion.getSistemaPLG().getFechaHoraFinEntregas();
-                int inicioBatch = batchStartIndices.get(batchActual);
+                int inicioBatch = inicioBatchActual;
+                double cargaActual = 0.0;
+
+                for (int i = inicioBatchActual; i < listaPedidosTotal.size(); i++) {
+                    double carga = listaPedidosTotal.get(i).getVolumenGLP();
+
+                    if (cargaActual + carga > capMaxFlota*0.8) {
+                        inicioBatchActual = i; // nuevo batch empieza aquí
+                        break;
+                    }
+                    cargaActual += carga;
+                }
+
+                int finBatch = (listaPedidosTotal.size() > inicioBatchActual) ? inicioBatchActual : listaPedidosTotal.size();
                 System.out.println("Procesando batch Nro: " + (batchActual + 1));
                 System.out.println("Fecha fin de entregas: "+ inicio);
-                int finBatch = (batchActual + 1 < batchStartIndices.size()) ? batchStartIndices.get(batchActual + 1) : listaPedidosTotal.size();
+                System.out.println("primer max: "+ listaPedidosTotal.get(inicioBatch).getFechaHoraMaxEntrega());
+                System.out.println("ultimo max: "+ listaPedidosTotal.get(finBatch-1).getFechaHoraMaxEntrega());
+                for(int j = inicioBatch; j < finBatch; j++) {
+                    if(inicio.plusMinutes(60).isAfter(listaPedidosTotal.get(j).getFechaHoraMaxEntrega())){
+                        //destinar a un camion en caliente
+
+                        inicioBatch++;
+                    }
+                }
+
                 if (inicioBatch >= finBatch || inicioBatch >= listaPedidosTotal.size()) {
                     break;
                 }
-                
+
                 List<Pedido> batch = listaPedidosTotal.subList(inicioBatch, finBatch);
                 ArrayList<Pedido> pedidosNuevos = new ArrayList<>(batch);
                 
@@ -503,9 +525,6 @@ public class PlanificacionPlgApplication {
                 }
                 sigListo = false;
 
-                System.out.println("inicio "+inicio);
-                System.out.println("flota "+mejorSolucionSiguiente.getSistemaPLG().getFlota().size());
-                System.out.println("ped "+mejorSolucionSiguiente.getSistemaPLG().getPedidos().size());
                 PlanificacionPlgApplication.replanificar(PlanificacionPlgApplication.getMejorSolucionSiguiente(), inicio, pedidosNuevos);
 
                 while (PlanificacionPlgApplication.isWaitingForContinueSimulation()) {
@@ -667,41 +686,6 @@ public class PlanificacionPlgApplication {
 
         } finally {
             mejorSolucion.getSistemaPLG().setReplanning(false);
-        }
-    }
-    public static void procesarSiguienteBatch(){
-        try {
-            Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
-            if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {
-                return;
-            }
-            int batchActual = PlanificacionPlgApplication.getBatchActual();
-            List<Integer> batchStartIndices = PlanificacionPlgApplication.getBatchStartIndices();
-            List<Pedido> listaPedidosTotal = PlanificacionPlgApplication.getListaPedidosTotal();
-            if (batchStartIndices == null || batchActual >= batchStartIndices.size()) {
-                return;
-            }
-            LocalDateTime inicio = mejorSolucion.getSistemaPLG().getFechaHoraFinEntregas();
-            int inicioBatch = batchStartIndices.get(batchActual);
-            System.out.println("Procesando batch Nro: " + (batchActual+1));
-            int finBatch = (batchActual + 1 < batchStartIndices.size()) ? batchStartIndices.get(batchActual + 1) : listaPedidosTotal.size();
-            if (inicioBatch >= finBatch || inicioBatch >= listaPedidosTotal.size()) {
-                return;
-            }
-            List<Pedido> batch = listaPedidosTotal.subList(inicioBatch, finBatch);
-            ArrayList<Pedido> pedidosNuevos = new ArrayList<>(batch);
-            // Reasignar IDs para el batch
-            for (int j = 0; j < pedidosNuevos.size(); j++) {
-                pedidosNuevos.get(j).setId(j + 1);
-            }
-            System.out.println("Cantidad pedidos: " + pedidosNuevos.size());
-            Individuo mejorSolucionActual = PlanificacionPlgApplication.getMejorSolucion();
-            mejorSolucionSiguiente = new Individuo();
-            mejorSolucionSiguiente.setSistemaPLG(new SistemaPLG());
-            mejorSolucionSiguiente.getSistemaPLG().deepCopy(mejorSolucionActual.getSistemaPLG());
-            PlanificacionPlgApplication.replanificar(PlanificacionPlgApplication.getMejorSolucionSiguiente(),inicio, pedidosNuevos);
-            PlanificacionPlgApplication.setBatchActual(batchActual + 1);
-        } catch (Exception e) {
         }
     }
 }

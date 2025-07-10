@@ -209,9 +209,10 @@ public class SolutionController {
         }
 
         SistemaPLG sistema = mejorSolucion.getSistemaPLG();
-        sistema.setReplanning(true);
+        sistema.setReplanning(false);
 
         try {
+           PlanificacionPlgApplication.setWaitingForContinueSimulation(true);
             TipoAveria tipoAveria1 = new TipoAveria();
             tipoAveria1.setId(1);
             tipoAveria1.setTiempoInmovilizado(2);
@@ -260,7 +261,7 @@ public class SolutionController {
             LocalDateTime inicioAveria = a.getFechaHoraInicio();
             if(mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getDestinos().size()<2)return;
 
-            mejorSolucion.getSistemaPLG().setReplanning(true);
+            mejorSolucion.getSistemaPLG().setReplanning(false);
             mejorSolucion.getSistemaPLG().setAveriaStartTime(inicioAveria);
 
             a.determinarFechaFin(mejorSolucion.getSistemaPLG());
@@ -384,12 +385,11 @@ public class SolutionController {
                     }
                 } else camAveriado.setPedidosAsignados(new ArrayList<>());//caso 2 y 3 donde no atiende sino se va
             }
-            int tamPoblacion = 30;
-            int generaciones = 5;
-            double probCruce = 0.3;
-            double probMutacion = 0.15;
-            double porcentajeElite = 0.2;
-            //replanificado.imprimirPlanificacion();
+            int tamPoblacion = 10;
+            int generaciones = 1;
+            double probCruce = 0.1;
+            double probMutacion = 0.1;
+            double porcentajeElite = 0.1;
             Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
             mejorSolucion = ga2.ejecutar(2, replanificado);
             mejorSolucion.getSistemaPLG().imprimirPlanificacion();
@@ -459,8 +459,7 @@ public class SolutionController {
     public Map<String, Object> getBatchInfo() {
         Map<String, Object> response = new HashMap<>();
         response.put("currentBatch", PlanificacionPlgApplication.getBatchActual());
-        response.put("totalBatches", PlanificacionPlgApplication.getBatchStartIndices() != null ? 
-            PlanificacionPlgApplication.getBatchStartIndices().size() : 0);
+        response.put("totalBatches", PlanificacionPlgApplication.getBatchActual());
         response.put("waitingForContinue", PlanificacionPlgApplication.isWaitingForContinueSimulation());
         response.put("allBatchesProcessed", PlanificacionPlgApplication.isAllBatchesProcessed());
         return response;
