@@ -10,10 +10,12 @@ import NuevoVehiculo from "./pages/NuevoVehiculo";
 import Simulador from "./pages/Simulador";
 import Configuracion from "./pages/Configuracion";
 import Home from "./pages/Home";
+import BatchRefreshMonitor from "./components/BatchRefreshMonitor";
 
 export default function App() {
   return (
     <>
+      <BatchRefreshMonitor />
       <Navbar />
       <Routes>
         <Route path="/" element={<Home />} />

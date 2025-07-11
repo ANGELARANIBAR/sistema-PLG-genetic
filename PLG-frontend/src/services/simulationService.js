@@ -166,5 +166,21 @@ export const simulationService = {
             console.error('Error checking replanning status:', error);
             throw error;
         }
+    },
+
+    // Check batch refresh status
+    async getBatchRefreshStatus() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/batch-refresh-status`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error checking batch refresh status:', error);
+            throw error;
+        }
     }
 }; 

@@ -25,6 +25,7 @@ import EventIcon from '@mui/icons-material/Event';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import MapVisualization from "../components/MapVisualization";
 import { mapService } from "../services/mapService";
+import { useBatchRefreshMonitor } from "../hooks/useBatchRefreshMonitor";
 
 /**
  * Simulador.jsx — Simulador con MapVisualization y controles de tiempo
@@ -44,7 +45,13 @@ export default function Simulador() {
     const [simulationStarted, setSimulationStarted] = useState(false);
     const [fechaHoraFinEntregas, setFechaHoraFinEntregas] = useState(null);
     const [isContinuing, setIsContinuing] = useState(false);
+    const [lastProcessedFechaHoraFin, setLastProcessedFechaHoraFin] = useState(() => {
+        // Try to get from sessionStorage on initialization
+        const stored = sessionStorage.getItem('lastProcessedFechaHoraFin');
+        return stored ? new Date(stored) : null;
+    });
     const [colapsoInfo, setColapsoInfo] = useState(null);
+    const [showAutoPlayNotification, setShowAutoPlayNotification] = useState(false);
     
     // UI states
     const [navbarHeight, setNavbarHeight] = useState(65);
@@ -56,6 +63,28 @@ export default function Simulador() {
     const [trucksData, setTrucksData] = useState([]);
     const [pedidosData, setPedidosData] = useState([]);
     const [cisternasData, setCisternasData] = useState([]);
+
+    // Monitor for batch refresh notifications
+    useBatchRefreshMonitor(true, 2000);
+
+    // Check if we should auto-play after a refresh
+    useEffect(() => {
+        const shouldAutoPlay = sessionStorage.getItem('autoPlayAfterRefresh');
+        if (shouldAutoPlay === 'true') {
+            // Clear the flag
+            sessionStorage.removeItem('autoPlayAfterRefresh');
+            // Show notification
+            setShowAutoPlayNotification(true);
+            // Auto-play the simulation after a short delay to ensure everything is loaded
+            setTimeout(() => {
+                setIsPlaying(true);
+                // Hide notification after 5 seconds
+                setTimeout(() => {
+                    setShowAutoPlayNotification(false);
+                }, 5000);
+            }, 2000);
+        }
+    }, []);
 
     // Load start time and fechaHoraFinEntregas when component mounts
     useEffect(() => {
@@ -212,9 +241,18 @@ export default function Simulador() {
     useEffect(() => {
         
         if (!currentTime || !fechaHoraFinEntregas || isContinuing) return;
+        
+        // Check if we've already processed this specific fechaHoraFinEntregas
+        if (lastProcessedFechaHoraFin && lastProcessedFechaHoraFin.getTime() === fechaHoraFinEntregas.getTime()) {
+            return;
+        }
+        
         if (currentTime >= fechaHoraFinEntregas) {
             setIsContinuing(true);
-            console.log("Llamndo a nuevo batch")
+            setLastProcessedFechaHoraFin(fechaHoraFinEntregas);
+            // Store in sessionStorage to persist across page refreshes
+            sessionStorage.setItem('lastProcessedFechaHoraFin', fechaHoraFinEntregas.toISOString());
+            console.log("Llamando a nuevo batch")
             fetch(`${API_BASE}/continue-simulation`, { method: "POST" })
                 .then(() => {
                     // After continuing, fetch new fechaHoraFinEntregas
@@ -222,11 +260,13 @@ export default function Simulador() {
                 })
                 .then(res => res.json())
                 .then(data => {
-                    if (data) setFechaHoraFinEntregas(new Date(data));
+                    if (data) {
+                        setFechaHoraFinEntregas(new Date(data));
+                    }
                 })
                 .finally(() => setIsContinuing(false));
         }
-    }, [currentTime, fechaHoraFinEntregas, isContinuing]);
+    }, [currentTime, fechaHoraFinEntregas, isContinuing, lastProcessedFechaHoraFin]);
 
     // Simulation time progression
     useEffect(() => {
@@ -273,6 +313,17 @@ export default function Simulador() {
         intervalId = setInterval(checkColapso, 2000);
         return () => clearInterval(intervalId);
     }, []);
+
+    // Clear stored lastProcessedFechaHoraFin when we get a new fechaHoraFinEntregas
+    useEffect(() => {
+        if (fechaHoraFinEntregas && lastProcessedFechaHoraFin) {
+            if (fechaHoraFinEntregas.getTime() !== lastProcessedFechaHoraFin.getTime()) {
+                // New fechaHoraFinEntregas received, clear the stored value
+                sessionStorage.removeItem('lastProcessedFechaHoraFin');
+                setLastProcessedFechaHoraFin(null);
+            }
+        }
+    }, [fechaHoraFinEntregas, lastProcessedFechaHoraFin]);
 
     const handlePauseSimulation = () => {
         setIsPlaying(false);
@@ -740,9 +791,35 @@ export default function Simulador() {
                         flexDirection: 'column'
                     }}>
                     {/* Header */}
-                    <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
-                        <Typography variant="h6" fontWeight="bold" gutterBottom>
-                            Monitor de Simulación
+                    
+                    <Typography variant="h5" fontWeight="bold" gutterBottom>
+                        Simulación PLG
+                    </Typography>
+                    {colapsoInfo && colapsoInfo.colapso && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">¡Colapso logístico detectado!</Typography>
+                            <Typography variant="body2">Fecha y hora del primer colapso: <b>{new Date(colapsoInfo.fechaHoraPrimerColapso).toLocaleString()}</b></Typography>
+                            <Typography variant="body2">Pedido causante: <b>{colapsoInfo.pedidoCausanteId}</b></Typography>
+                            <Typography variant="body2">Límite de entrega: <b>{new Date(colapsoInfo.limiteEntrega).toLocaleString()}</b></Typography>
+                            <Typography variant="body2">Hora simulada de entrega: <b>{new Date(colapsoInfo.horaSimuladaEntrega).toLocaleString()}</b></Typography>
+                            <Typography variant="body2">Entrega a cargo del camión: <b>{colapsoInfo.camionEntrega}</b></Typography>
+                            <Typography variant="body2" color="error" fontWeight="bold">La simulación ha sido pausada.</Typography>
+                        </Alert>
+                    )}
+                    <Button
+                        variant="outlined"
+                        color="error"
+                        fullWidth
+                        sx={{ textTransform: 'none', mb: 2 }}
+                        onClick={() => window.history.back()}
+                    >
+                        Cancelar simulación
+                    </Button>
+
+                    {/* Progress info */}
+                    <Box sx={{ mb: 2, p: 1, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+                        <Typography variant="body2" fontWeight="bold" gutterBottom>
+                            Estado de la Simulación
                         </Typography>
                         
                         {/* Status info */}

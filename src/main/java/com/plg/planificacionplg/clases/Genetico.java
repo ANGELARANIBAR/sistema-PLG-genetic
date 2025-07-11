@@ -30,21 +30,28 @@ public class Genetico {
 
         List<Individuo> poblacion = new ArrayList<>();
         Random rand = new Random();
-        numIndividuosExploratorios = (int)(tamPoblacion*0.7);
+        numIndividuosExploratorios = (int)(tamPoblacion*0.2);
         // Inicializar población aleatora controlada
+//        System.out.println("Inicio replan");
+
         for (int i = 0; i < tamPoblacion; i++) {
+//            System.out.println("ind " + (i+1));
+//            System.out.println("ped " + (numPedidos+1));
+//            System.out.println("cam " + (numCamiones+1));
+//            System.out.println("sis " + (sistema.getPedidos().size()+1));
+
             Individuo ind = new Individuo(numPedidos, numCamiones, sistema, code);
+
+//            System.out.println(ind.getAsignacion());
+//            System.out.println(ind.getPedidosXcargasGLP());
+//            System.out.println("***************************************************************************************");
+
             ind.evaluar(code, sistema);
-            /*
-            System.out.println(ind.getAsignacion());
-            System.out.println(ind.getPedidosXcargasGLP());
-            System.out.println("***************************************************************************************");
-            */
             poblacion.add(ind);
         }
 
-        Individuo mejorSolucion = Collections.max(poblacion, Comparator.comparingDouble(Individuo::getFitness)).clonar(code);
 
+        Individuo mejorSolucion = Collections.max(poblacion, Comparator.comparingDouble(Individuo::getFitness)).clonar(code);
         for (int gen = 0; gen < generaciones; gen++) {
             PlanificacionPlgApplication.setPorcentajeEjecucion(100.0 * (gen + 1) / generaciones);
             List<Individuo> nuevaGeneracion = new ArrayList<>();
@@ -53,26 +60,43 @@ public class Genetico {
             int numElite = (int) (tamPoblacion * porcentajeElite);
             poblacion.sort(Comparator.comparingDouble(Individuo::getFitness).reversed());
             for (int i = 0; i < numElite; i++) {
-                nuevaGeneracion.add(poblacion.get(i).clonar(code));
+                if(poblacion.size()>i && poblacion.get(i).getFitness() > 0.0) { //outboudn
+                    nuevaGeneracion.add(poblacion.get(i).clonar(code));
+                }
             }
+            while(nuevaGeneracion.isEmpty()){
+                Individuo nuevo = new Individuo(numPedidos, numCamiones, sistema, code);
+                nuevo.evaluar(code, sistema);
+                if (nuevo.getFitness() > 0) {
+                    nuevaGeneracion.add(nuevo);
+                }
+            }
+            System.out.println("Al menos una solucion hallada");
 
             int iter = 0;
-            while (nuevaGeneracion.size() < tamPoblacion) { //si no hay pedidos validos se queda
-                if (iter > tamPoblacion/2) {
+            int maxIntentosGlobal = 20; // máximo de intentos permitidos por generación
+            int intentosGlobales = 0;
+            if(sistema.getCamionCausanteReplan()!=null)maxIntentosGlobal=0;
+            while ((intentosGlobales < maxIntentosGlobal
+            || nuevaGeneracion.isEmpty())) { //si no hay pedidos validos se queda
+                if (iter > tamPoblacion*0.8) {
                     int generados = 0;
                     int intentos = 0;
-                    int maxIntentos = 100; // evita bucles infinitos
+                    int maxIntentos = 10; // evita bucles infinitos
 
                     while (generados < numIndividuosExploratorios && intentos < maxIntentos && nuevaGeneracion.size() < tamPoblacion) {
                         Individuo nuevo = new Individuo(numPedidos, numCamiones, sistema, code);
                         nuevo.evaluar(code, sistema);
                         if (nuevo.getFitness() > 0) {
                             nuevaGeneracion.add(nuevo); // ++ exploratorio
+//                            System.out.println("fitness: "+nuevo.getFitness());
                             generados++;
                         }
                         intentos++;
+                        intentosGlobales++;
                     }
 
+//                    System.out.println("exploratorio fin");
                     iter = 0; // reiniciar el contador de intentos fallidos
                 }
 
@@ -93,6 +117,7 @@ public class Genetico {
                     nuevaGeneracion.add(hijo);
                 }
                 iter = iter+1;
+                intentosGlobales++;
             }
 
             poblacion = nuevaGeneracion;

@@ -30,7 +30,7 @@ public Individuo(){}
         }
         Collections.shuffle(pedidos);
         int nIntentos=0;Boolean sePuedoAsociarPedido = false;
-        if(nIndividuo<5){
+        if(nIndividuo<7){
             asignarEquitativamente(numCamiones, pedidos, sistema);
 
         }

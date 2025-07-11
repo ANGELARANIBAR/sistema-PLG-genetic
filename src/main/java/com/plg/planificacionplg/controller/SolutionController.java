@@ -209,9 +209,10 @@ public class SolutionController {
         }
 
         SistemaPLG sistema = mejorSolucion.getSistemaPLG();
-        sistema.setReplanning(true);
+        sistema.setReplanning(false);
 
         try {
+           PlanificacionPlgApplication.setWaitingForContinueSimulation(true);
             TipoAveria tipoAveria1 = new TipoAveria();
             tipoAveria1.setId(1);
             tipoAveria1.setTiempoInmovilizado(2);
@@ -260,7 +261,7 @@ public class SolutionController {
             LocalDateTime inicioAveria = a.getFechaHoraInicio();
             if(mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getDestinos().size()<2)return;
 
-            mejorSolucion.getSistemaPLG().setReplanning(true);
+            mejorSolucion.getSistemaPLG().setReplanning(false);
             mejorSolucion.getSistemaPLG().setAveriaStartTime(inicioAveria);
 
             a.determinarFechaFin(mejorSolucion.getSistemaPLG());
@@ -384,12 +385,11 @@ public class SolutionController {
                     }
                 } else camAveriado.setPedidosAsignados(new ArrayList<>());//caso 2 y 3 donde no atiende sino se va
             }
-            int tamPoblacion = 30;
-            int generaciones = 5;
-            double probCruce = 0.3;
-            double probMutacion = 0.15;
-            double porcentajeElite = 0.2;
-            //replanificado.imprimirPlanificacion();
+            int tamPoblacion = 10;
+            int generaciones = 1;
+            double probCruce = 0.1;
+            double probMutacion = 0.1;
+            double porcentajeElite = 0.1;
             Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
             mejorSolucion = ga2.ejecutar(2, replanificado);
             mejorSolucion.getSistemaPLG().imprimirPlanificacion();
@@ -448,6 +448,39 @@ public class SolutionController {
     public boolean isReplanning() {
         Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
         return mejorSolucion != null && mejorSolucion.getSistemaPLG().isReplanning();
+    }
+
+    @GetMapping("/is-waiting-for-continue")
+    public boolean isWaitingForContinue() {
+        return PlanificacionPlgApplication.isWaitingForContinueSimulation();
+    }
+
+    @GetMapping("/batch-info")
+    public Map<String, Object> getBatchInfo() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("currentBatch", PlanificacionPlgApplication.getBatchActual());
+        response.put("totalBatches", PlanificacionPlgApplication.getBatchActual());
+        response.put("waitingForContinue", PlanificacionPlgApplication.isWaitingForContinueSimulation());
+        response.put("allBatchesProcessed", PlanificacionPlgApplication.isAllBatchesProcessed());
+        return response;
+    }
+
+    @GetMapping("/batch-refresh-status")
+    public Map<String, Object> getBatchRefreshStatus() {
+        Map<String, Object> response = new HashMap<>();
+        boolean needsRefresh = PlanificacionPlgApplication.isBatchRefreshNeeded();
+        
+//        System.out.println("Batch refresh status check - needsRefresh: " + needsRefresh);
+        
+        response.put("needsRefresh", needsRefresh);
+        
+        // Reset the flag after sending the response
+        if (needsRefresh) {
+            PlanificacionPlgApplication.setBatchRefreshNeeded(false);
+            System.out.println("Batch refresh flag reset to false");
+        }
+        
+        return response;
     }
 
     @GetMapping("/truck-destination/{truckId}")
@@ -794,7 +827,7 @@ public class SolutionController {
             double probCruce = 0.3;
             double probMutacion = 0.15;
             double porcentajeElite = 0.2;
-            replanificado.imprimirPlanificacion();
+            //replanificado.imprimirPlanificacion();
             Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
             mejorSolucion = ga2.ejecutar(2, replanificado);
             mejorSolucion.getSistemaPLG().imprimirPlanificacion();
@@ -880,45 +913,13 @@ public class SolutionController {
     @PostMapping("/continue-simulation")
     public ResponseEntity<String> continueSimulation() {
         try {
-            PlanificacionPlgApplication.procesarSiguienteBatch();
+            System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%CONTINUANDO SIM%%%%%%%%%%%%%%%%%%%%%%%%");
+            
+            // Reset the waiting flag to continue processing
+            PlanificacionPlgApplication.setWaitingForContinueSimulation(false);
+            
+            return ResponseEntity.ok("Simulación continuada al siguiente batch");
 
-            return ResponseEntity.badRequest().body("No hay simulación activa");
-//            Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
-//            if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {
-//                return ResponseEntity.badRequest().body("No hay simulación activa");
-//            }
-//            int batchActual = PlanificacionPlgApplication.getBatchActual();
-//            List<Integer> batchStartIndices = PlanificacionPlgApplication.getBatchStartIndices();
-//            List<Pedido> listaPedidosTotal = PlanificacionPlgApplication.getListaPedidosTotal();
-//            if (batchStartIndices == null || batchActual >= batchStartIndices.size()) {
-//                return ResponseEntity.ok("No hay más batches para procesar");
-//            }
-//            if(mejorSolucion.getSistemaPLG().getFechaHoraPrimerColapso()!=null){
-//                System.out.println("Fecha y hora del primer colapso logístico: " + mejorSolucion.getSistemaPLG().getFechaHoraPrimerColapso());
-//                System.out.println("Pedido causante del colapso: " + mejorSolucion.getSistemaPLG().getDestinoColapso().getPedido().getId());
-//                System.out.println("Limite de entrega: " + mejorSolucion.getSistemaPLG().getDestinoColapso().getPedido().getFechaHoraMaxEntrega());
-//                System.out.println("Hora simulada de entrega: " + mejorSolucion.getSistemaPLG().getDestinoColapso().getFechaHoraLlegada());
-//                System.out.println("Entrega a cargo del camion: " + mejorSolucion.getSistemaPLG().getDestinoColapso().getPedido().getCamiones().getLast().getCodigo());
-//
-//                return ResponseEntity.ok("Colapso logístico alcanzado");
-//            }
-//            LocalDateTime inicio = mejorSolucion.getSistemaPLG().getFechaHoraFinEntregas();
-//            int inicioBatch = batchStartIndices.get(batchActual);
-//            System.out.println("Procesando batch Nro: " + (batchActual + 1));
-//            int finBatch = (batchActual + 1 < batchStartIndices.size()) ? batchStartIndices.get(batchActual + 1) : listaPedidosTotal.size();
-//            if (inicioBatch >= finBatch || inicioBatch >= listaPedidosTotal.size()) {
-//                return ResponseEntity.ok("No hay más batches para procesar");
-//            }
-//            PlanificacionPlgApplication.setBatchActual(batchActual + 1);
-//            List<Pedido> batch = listaPedidosTotal.subList(inicioBatch, finBatch);
-//            ArrayList<Pedido> pedidosNuevos = new ArrayList<>(batch);
-//            // Reasignar IDs para el batch
-//            for (int j = 0; j < pedidosNuevos.size(); j++) {
-//                pedidosNuevos.get(j).setId(j + 1); // o j si prefieres que empiece en 0
-//            }
-//            System.out.println("Cantidad pedidos: " + pedidosNuevos.size());
-//            PlanificacionPlgApplication.replanificar(PlanificacionPlgApplication.getMejorSolucion(), inicio, pedidosNuevos);
-//            return ResponseEntity.ok("Simulación continuada al siguiente batch");
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Error al continuar la simulación: " + e.getMessage());
         }

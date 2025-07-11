@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -17,7 +16,11 @@ public class PlanificacionPlgApplication {
     @Setter @Getter
     private static Individuo mejorSolucion;
     @Setter @Getter
+    private static Boolean sigListo = true;
+    @Setter @Getter
     private static Individuo mejorSolucionSiguiente;
+    @Setter @Getter
+    private static Individuo mejorSolucionAnterior;
     @Setter @Getter
     private static double porcentajeEjecucion;
     @Setter @Getter
@@ -26,10 +29,21 @@ public class PlanificacionPlgApplication {
     @Setter @Getter
     private static int batchActual;
     @Setter @Getter
+    private static double capMaxFlota;
+    @Setter @Getter
     private static List<Pedido>listaPedidosTotal;
 
     @Setter @Getter
-    private static List<Integer> batchStartIndices;
+    private static int inicioBatchActual;
+
+    @Setter @Getter
+    private static boolean batchRefreshNeeded = false;
+
+    @Setter @Getter
+    private static boolean waitingForContinueSimulation = true;
+
+    @Setter @Getter
+    private static boolean allBatchesProcessed = false;
 
     // Rutas base para los archivos de datos
     private static final String BASE_DIR = "src/main/java/com/plg/planificacionplg/test/";
@@ -40,7 +54,8 @@ public class PlanificacionPlgApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(PlanificacionPlgApplication.class, args);
-        //ejecutarAlgoritmo(2);
+//        fechaHoraInicio = LocalDateTime.of(2025, 3, 23, 10, 30);
+//        ejecutarAlgoritmo(2);
     }
 
 
@@ -188,18 +203,17 @@ public class PlanificacionPlgApplication {
 
         int tamPoblacion = 30;
         int generaciones = 5;
-        double probCruce = 0.20;
-        double probMutacion = 0.15;
+        double probCruce = 0.10;
+        double probMutacion = 0.10;
         double porcentajeElite = 0.1;
-        double capMaxFlota = 0.0;
+        capMaxFlota = 0.0;
         for(Camion c : sistemaPLG.getFlota()) {
             capMaxFlota +=c.getTipo().getCargaGLPMax();
         }
         if(escenario==3){
             generaciones=5;
         }
-        batchStartIndices = new ArrayList<>();
-        batchStartIndices.add(0); // el primer batch siempre empieza en 0
+        inicioBatchActual = 0; // el primer batch siempre empieza en 0
 
         double cargaActual = 0.0;
 
@@ -207,13 +221,13 @@ public class PlanificacionPlgApplication {
             double carga = sistemaPLG.getPedidos().get(i).getVolumenGLP();
 
             if (cargaActual + carga > capMaxFlota*0.8) {
-                batchStartIndices.add(i); // nuevo batch empieza aquí
-                cargaActual = 0.0;
+                inicioBatchActual = i; // nuevo batch empieza aquí
+                break;
             }
             cargaActual += carga;
         }
 
-        int finBatch1 = (batchStartIndices.size() > 1) ? batchStartIndices.get(1) : listaPedidosTotal.size();
+        int finBatch1 = (listaPedidosTotal.size() > inicioBatchActual) ? inicioBatchActual : listaPedidosTotal.size();
         List<Pedido> primerBatch = listaPedidosTotal.subList(0, finBatch1);
         sistemaPLG.setPedidos(new ArrayList<>(primerBatch));
 
@@ -235,10 +249,11 @@ public class PlanificacionPlgApplication {
         );
         mejorSolucion.getSistemaPLG().cargarAverias(AVERIAS_FILE);
         mejorSolucion.getSistemaPLG().imprimirPlanificacion();
+        PlanificacionPlgApplication.setBatchRefreshNeeded(true);
         batchActual = 1;
-        procesarSiguienteBatch();
-
-
+        
+        // Process all remaining batches
+        procesarTodosLosBatches();
 
         double min = 0.35;
         double max = 0.75;
@@ -425,12 +440,8 @@ public class PlanificacionPlgApplication {
                     Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
                     mejorSolucion = ga2.ejecutar(2, replanificado);
                     mejorSolucion.getSistemaPLG().imprimirPlanificacion();
-
                     mejorSolucion.getSistemaPLG().setReplanning(false);
                     mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
-//                    PlanificacionPlgApplication.setMejorSolucion(mejorSolucion);
-
-
                 } finally {
                     mejorSolucion.getSistemaPLG().setReplanning(false);
                 }
@@ -438,19 +449,137 @@ public class PlanificacionPlgApplication {
             }
         }
     }
+    
+    public static void procesarTodosLosBatches() {
+        try {
+            Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
+            if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {
+                return;
+            }
+            
+            int batchActual = PlanificacionPlgApplication.getBatchActual();
+            List<Pedido> listaPedidosTotal = PlanificacionPlgApplication.getListaPedidosTotal();
+            
+            if (inicioBatchActual == 0 || listaPedidosTotal.size() < inicioBatchActual) {
+                return;
+            }
+            
+            // Process all remaining batches
+            while (inicioBatchActual < (listaPedidosTotal.size()+1)) {
+                LocalDateTime inicio = mejorSolucion.getSistemaPLG().getFechaHoraFinEntregas();
+                int inicioBatch = inicioBatchActual;
+                double cargaActual = 0.0;
+
+                for (int i = inicioBatchActual; i < listaPedidosTotal.size(); i++) {
+                    double carga = listaPedidosTotal.get(i).getVolumenGLP();
+
+                    if (cargaActual + carga > capMaxFlota*0.8) {
+                        inicioBatchActual = i; // nuevo batch empieza aquí
+                        break;
+                    }
+                    cargaActual += carga;
+                }
+
+                int finBatch = (listaPedidosTotal.size() > inicioBatchActual) ? inicioBatchActual : listaPedidosTotal.size();
+                System.out.println("Procesando batch Nro: " + (batchActual + 1));
+                System.out.println("Fecha fin de entregas: "+ inicio);
+                System.out.println("primer max: "+ listaPedidosTotal.get(inicioBatch).getFechaHoraMaxEntrega());
+                System.out.println("ultimo max: "+ listaPedidosTotal.get(finBatch-1).getFechaHoraMaxEntrega());
+                for(int j = inicioBatch; j < finBatch; j++) {
+                    if(inicio.plusMinutes(60).isAfter(listaPedidosTotal.get(j).getFechaHoraMaxEntrega())){
+                        //destinar a un camion en caliente
+
+                        inicioBatch++;
+                    }
+                }
+
+                if (inicioBatch >= finBatch || inicioBatch >= listaPedidosTotal.size()) {
+                    break;
+                }
+
+                List<Pedido> batch = listaPedidosTotal.subList(inicioBatch, finBatch);
+                ArrayList<Pedido> pedidosNuevos = new ArrayList<>(batch);
+                
+                // Reasignar IDs para el batch
+                for (int j = 0; j < pedidosNuevos.size(); j++) {
+                    pedidosNuevos.get(j).setId(j + 1);
+                }
+                
+                System.out.println("Cantidad pedidos: " + pedidosNuevos.size());
+                
+                // Create a copy of the current solution for the next batch
+                Individuo mejorSolucionActual = PlanificacionPlgApplication.getMejorSolucion();
+                mejorSolucionSiguiente = new Individuo();
+                mejorSolucionSiguiente.setSistemaPLG(new SistemaPLG());
+                mejorSolucionSiguiente.getSistemaPLG().deepCopy(mejorSolucionActual.getSistemaPLG());
+                
+                // Process the batch
+                PlanificacionPlgApplication.setBatchActual(batchActual + 1);
+                while (!PlanificacionPlgApplication.sigListo) {
+                    try {
+                        Thread.sleep(100); // Check every 100ms
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+                sigListo = false;
+
+                PlanificacionPlgApplication.replanificar(PlanificacionPlgApplication.getMejorSolucionSiguiente(), inicio, pedidosNuevos);
+
+                while (PlanificacionPlgApplication.isWaitingForContinueSimulation()) {
+                    try {
+                        Thread.sleep(100); // Check every 100ms
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+                // After processing the second batch, pause and wait for continueSimulation API
+                PlanificacionPlgApplication.setWaitingForContinueSimulation(true);
+                System.out.println("Pausing after second batch. Waiting for continueSimulation API...");
+                // Update the main solution with the next batch result
+
+                PlanificacionPlgApplication.setMejorSolucion(mejorSolucionSiguiente);
+                PlanificacionPlgApplication.setBatchRefreshNeeded(true);
+                mejorSolucion = mejorSolucionSiguiente;
+                System.out.println("Continuing with remaining batches...");
+
+                batchActual = PlanificacionPlgApplication.getBatchActual();
+            }
+            
+            // Mark all batches as processed
+            PlanificacionPlgApplication.setAllBatchesProcessed(true);
+            System.out.println("All batches have been processed successfully.");
+        } catch (Exception e) {
+            System.err.println("Error processing batches: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
     public static void replanificar(Individuo mejorSolucion, LocalDateTime inicioReplan, ArrayList<Pedido>pedidosnuevos){
-        SistemaPLG replanificado = new SistemaPLG(mejorSolucion.getSistemaPLG());
-        mejorSolucion.getSistemaPLG().estadoDePedidosALas(inicioReplan);
+        SistemaPLG replanificado = mejorSolucion.getSistemaPLG();
+        mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
         replanificado.setPedidos(pedidosnuevos);
+
+//        mejorSolucion.getSistemaPLG().estadoDePedidosALas(inicioReplan);
 //        for(Pedido p : mejorSolucion.getSistemaPLG().getPedidos()){
 //            if(p.getEstado()!=EstadoPedido.ENTREGADO){
-//                Pedido reemplazado = replanificado.getPedidos().get(p.getId()-1);
-//                replanificado.getPedidos().remove(p.getId()-1);
-//                replanificado.getPedidos().add(p.getId()-1, p);
-//                replanificado.getPedidos().add(reemplazado);
-//                reemplazado.setId(replanificado.getPedidos().size()+1);
+//                Pedido pedidoCopia = new Pedido(p);
+//                if(p.getId()<replanificado.getPedidos().size()){
+//                    Pedido reemplazado = replanificado.getPedidos().get(p.getId()-1);
+//                    replanificado.getPedidos().remove(p.getId()-1);
+//                    replanificado.getPedidos().add(p.getId()-1, pedidoCopia);
+//                    replanificado.getPedidos().add(reemplazado);
+//                    reemplazado.setId(replanificado.getPedidos().size()+1);
+//                }
+//                else{
+//                    replanificado.getPedidos().add(pedidoCopia); //en caso el batch sea mas pequeno que el anterior
+//                    pedidoCopia.setId(replanificado.getPedidos().size()+1);
+//                }
 //            }
 //        }
+
         for(Cisterna cist : mejorSolucion.getSistemaPLG().getCisternas()){
             OperacionesGLPCisterna op = new OperacionesGLPCisterna();
             op.setFechaHoraOperacion(inicioReplan.plusMinutes(1));
@@ -468,7 +597,7 @@ public class PlanificacionPlgApplication {
             }
         }
         replanificado.setCisternas(mejorSolucion.getSistemaPLG().getCisternas());
-        mejorSolucion.getSistemaPLG().setReplanning(true);
+        mejorSolucion.getSistemaPLG().setReplanning(false);//mostrar mensaje
         mejorSolucion.getSistemaPLG().setAveriaStartTime(inicioReplan);
         // Replanificacion process
         replanificado.setFlota(new ArrayList<>());
@@ -539,11 +668,11 @@ public class PlanificacionPlgApplication {
                 }
                 replanificado.getFlota().add(nuevoCamion);
             }
-            int tamPoblacion = 30;
+            int tamPoblacion = 20;
             int generaciones = 5;
-            double probCruce = 0.3;
-            double probMutacion = 0.15;
-            double porcentajeElite = 0.2;
+            double probCruce = 0.1;
+            double probMutacion = 0.1;
+            double porcentajeElite = 0.1;
             Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
             System.out.println("%%%%%%%%%%%%%%%%%%%%REPLANNING%%%%%%%%%%%%%%%%%%%%");
             mejorSolucion = ga2.ejecutar(2, replanificado);
@@ -551,49 +680,12 @@ public class PlanificacionPlgApplication {
 
             mejorSolucion.getSistemaPLG().setReplanning(false);
             mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
-            PlanificacionPlgApplication.setMejorSolucion(mejorSolucion);
+            PlanificacionPlgApplication.setMejorSolucionSiguiente(mejorSolucion);
+            PlanificacionPlgApplication.setMejorSolucionAnterior(mejorSolucion);
+            PlanificacionPlgApplication.setSigListo(true);
 
         } finally {
             mejorSolucion.getSistemaPLG().setReplanning(false);
-        }
-    }
-    public static void procesarSiguienteBatch(){
-        try {
-            Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
-            if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {
-                return;
-            }
-            int batchActual = PlanificacionPlgApplication.getBatchActual();
-            List<Integer> batchStartIndices = PlanificacionPlgApplication.getBatchStartIndices();
-            List<Pedido> listaPedidosTotal = PlanificacionPlgApplication.getListaPedidosTotal();
-            if (batchStartIndices == null || batchActual >= batchStartIndices.size()) {
-                return;
-            }
-            LocalDateTime inicio = mejorSolucion.getSistemaPLG().getFechaHoraFinEntregas();
-            int inicioBatch = batchStartIndices.get(batchActual);
-            System.out.println("Procesando batch Nro: " + (batchActual+1));
-            int finBatch = (batchActual + 1 < batchStartIndices.size()) ? batchStartIndices.get(batchActual + 1) : listaPedidosTotal.size();
-            if (inicioBatch >= finBatch || inicioBatch >= listaPedidosTotal.size()) {
-                return;
-            }
-            List<Pedido> batch = listaPedidosTotal.subList(inicioBatch, finBatch);
-            ArrayList<Pedido> pedidosNuevos = new ArrayList<>(batch);
-            // Reasignar IDs para el batch
-            for (int j = 0; j < pedidosNuevos.size(); j++) {
-                pedidosNuevos.get(j).setId(j + 1); // o j si prefieres que empiece en 0
-            }
-            System.out.println("Cantidad pedidos: " + pedidosNuevos.size());
-            Individuo mejorSolucionActual = PlanificacionPlgApplication.getMejorSolucion();
-            if(batchActual!=1)
-                PlanificacionPlgApplication.setMejorSolucion(PlanificacionPlgApplication.getMejorSolucionSiguiente());
-            mejorSolucionSiguiente = new Individuo();
-            mejorSolucionSiguiente.setSistemaPLG(new SistemaPLG());
-            mejorSolucionSiguiente.getSistemaPLG().deepCopy(mejorSolucionActual.getSistemaPLG());
-            PlanificacionPlgApplication.replanificar(PlanificacionPlgApplication.getMejorSolucionSiguiente(),inicio, pedidosNuevos);
-            PlanificacionPlgApplication.setBatchActual(batchActual + 1);
-            return;
-        } catch (Exception e) {
-            return;
         }
     }
 }
