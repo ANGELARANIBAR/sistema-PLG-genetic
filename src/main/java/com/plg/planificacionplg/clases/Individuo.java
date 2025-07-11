@@ -138,6 +138,8 @@ public Individuo(){}
             if(sistema.getCamionesAveriados()!=null)
                 for(Camion c : sistema.getCamionesAveriados()){
                     sistemaPLG.getCamionesAveriados().add(flota.get(c.getId()-1));
+                    if(flota.get(c.getId()-1).getAverias() == null)flota.get(c.getId()-1).setAverias(new ArrayList<>());
+                    flota.get(c.getId()-1).getAverias().add(c.getAverias().getLast());
                 }
         }
         for(Pedido pedido: sistema.getPedidos()){

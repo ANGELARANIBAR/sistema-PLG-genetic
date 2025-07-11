@@ -199,7 +199,7 @@ public class SistemaPLG {
         Camion camion = new Camion(c);
         if(c.getDestinos().isEmpty())return camion;
         Destino anterior = c.getDestinos().get(0), d;
-        if (c.getDestinos().size() == 1) return camion;
+        if (c.getDestinos().size() == 1) return c;
         if(anterior.getFechaHoraSalida()==null || (c.getDestinos().get(1)!=null && c.getDestinos().get(1).getFechaHoraLlegada()==null))
             return camion;
         if(anterior.getFechaHoraSalida().isAfter(fecha)){
