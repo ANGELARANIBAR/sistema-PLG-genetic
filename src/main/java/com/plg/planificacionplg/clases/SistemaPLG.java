@@ -217,11 +217,43 @@ public class SistemaPLG {
         for(i = 1; i<c.getDestinos().size(); i++){
             d = c.getDestinos().get(i);
             if(d.getFechaHoraLlegada().isAfter(fecha)){
-                double tiempoEnRuta = Duration.between(anterior.getFechaHoraSalida(), fecha).toMinutes();
-                camion.setCombustibleActual(anterior.getSaldoCombustibleCamion()-(int)(Math.abs(tiempoEnRuta)*c.getTipo()
-                        .getVelocidadPromedio())*distanciaManzana*c.calcularPesoTotal()/180.0);
+                // Usar segundos para mayor precisión en el cálculo
+                double tiempoEnRutaSegundos = Duration.between(anterior.getFechaHoraSalida(), fecha).toSeconds();
+                double velocidadNodosPorSegundo = c.getTipo().getVelocidadPromedio() / 60.0; // Convertir de nodos/minuto a nodos/segundo
+                double distanciaRecorrida = tiempoEnRutaSegundos * velocidadNodosPorSegundo * distanciaManzana;
+                
+                camion.setCombustibleActual(anterior.getSaldoCombustibleCamion() - (distanciaRecorrida * c.calcularPesoTotal() / 180.0));
                 camion.setCargaGLPActual(anterior.getSaldoGLPCamion());
-                camion.setUbicacionActual(d.getRuta().getNodos().get((int)(Math.abs(tiempoEnRuta)*c.getTipo().getVelocidadPromedio())));
+                
+                // Interpolación para posición más suave
+                if (d.getRuta() != null && d.getRuta().getNodos() != null && !d.getRuta().getNodos().isEmpty()) {
+                    List<Nodo> nodos = d.getRuta().getNodos();
+                    double posicionEnRuta = tiempoEnRutaSegundos * velocidadNodosPorSegundo;
+                    int nodoIndex = (int) posicionEnRuta;
+                    
+                    if (nodoIndex >= nodos.size()) {
+                        camion.setUbicacionActual(nodos.get(nodos.size() - 1));
+                    } else if (nodoIndex < 0) {
+                        camion.setUbicacionActual(nodos.get(0));
+                    } else {
+                        double fraccion = posicionEnRuta - nodoIndex;
+                        
+                        if (nodoIndex == nodos.size() - 1) {
+                            camion.setUbicacionActual(nodos.get(nodoIndex));
+                        } else {
+                            Nodo nodoActual = nodos.get(nodoIndex);
+                            Nodo nodoSiguiente = nodos.get(nodoIndex + 1);
+                            
+                            double xInterpolado = nodoActual.getPosX() + (nodoSiguiente.getPosX() - nodoActual.getPosX()) * fraccion;
+                            double yInterpolado = nodoActual.getPosY() + (nodoSiguiente.getPosY() - nodoActual.getPosY()) * fraccion;
+                            
+                            camion.setUbicacionActual(new Nodo(xInterpolado, yInterpolado));
+                        }
+                    }
+                } else {
+                    camion.setUbicacionActual(d.getUbicacion());
+                }
+                
                 if(i==c.getDestinos().size()-1){
                     camion.setEstado(EstadoCamion.EN_RETORNO);
                 }else camion.setEstado(EstadoCamion.EN_RUTA);

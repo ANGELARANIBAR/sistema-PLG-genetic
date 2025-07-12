@@ -132,9 +132,11 @@ public class Camion {
         for(int i=1; i<destinos.size(); i++) {
             Destino destino = destinos.get(i);
             if(destino.getFechaHoraLlegada().isAfter(fechahora)) {
-                //calcular con ruta
-                double tiempoEnRuta = Duration.between(anterior.getFechaHoraSalida(), fechahora).toSeconds();
-                return anterior.getSaldoCombustibleCamion()-(int)(Math.abs(tiempoEnRuta/60.0)*tipo.getVelocidadPromedio())*distanciaManzana*calcularPesoTotal()/180.0;
+                //calcular con ruta usando segundos para mayor precisión
+                double tiempoEnRutaSegundos = Duration.between(anterior.getFechaHoraSalida(), fechahora).toSeconds();
+                double velocidadNodosPorSegundo = tipo.getVelocidadPromedio() / 60.0; // Convertir de nodos/minuto a nodos/segundo
+                double distanciaRecorrida = tiempoEnRutaSegundos * velocidadNodosPorSegundo * distanciaManzana;
+                return anterior.getSaldoCombustibleCamion() - (distanciaRecorrida * calcularPesoTotal() / 180.0);
             }
             else{
                 if(destino.getFechaHoraSalida().isAfter(fechahora) ||
@@ -225,10 +227,41 @@ public class Camion {
         for(int i=1; i<destinos.size(); i++) {
             Destino destino = destinos.get(i);
             if(destino.getFechaHoraLlegada().isAfter(fechahora)) {
-                //calcular con ruta
-                long tiempoEnRuta = Duration.between(anterior.getFechaHoraSalida(), fechahora).toMinutes();
-                //System.out.println(tiempoEnRuta);
-                ubicacionActual = destino.getRuta().getNodos().get((int)(Math.abs(tiempoEnRuta)*tipo.getVelocidadPromedio()));
+                //calcular con ruta usando segundos para mayor precisión
+                long tiempoEnRutaSegundos = Duration.between(anterior.getFechaHoraSalida(), fechahora).toSeconds();
+                double velocidadNodosPorSegundo = tipo.getVelocidadPromedio() / 60.0; // Convertir de nodos/minuto a nodos/segundo
+                double posicionEnRuta = tiempoEnRutaSegundos * velocidadNodosPorSegundo;
+                
+                // Interpolación entre nodos para movimiento más suave
+                if (destino.getRuta() != null && destino.getRuta().getNodos() != null && !destino.getRuta().getNodos().isEmpty()) {
+                    List<Nodo> nodos = destino.getRuta().getNodos();
+                    int nodoIndex = (int) posicionEnRuta;
+                    
+                    if (nodoIndex >= nodos.size()) {
+                        // Si estamos más allá del último nodo, usar el último nodo
+                        ubicacionActual = nodos.get(nodos.size() - 1);
+                    } else if (nodoIndex < 0) {
+                        // Si estamos antes del primer nodo, usar el primer nodo
+                        ubicacionActual = nodos.get(0);
+                    } else {
+                        // Interpolación entre nodos
+                        double fraccion = posicionEnRuta - nodoIndex;
+                        
+                        if (nodoIndex == nodos.size() - 1) {
+                            // Estamos en el último nodo
+                            ubicacionActual = nodos.get(nodoIndex);
+                        } else {
+                            // Interpolación entre nodo actual y siguiente
+                            Nodo nodoActual = nodos.get(nodoIndex);
+                            Nodo nodoSiguiente = nodos.get(nodoIndex + 1);
+                            
+                            double xInterpolado = nodoActual.getPosX() + (nodoSiguiente.getPosX() - nodoActual.getPosX()) * fraccion;
+                            double yInterpolado = nodoActual.getPosY() + (nodoSiguiente.getPosY() - nodoActual.getPosY()) * fraccion;
+                            
+                            ubicacionActual = new Nodo(xInterpolado, yInterpolado);
+                        }
+                    }
+                }
                 return ubicacionActual;
             }
             else{

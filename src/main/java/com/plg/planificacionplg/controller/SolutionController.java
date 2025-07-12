@@ -871,6 +871,7 @@ public class SolutionController {
         dto.setCurrentFuel(camion.getCombustibleActual());
         dto.setCurrentGLP(camion.getCargaGLPActual());
         dto.setCodigo(camion.getCodigo());
+        dto.setVelocidad(camion.getTipo().getVelocidadPromedio());
 
         List<DestinationDTO> destinations = new ArrayList<>();
         for (Destino destino : camion.getDestinos()) {

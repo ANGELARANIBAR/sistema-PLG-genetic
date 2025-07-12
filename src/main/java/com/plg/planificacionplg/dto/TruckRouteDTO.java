@@ -10,7 +10,16 @@ public class TruckRouteDTO {
     private double fuelConsumed;
     private double currentFuel;
     private double currentGLP;
+    private double velocidad;
     private List<DestinationDTO> destinations;
+
+    public double getVelocidad() {
+        return velocidad;
+    }
+
+    public void setVelocidad(double velocidad) {
+        this.velocidad = velocidad;
+    }
 
     // Getters and Setters
     public int getTruckId() {

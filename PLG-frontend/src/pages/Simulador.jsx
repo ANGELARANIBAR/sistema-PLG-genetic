@@ -31,7 +31,7 @@ export default function Simulador() {
     // Simulation control states
     const [currentTime, setCurrentTime] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
-    const [playbackSpeed, setPlaybackSpeed] = useState(1);
+    const [playbackSpeed, setPlaybackSpeed] = useState(15);
     const [simulationStarted, setSimulationStarted] = useState(false);
     const [fechaHoraFinEntregas, setFechaHoraFinEntregas] = useState(null);
     const [isContinuing, setIsContinuing] = useState(false);
@@ -130,7 +130,8 @@ export default function Simulador() {
             intervalId = setInterval(() => {
                 setCurrentTime(prevTime => {
                     if (!prevTime) return new Date();
-                    return new Date(prevTime.getTime() + 60000 * playbackSpeed);
+                    // Use seconds instead of minutes for smoother movement
+                    return new Date(prevTime.getTime() + 1000 * playbackSpeed);
                 });
             }, 1000);
         }

@@ -8,7 +8,8 @@ export const TruckRoute = {
   fuelConsumed: Number,
   currentFuel: Number,
   currentGLP: Number,
-  destinations: Array
+  destinations: Array,
+  velocidad: Number
 };
 
 export const Destination = {
