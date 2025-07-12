@@ -210,6 +210,79 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
     setContextMenu({ x: e.clientX, y: e.clientY, truckId });
   };
 
+  // Function to calculate the remaining route based on truck position
+  const calculateRemainingRoute = (truckId, currentDest, truckPosition) => {
+    if (!currentDest || !currentDest.route || !truckPosition) {
+      return null;
+    }
+
+    const route = currentDest.route;
+    const truckPos = { x: truckPosition.x, y: truckPosition.y };
+    
+    // Find the best segment the truck is currently on
+    let bestSegmentIndex = 0;
+    let minDistance = Infinity;
+    
+    for (let i = 0; i < route.length - 1; i++) {
+      const node1 = route[i];
+      const node2 = route[i + 1];
+      
+      // Calculate distance from truck to line segment
+      const distance = distanceToLineSegment(truckPos, node1, node2);
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        bestSegmentIndex = i;
+      }
+    }
+
+    // If truck is very close to the last node, consider route complete
+    if (bestSegmentIndex >= route.length - 2) {
+      const lastNode = route[route.length - 1];
+      const distanceToLast = Math.sqrt(
+        Math.pow(lastNode.x - truckPos.x, 2) + Math.pow(lastNode.y - truckPos.y, 2)
+      );
+      
+      if (distanceToLast < 2) { // Within 2 units of last node
+        return null; // Route is complete
+      }
+    }
+
+    // Return the remaining portion of the route (from current segment to end)
+    return route.slice(bestSegmentIndex);
+  };
+
+  // Helper function to calculate distance from point to line segment
+  const distanceToLineSegment = (point, lineStart, lineEnd) => {
+    const A = point.x - lineStart.x;
+    const B = point.y - lineStart.y;
+    const C = lineEnd.x - lineStart.x;
+    const D = lineEnd.y - lineStart.y;
+
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+    let param = -1;
+
+    if (lenSq !== 0) param = dot / lenSq;
+
+    let xx, yy;
+
+    if (param < 0) {
+      xx = lineStart.x;
+      yy = lineStart.y;
+    } else if (param > 1) {
+      xx = lineEnd.x;
+      yy = lineEnd.y;
+    } else {
+      xx = lineStart.x + param * C;
+      yy = lineStart.y + param * D;
+    }
+
+    const dx = point.x - xx;
+    const dy = point.y - yy;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
   const handleAveriaOption = async (tipoAveria) => {
     const truckId = contextMenu?.truckId || (selectedItem?.type === 'truck' ? selectedItem.id : null);
     
@@ -293,7 +366,15 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
         {/* Draw current routes */}
         {system.flota.map((truck, index) => {
           const currentDest = currentDestinations.get(truck.truckId);
+          const truckPosition = truckPositions.get(truck.truckId);
+          
           if (!currentDest || !currentDest.route) return null;
+
+          // Calculate the remaining route based on truck position
+          const remainingRoute = calculateRemainingRoute(truck.truckId, currentDest, truckPosition);
+          
+          // If no remaining route, don't render anything
+          if (!remainingRoute || remainingRoute.length < 2) return null;
 
           const color = `hsl(${(index * 360) / system.flota.length}, 70%, 50%)`;
           return (
@@ -310,7 +391,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
               }}
             >
               <polyline
-                points={currentDest.route.map((node) => {
+                points={remainingRoute.map((node) => {
                   const pos = toScreenPosition(node.x, node.y);
                   return `${pos.x},${pos.y}`;
                 }).join(' ')}
