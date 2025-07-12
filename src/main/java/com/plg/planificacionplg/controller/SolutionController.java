@@ -841,6 +841,7 @@ public class SolutionController {
         dto.setFuelConsumed(destino.getRuta().getConsumoCombustible());
         dto.setSaldoGLPCamion(destino.getSaldoGLPCamion());
         dto.setOperacionGLP(destino.getGLPOperacion());
+        dto.setUbicacion(new NodeDTO(destino.getUbicacion().getPosX(), destino.getUbicacion().getPosY()));
         if (destino instanceof EntregaPedido) {
             dto.setOperacionGLP(destino.getPedido().getVolumenGLP());
             dto.setDestinationType("ENTREGA PEDIDO");
@@ -878,7 +879,6 @@ public class SolutionController {
         dto.setCodigo(camion.getCodigo());
         dto.setVelocidad(camion.getTipo().getVelocidadPromedio());
         dto.setTipoCamion(convertToTipoCamionDTO(camion.getTipo()));
-
         List<DestinationDTO> destinations = new ArrayList<>();
         for (Destino destino : camion.getDestinos()) {
             DestinationDTO destDto = new DestinationDTO();
@@ -886,7 +886,8 @@ public class SolutionController {
             destDto.setDepartureTime(destino.getFechaHoraSalida());
             destDto.setFuelConsumed(destino.getRuta().getConsumoCombustible());
             destDto.setSaldoGLPCamion(destino.getSaldoGLPCamion());
-
+            destDto.setOperacionGLP(destino.getGLPOperacion());
+            destDto.setUbicacion(new NodeDTO(destino.getUbicacion().getPosX(), destino.getUbicacion().getPosY()));
             if (destino instanceof EntregaPedido) {
                 destDto.setDestinationType("ENTREGA PEDIDO");
                 destDto.setOrderId(destino.getPedido().getId());

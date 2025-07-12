@@ -926,7 +926,7 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
                                 <div className="destination-details">
                                   <div className="detail-row">
                                     <label>Ubicación:</label>
-                                    <span>({dest.route[dest.route.length-1]?.x || 'N/A'}, {dest.route[dest.route.length-1]?.y || 'N/A'})</span>
+                                    <span>({dest.route[dest.route.length-1]?.x || dest.ubicacion?.x ||'N/A'}, {dest.route[dest.route.length-1]?.y || dest.ubicacion?.y || 'N/A'})</span>
                                   </div>
                                   <div className="detail-row">
                                     <label>Llegada:</label>

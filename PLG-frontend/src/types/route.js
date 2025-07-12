@@ -29,6 +29,7 @@ export const Destination = {
   orderId: Number,
   orderNumber: String,
   maxDeliveryTime: String,
+  ubicacion: Node,
   route: Array,
   destinationType: String,
   saldoGLPCamion: Number

@@ -14,6 +14,15 @@ public class DestinationDTO {
     private String destinationType; // "REABASTECIMIENTO", "TRASVASE", "ENTREGA_PEDIDO"
     private double saldoGLPCamion;
     private double operacionGLP;
+    private NodeDTO ubicacion;
+
+    public NodeDTO getUbicacion() {
+        return ubicacion;
+    }
+
+    public void setUbicacion(NodeDTO ubicacion) {
+        this.ubicacion = ubicacion;
+    }
 
     public double getOperacionGLP() {
         return operacionGLP;
