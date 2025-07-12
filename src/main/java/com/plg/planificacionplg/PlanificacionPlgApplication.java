@@ -492,6 +492,7 @@ public class PlanificacionPlgApplication {
                         inicioBatch++;
                     }
                 }
+                System.out.println("primer max corregido: "+ listaPedidosTotal.get(inicioBatch).getFechaHoraMaxEntrega());
 
                 if (inicioBatch >= finBatch || inicioBatch >= listaPedidosTotal.size()) {
                     break;

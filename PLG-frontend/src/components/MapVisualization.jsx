@@ -31,6 +31,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   const [pedidoEstadoLoading, setPedidoEstadoLoading] = useState(false);
   const [pedidosEstados, setPedidosEstados] = useState({});
   const [planificationPercentage, setPlanificationPercentage] = useState(null);
+  const [activeTruckTab, setActiveTruckTab] = useState('info');
   const mapContainerRef = useRef(null);
 
   const getCurrentDestination = useCallback(async (truck) => {
@@ -512,6 +513,65 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
     return Math.sqrt(dx * dx + dy * dy);
   };
 
+  const formatDateTime = (dateTime) => {
+    if (!dateTime) return 'N/A';
+    return new Date(dateTime).toLocaleString();
+  };
+
+  const getDestinationTypeLabel = (type) => {
+    const labels = {
+      'REABASTECIMIENTO': 'Reabastecimiento',
+      'ENTREGA PEDIDO': 'Entrega de Pedido',
+      'EN_RECARGA_GLP': 'Recarga de GLP',
+      'EN_RECARGA_COMBUSTIBLE': 'Recarga de Combustible',
+      'EN_MANTENIMIENTO': 'En Mantenimiento'
+    };
+    return labels[type] || type;
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      'COMPLETADO': '#4CAF50',
+      'EN_CURSO': '#2196F3',
+      'PENDIENTE': '#FF9800',
+      'CANCELADO': '#F44336'
+    };
+    return colors[status] || '#666';
+  };
+
+  const getTruckDestinations = (truck) => {
+    if (!truck || !currentTime) return [];
+
+    const truckDestinations = truck.destinations || [];
+    return truckDestinations.map((destino, index) => {
+      // Determine status based on current time
+      let status;
+      if (currentTime.isBefore(destino.arrivalTime)) {
+        status = 'PENDIENTE';
+      } else if (currentTime.isAfter(destino.departureTime)) {
+        status = 'COMPLETADO';
+      } else {
+        status = 'EN_CURSO';
+      }
+
+      return {
+        destinationType: destino.destinationType || 'UNKNOWN',
+        ubicacion: {
+          x: destino.route && destino.route.length > 0 ? destino.route[0].x : 0,
+          y: destino.route && destino.route.length > 0 ? destino.route[0].y : 0
+        },
+        fechaHoraLlegada: destino.arrivalTime,
+        fechaHoraSalida: destino.departureTime,
+        glpOperacion: destino.fuelConsumed, // Using fuelConsumed as GLP operation
+        saldoGLPCamion: destino.saldoGLPCamion,
+        saldoCombustibleCamion: destino.fuelConsumed, // Using fuelConsumed as fuel balance
+        estadoCamion: destino.destinationType,
+        status: status,
+        orderId: destino.orderId || null
+      };
+    });
+  };
+
   return (
     <div className="map-container" ref={mapContainerRef}>
       <div className="map-visualization" style={{ width: containerWidth }}>
@@ -742,50 +802,170 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
           selectedItem.type === 'truck' ? (
             <div className="info-section">
               <h3>Información de Camión</h3>
-              <div className="info-content">
-                <div className="info-item">
-                  <strong>Código:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.codigo}</span>
-                </div>
-                <div className="info-item">
-                  <strong>Placa:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.plate}</span>
-                </div>
-                <div className="info-item">
-                  <strong>Combustible actual:</strong> <span>{Number(truckFuels.get(selectedItem.id) || 0).toFixed(2)}</span>
-                </div>
-                <div className="info-item">
-                  <strong>GLP actual:</strong> <span>{Number(truckGLPs.get(selectedItem.id) || 0).toFixed(2)}</span>
-                </div>
-                <div className="info-item">
-                  <strong>Combustible final:</strong> <span>{Number(system?.flota.find(t => t.truckId === selectedItem.id)?.fuelConsumed || 0).toFixed(2)}</span>
-                </div>
-                {system?.flota.find(t => t.truckId === selectedItem.id) && (
-                  <div className="info-item">
-                    <strong>Estado camión:</strong> <span>{truckStates.get(selectedItem.id) || 'N/A'}</span>
+              
+              {/* Truck Tabs */}
+              <div className="truck-tabs">
+                <button 
+                  className={`truck-tab-button ${activeTruckTab === 'info' ? 'active' : ''}`}
+                  onClick={() => setActiveTruckTab('info')}
+                >
+                  Detalle
+                </button>
+                <button 
+                  className={`truck-tab-button ${activeTruckTab === 'destinations' ? 'active' : ''}`}
+                  onClick={() => setActiveTruckTab('destinations')}
+                >
+                  Destinos
+                </button>
+              </div>
+
+              <div className="truck-tab-content">
+                {activeTruckTab === 'info' && (
+                  <div className="info-content">
+                    <div className="info-item">
+                      <strong>Código:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.codigo}</span>
+                    </div>
+                    <div className="info-item">
+                      <strong>Placa:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.plate}</span>
+                    </div>
+                    <div className="info-item">
+                      <strong>Tipo:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.tipo?.codigo || 'N/A'}</span>
+                    </div>
+                    <div className="info-item">
+                      <strong>Estado:</strong> <span style={{ color: getStatusColor(truckStates.get(selectedItem.id) || 'UNKNOWN') }}>{truckStates.get(selectedItem.id) || 'N/A'}</span>
+                    </div>
+                    <div className="info-item">
+                      <strong>Combustible actual:</strong> <span>{Number(truckFuels.get(selectedItem.id) || 0).toFixed(2)}%</span>
+                    </div>
+                    <div className="info-item">
+                      <strong>GLP actual:</strong> <span>{Number(truckGLPs.get(selectedItem.id) || 0).toFixed(2)}L</span>
+                    </div>
+                    <div className="info-item">
+                      <strong>Capacidad GLP:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.tipo?.cargaGLPMax?.toFixed(2) || 'N/A'}L</span>
+                    </div>
+                    <div className="info-item">
+                      <strong>Capacidad Combustible:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.tipo?.capCombustibleMax?.toFixed(2) || 'N/A'}L</span>
+                    </div>
+                    <div className="info-item">
+                      <strong>Velocidad Promedio:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.tipo?.velocidadPromedio?.toFixed(2) || 'N/A'} nodes/min</span>
+                    </div>
+                    <div className="info-item">
+                      <strong>Combustible consumido:</strong> <span>{Number(system?.flota.find(t => t.truckId === selectedItem.id)?.fuelConsumed || 0).toFixed(2)}L</span>
+                    </div>
+                    
+                    {/* Averia Buttons */}
+                    <div className="averia-section">
+                      <h4>Registrar avería</h4>
+                      <div className="averia-buttons">
+                        <button 
+                          onClick={() => handleAveriaOption(1)} 
+                          className="averia-button tipo-1"
+                        >
+                          Tipo 1
+                        </button>
+                        <button 
+                          onClick={() => handleAveriaOption(2)} 
+                          className="averia-button tipo-2"
+                        >
+                          Tipo 2
+                        </button>
+                        <button 
+                          onClick={() => handleAveriaOption(3)} 
+                          className="averia-button tipo-3"
+                        >
+                          Tipo 3
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
-              </div>
-              <div className="averia-buttons">
-                <h4>Registrar avería</h4>
-                <div className="button-container">
-                  <button 
-                    onClick={() => handleAveriaOption(1)} 
-                    className="tipo-averia"
-                  >
-                    Tipo 1
-                  </button>
-                  <button 
-                    onClick={() => handleAveriaOption(2)} 
-                    className="tipo-averia"
-                  >
-                    Tipo 2
-                  </button>
-                  <button 
-                    onClick={() => handleAveriaOption(3)} 
-                    className="tipo-averia"
-                  >
-                    Tipo 3
-                  </button>
-                </div>
+
+                {activeTruckTab === 'destinations' && (
+                  <div className="destinations-content">
+                    {(() => {
+                      const truck = system?.flota.find(t => t.truckId === selectedItem.id);
+                      const destinations = truck.destinations;
+                      const currentDest = currentDestinations.get(selectedItem.id);
+                      
+                      return destinations.length > 0 ? (
+                        <div className="destinations-list">
+                          {destinations.map((dest, index) => {
+                            // Check if this destination matches the current destination
+                            const isCurrentDestination = currentDest && 
+                              dest.destinationType === currentDest.destinationType &&
+                              dest.arrivalTime === currentDest.arrivalTime &&
+                              dest.departureTime === currentDest.departureTime;
+                            
+                            return (
+                              <div 
+                                key={index} 
+                                className={`destination-item ${isCurrentDestination ? 'current-destination' : ''}`}
+                                style={{
+                                  border: isCurrentDestination ? '2px solid #2196F3' : '1px solid #ddd',
+                                  backgroundColor: isCurrentDestination ? '#e3f2fd' : '#fafafa',
+                                  boxShadow: isCurrentDestination ? '0 2px 8px rgba(33, 150, 243, 0.3)' : 'none'
+                                }}
+                              >
+                                <div className="destination-header">
+                                  <span className="destination-type">
+                                    {getDestinationTypeLabel(dest.destinationType)}
+                                    {isCurrentDestination && (
+                                      <span style={{ 
+                                        marginLeft: '8px', 
+                                        color: '#2196F3', 
+                                        fontWeight: 'bold',
+                                        fontSize: '12px'
+                                      }}>
+                                        (ACTUAL)
+                                      </span>
+                                    )}
+                                  </span>
+                                  <span className="destination-status" style={{ color: getStatusColor(dest.status) }}>
+                                    {dest.status}
+                                  </span>
+                                </div>
+                                <div className="destination-details">
+                                  <div className="detail-row">
+                                    <label>Ubicación:</label>
+                                    <span>({dest.route[dest.route.length-1]?.x || 'N/A'}, {dest.route[dest.route.length-1]?.y || 'N/A'})</span>
+                                  </div>
+                                  <div className="detail-row">
+                                    <label>Llegada:</label>
+                                    <span>{formatDateTime(dest.arrivalTime)}</span>
+                                  </div>
+                                  <div className="detail-row">
+                                    <label>Salida:</label>
+                                    <span>{formatDateTime(dest.departureTime)}</span>
+                                  </div>
+                                  {dest.saldoGLPCamion !== undefined && (
+                                    <div className="detail-row">
+                                      <label>Operación GLP:</label>
+                                      <span>{dest.saldoGLPCamion.toFixed(2)}L</span>
+                                    </div>
+                                  )}
+                                  {dest.saldoGLPCamion !== undefined && (
+                                    <div className="detail-row">
+                                      <label>Saldo GLP:</label>
+                                      <span>{dest.saldoGLPCamion.toFixed(2)}L</span>
+                                    </div>
+                                  )}
+                                  {dest.orderId && (
+                                    <div className="detail-row">
+                                      <label>ID Pedido:</label>
+                                      <span>{dest.orderId}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="no-destinations">No se encontraron destinos para este camión.</div>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             </div>
           ) : selectedItem.type === 'cisterna' ? (
@@ -820,7 +1000,7 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
                 </div>
               )}
             </div>
-          ) : (
+          ) : selectedItem.type === 'pedido' ? (
             <div className="info-section">
               <h3>Información de Pedido</h3>
               {system?.pedidos.find(p => p.id === selectedItem.id) && (
@@ -849,17 +1029,26 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
                 </div>
               )}
             </div>
-          )
+          ) : null
         ) : (
-          <div className="empty-selection">
-            <div className="empty-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 17L12 22L22 17" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 12L12 17L22 12" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+          <div className="info-section">
+            <h3>Información del Sistema</h3>
+            <div className="info-content">
+              <div className="info-item">
+                <strong>Flota:</strong> <span>{system?.flota?.length || 0} camiones</span>
+              </div>
+              <div className="info-item">
+                <strong>Pedidos:</strong> <span>{system?.pedidos?.length || 0} pedidos</span>
+              </div>
+              <div className="info-item">
+                <strong>Cisternas:</strong> <span>{system?.cisternas?.length || 0} cisternas</span>
+              </div>
+              {planificationPercentage !== null && (
+                <div className="info-item">
+                  <strong>Progreso:</strong> <span>{planificationPercentage.toFixed(1)}%</span>
+                </div>
+              )}
             </div>
-            <p>Seleccione un camión, cisterna o pedido para ver detalles</p>
           </div>
         )}
 

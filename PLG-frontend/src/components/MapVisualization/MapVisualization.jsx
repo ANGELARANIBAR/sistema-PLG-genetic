@@ -29,6 +29,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   const [lastSystemUpdate, setLastSystemUpdate] = useState(new Date());
   const [truckStates, setTruckStates] = useState(new Map());
   const [showLegend, setShowLegend] = useState(false);
+  const [activeTruckTab, setActiveTruckTab] = useState('info');
 
   const getCurrentDestination = useCallback(async (truck) => {
     if (!currentTime) return null;
@@ -309,7 +310,66 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
         console.error('Error updating order state:', error);
       }
     }
-  };  return (
+  };
+
+  const formatDateTime = (dateTime) => {
+    if (!dateTime) return 'N/A';
+    return new Date(dateTime).toLocaleString();
+  };
+
+  const getDestinationTypeLabel = (type) => {
+    const labels = {
+      'REABASTECIMIENTO': 'Refueling',
+      'ENTREGA_PEDIDO': 'Order Delivery',
+      'ENTREGAPEDIDO': 'Order Delivery',
+      'REPLANIFICACION': 'Replanning'
+    };
+    return labels[type] || type;
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      'COMPLETADO': '#4CAF50',
+      'EN_CURSO': '#2196F3',
+      'PENDIENTE': '#FF9800',
+      'CANCELADO': '#F44336'
+    };
+    return colors[status] || '#666';
+  };
+
+  const getTruckDestinations = (truck) => {
+    if (!truck || !currentTime) return [];
+
+    const truckDestinations = truck.destinations || [];
+    return truckDestinations.map((destino, index) => {
+      // Determine status based on current time
+      let status;
+      if (currentTime.isBefore(destino.arrivalTime)) {
+        status = 'PENDIENTE';
+      } else if (currentTime.isAfter(destino.departureTime)) {
+        status = 'COMPLETADO';
+      } else {
+        status = 'EN_CURSO';
+      }
+
+      return {
+        destinationType: destino.destinationType || 'UNKNOWN',
+        ubicacion: {
+          x: destino.route && destino.route.length > 0 ? destino.route[0].x : 0,
+          y: destino.route && destino.route.length > 0 ? destino.route[0].y : 0
+        },
+        fechaHoraLlegada: destino.arrivalTime,
+        fechaHoraSalida: destino.departureTime,
+        glpOperacion: destino.fuelConsumed, // Using fuelConsumed as GLP operation
+        saldoGLPCamion: destino.saldoGLPCamion,
+        saldoCombustibleCamion: destino.fuelConsumed, // Using fuelConsumed as fuel balance
+        estadoCamion: destino.destinationType,
+        status: status,
+        orderId: destino.orderId || null
+      };
+    });
+  };
+  return (
     <div style={{ 
       position: "relative", 
       border: "1px solid #ccc",
@@ -544,13 +604,14 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
           </div>
         )}
       </div>      {/* Floating Truck Details Panel - ENCIMA de la grilla */}
+      {/* Truck Details Panel */}
       {selectedItem && selectedItem.type === 'truck' && (
         <div style={{
           position: 'absolute',
           top: '10px',
           left: '50%',
           transform: 'translateX(-50%)',
-          width: '300px',
+          width: '400px',
           backgroundColor: 'white',
           border: '2px solid #2196F3',
           borderRadius: '8px',
@@ -578,24 +639,166 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
               ×
             </button>
           </div>
-          {(() => {
-            const truck = system.flota.find(t => t.truckId === selectedItem.id);
-            const currentFuel = truckFuels.get(selectedItem.id) || 0;
-            const currentGLP = truckGLPs.get(selectedItem.id) || 0;
-            const state = truckStates.get(selectedItem.id) || 'UNKNOWN';
-            
-            if (!truck) return <p>Truck not found</p>;
-            
-            return (
-              <div style={{ fontSize: '14px' }}>
-                <p style={{ margin: '8px 0' }}><strong>Plate:</strong> {truck.plate}</p>
-                <p style={{ margin: '8px 0' }}><strong>Code:</strong> {truck.codigo}</p>
-                <p style={{ margin: '8px 0' }}><strong>State:</strong> {state}</p>
-                <p style={{ margin: '8px 0' }}><strong>Fuel:</strong> {currentFuel}%</p>
-                <p style={{ margin: '8px 0' }}><strong>GLP:</strong> {currentGLP}L</p>
-              </div>
-            );
-          })()}
+
+          {/* Truck Tabs */}
+          <div style={{ display: 'flex', background: '#f5f5f5', borderRadius: '4px', marginBottom: '16px' }}>
+            <button 
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                background: activeTruckTab === 'info' ? 'white' : 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: '500',
+                color: activeTruckTab === 'info' ? '#2196F3' : '#666',
+                borderBottom: activeTruckTab === 'info' ? '2px solid #2196F3' : '2px solid transparent'
+              }}
+              onClick={() => setActiveTruckTab('info')}
+            >
+              Information
+            </button>
+            <button 
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                background: activeTruckTab === 'destinations' ? 'white' : 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: '500',
+                color: activeTruckTab === 'destinations' ? '#2196F3' : '#666',
+                borderBottom: activeTruckTab === 'destinations' ? '2px solid #2196F3' : '2px solid transparent'
+              }}
+              onClick={() => setActiveTruckTab('destinations')}
+            >
+              Destinations
+            </button>
+          </div>
+
+          <div style={{ fontSize: '14px' }}>
+            {activeTruckTab === 'info' && (() => {
+              const truck = system.flota.find(t => t.truckId === selectedItem.id);
+              const currentFuel = truckFuels.get(selectedItem.id) || 0;
+              const currentGLP = truckGLPs.get(selectedItem.id) || 0;
+              const state = truckStates.get(selectedItem.id) || 'UNKNOWN';
+              
+              if (!truck) return <p>Truck not found</p>;
+              
+              return (
+                <div>
+                  <p style={{ margin: '8px 0' }}><strong>Plate:</strong> {truck.plate}</p>
+                  <p style={{ margin: '8px 0' }}><strong>Code:</strong> {truck.codigo}</p>
+                  <p style={{ margin: '8px 0' }}><strong>State:</strong> {state}</p>
+                  <p style={{ margin: '8px 0' }}><strong>Fuel:</strong> {currentFuel}%</p>
+                  <p style={{ margin: '8px 0' }}><strong>GLP:</strong> {currentGLP}L</p>
+                </div>
+              );
+            })()}
+
+            {activeTruckTab === 'destinations' && (() => {
+              const truck = system.flota.find(t => t.truckId === selectedItem.id);
+              const destinations = getTruckDestinations(truck);
+              const currentDest = currentDestinations.get(selectedItem.id);
+              
+              return destinations.length > 0 ? (
+                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                  {destinations.map((dest, index) => {
+                    // Check if this destination matches the current destination
+                    const isCurrentDestination = currentDest && 
+                      dest.destinationType === currentDest.destinationType &&
+                      dest.fechaHoraLlegada === currentDest.fechaHoraLlegada &&
+                      dest.fechaHoraSalida === currentDest.fechaHoraSalida;
+                    
+                    return (
+                      <div key={index} style={{ 
+                        border: isCurrentDestination ? '2px solid #2196F3' : '1px solid #ddd', 
+                        borderRadius: '4px', 
+                        padding: '8px', 
+                        marginBottom: '8px',
+                        backgroundColor: isCurrentDestination ? '#e3f2fd' : '#fafafa',
+                        boxShadow: isCurrentDestination ? '0 2px 8px rgba(33, 150, 243, 0.3)' : 'none'
+                      }}>
+                        <div style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center',
+                          marginBottom: '4px',
+                          paddingBottom: '4px',
+                          borderBottom: '1px solid #eee'
+                        }}>
+                          <span style={{ fontWeight: '600', fontSize: '11px' }}>
+                            {getDestinationTypeLabel(dest.destinationType)}
+                            {isCurrentDestination && (
+                              <span style={{ 
+                                marginLeft: '8px', 
+                                color: '#2196F3', 
+                                fontWeight: 'bold',
+                                fontSize: '10px'
+                              }}>
+                                (CURRENT)
+                              </span>
+                            )}
+                          </span>
+                          <span style={{ 
+                            color: getStatusColor(dest.status),
+                            fontSize: '10px',
+                            padding: '1px 4px',
+                            borderRadius: '2px',
+                            backgroundColor: 'rgba(0,0,0,0.1)'
+                          }}>
+                            {dest.status}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '10px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Location:</span>
+                            <span>({dest.ubicacion?.x || 'N/A'}, {dest.ubicacion?.y || 'N/A'})</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Arrival:</span>
+                            <span>{formatDateTime(dest.fechaHoraLlegada)}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Departure:</span>
+                            <span>{formatDateTime(dest.fechaHoraSalida)}</span>
+                          </div>
+                          {dest.glpOperacion && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>GLP Operation:</span>
+                              <span>{dest.glpOperacion.toFixed(2)}L</span>
+                            </div>
+                          )}
+                          {dest.saldoGLPCamion !== undefined && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>GLP Balance:</span>
+                              <span>{dest.saldoGLPCamion.toFixed(2)}L</span>
+                            </div>
+                          )}
+                          {dest.saldoCombustibleCamion !== undefined && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>Fuel Balance:</span>
+                              <span>{dest.saldoCombustibleCamion.toFixed(2)}L</span>
+                            </div>
+                          )}
+                          {dest.orderId && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>Order ID:</span>
+                              <span>{dest.orderId}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#666', fontStyle: 'italic' }}>
+                  No destinations found for this truck.
+                </div>
+              );
+            })()}
+          </div>
         </div>
       )}
 

@@ -6,6 +6,7 @@ import com.plg.planificacionplg.dto.*;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import org.springframework.cglib.core.Local;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,6 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -724,13 +726,15 @@ public class SolutionController {
         return convertToDestinationDTO(camion.getDestinoEnCurso());
     }
 
-    @GetMapping("/truck-state/{truckId}")
+    @GetMapping("/truck/{truckId}/state")
     public String getTruckState(
             @PathVariable int truckId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime time) {
+        if(PlanificacionPlgApplication.getMejorSolucion()==null)
+            return "PLANIFICANDO";
         Camion camion = PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG()
                 .getCamionEnInstante(truckId, time);
-        return camion.getEstado().toString();
+        return camion != null ? camion.getEstado().toString() : "UNKNOWN";
     }
 
     @PostMapping("/ejecutar-simulacion")
@@ -906,6 +910,7 @@ public class SolutionController {
         }
         
         dto.setDestinations(destinations);
+        dto.setCurrentDestinationIndex(camion.getIdxDestinoEnCurso());
         return dto;
     }
 

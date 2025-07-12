@@ -12,6 +12,7 @@ public class TruckRouteDTO {
     private double currentGLP;
     private double velocidad;
     private List<DestinationDTO> destinations;
+    private int currentDestinationIndex;
 
     public double getVelocidad() {
         return velocidad;
@@ -75,5 +76,13 @@ public class TruckRouteDTO {
 
     public void setDestinations(List<DestinationDTO> destinations) {
         this.destinations = destinations;
+    }
+
+    public int getCurrentDestinationIndex() {
+        return currentDestinationIndex;
+    }
+
+    public void setCurrentDestinationIndex(int currentDestinationIndex) {
+        this.currentDestinationIndex = currentDestinationIndex;
     }
 } 
