@@ -1,6 +1,14 @@
 // PLG-frontend/src/types/route.js
 // Type definitions for the map visualization
-
+export const TipoCamion = {
+  id: Number,
+  codigo: String,
+  tara: Number,
+  pesoGLPMax: Number,
+  capCombustibleMax: Number,
+  velocidadPromedio: Number,
+  cargaGLPMax: Number
+};
 export const TruckRoute = {
   truckId: Number,
   plate: String,
@@ -9,7 +17,9 @@ export const TruckRoute = {
   currentFuel: Number,
   currentGLP: Number,
   destinations: Array,
-  velocidad: Number
+  velocidad: Number,
+  operacionGLP: Number,
+  tipoCamion: TipoCamion
 };
 
 export const Destination = {

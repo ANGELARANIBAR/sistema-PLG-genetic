@@ -100,7 +100,7 @@ public class SolutionController {
         Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
         
         if (mejorSolucion == null) {
-            return null;
+            return new SistemaPLGDTO();
         }
 
         SistemaPLG sistema = mejorSolucion.getSistemaPLG();
@@ -840,8 +840,9 @@ public class SolutionController {
         dto.setDepartureTime(destino.getFechaHoraSalida());
         dto.setFuelConsumed(destino.getRuta().getConsumoCombustible());
         dto.setSaldoGLPCamion(destino.getSaldoGLPCamion());
-
+        dto.setOperacionGLP(destino.getGLPOperacion());
         if (destino instanceof EntregaPedido) {
+            dto.setOperacionGLP(destino.getPedido().getVolumenGLP());
             dto.setDestinationType("ENTREGA PEDIDO");
             dto.setOrderId(destino.getPedido().getId());
             dto.setOrderNumber(destino.getPedido().getNumeroPedido());
@@ -876,6 +877,7 @@ public class SolutionController {
         dto.setCurrentGLP(camion.getCargaGLPActual());
         dto.setCodigo(camion.getCodigo());
         dto.setVelocidad(camion.getTipo().getVelocidadPromedio());
+        dto.setTipoCamion(convertToTipoCamionDTO(camion.getTipo()));
 
         List<DestinationDTO> destinations = new ArrayList<>();
         for (Destino destino : camion.getDestinos()) {
@@ -911,6 +913,22 @@ public class SolutionController {
         
         dto.setDestinations(destinations);
         dto.setCurrentDestinationIndex(camion.getIdxDestinoEnCurso());
+        return dto;
+    }
+    private TipoCamionDTO convertToTipoCamionDTO(TipoCamion tipoCamion) {
+        if (tipoCamion == null) {
+            return null;
+        }
+
+        TipoCamionDTO dto = new TipoCamionDTO();
+        dto.setId(tipoCamion.getId());
+        dto.setCodigo(tipoCamion.getCodigo());
+        dto.setTara(tipoCamion.getTara());
+        dto.setPesoGLPMax(tipoCamion.getPesoGLPMax());
+        dto.setCapCombustibleMax(tipoCamion.getCapCombustibleMax());
+        dto.setVelocidadPromedio(tipoCamion.getVelocidadPromedio());
+        dto.setCargaGLPMax(tipoCamion.getCargaGLPMax());
+
         return dto;
     }
 

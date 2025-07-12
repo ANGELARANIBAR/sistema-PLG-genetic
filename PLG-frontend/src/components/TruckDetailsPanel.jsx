@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { mapService } from '../services/mapService';
 
-const TruckDetailsPanel = ({ truckId, system, truckFuels, truckGLPs, truckStates, currentTime, onClose, onPauseSimulation }) => {
+const TruckDetailsPanel = ({ truckId, system, truckFuels, truckGLPs, currentTime, onClose, onPauseSimulation }) => {
   const [activeTab, setActiveTab] = useState('info');
   const [destinations, setDestinations] = useState([]);
 
   const truck = system?.flota.find(t => t.truckId === truckId);
   const currentFuel = Number(truckFuels.get(truckId) || 0);
   const currentGLP = Number(truckGLPs.get(truckId) || 0);
-  const state = truckStates.get(truckId) || 'UNKNOWN';
+
 
   useEffect(() => {
     if (!truck || !currentTime) {
@@ -144,10 +144,7 @@ const TruckDetailsPanel = ({ truckId, system, truckFuels, truckGLPs, truckStates
                   <label>Type:</label>
                   <span>{truck.tipo?.codigo || 'N/A'}</span>
                 </div>
-                <div className="info-item">
-                  <label>State:</label>
-                  <span style={{ color: getStatusColor(state) }}>{state}</span>
-                </div>
+
                 <div className="info-item">
                   <label>Current Fuel:</label>
                   <span>{currentFuel.toFixed(2)}%</span>

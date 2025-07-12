@@ -10,7 +10,7 @@ export const fetchTruckPosition = mapService.fetchTruckPosition;
 export const fetchTruckFuel = mapService.fetchTruckFuel;
 export const fetchTruckGLP = mapService.fetchTruckGLP;
 export const fetchTruckDestination = mapService.fetchTruckDestination;
-export const fetchTruckState = mapService.fetchTruckState;
+
 export const fetchCisternaGLP = mapService.fetchCisternaGLP;
 export const checkReplanning = mapService.checkReplanning;
 export const registrarAveria = mapService.registrarAveria;

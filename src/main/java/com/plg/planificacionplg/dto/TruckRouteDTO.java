@@ -1,5 +1,7 @@
 package com.plg.planificacionplg.dto;
 
+import com.plg.planificacionplg.clases.TipoCamion;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -7,12 +9,21 @@ public class TruckRouteDTO {
     private int truckId;
     private String plate;
     private String codigo;
+    private TipoCamionDTO tipoCamion;
     private double fuelConsumed;
     private double currentFuel;
     private double currentGLP;
     private double velocidad;
     private List<DestinationDTO> destinations;
     private int currentDestinationIndex;
+
+    public TipoCamionDTO getTipoCamion() {
+        return tipoCamion;
+    }
+
+    public void setTipoCamion(TipoCamionDTO tipo) {
+        this.tipoCamion = tipo;
+    }
 
     public double getVelocidad() {
         return velocidad;

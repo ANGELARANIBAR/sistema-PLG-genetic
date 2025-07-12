@@ -31,7 +31,7 @@ export default function Simulador() {
     // Simulation control states
     const [currentTime, setCurrentTime] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
-    const [playbackSpeed, setPlaybackSpeed] = useState(15);
+    const [playbackSpeed, setPlaybackSpeed] = useState(1);
     const [simulationStarted, setSimulationStarted] = useState(false);
     const [fechaHoraFinEntregas, setFechaHoraFinEntregas] = useState(null);
     const [isContinuing, setIsContinuing] = useState(false);

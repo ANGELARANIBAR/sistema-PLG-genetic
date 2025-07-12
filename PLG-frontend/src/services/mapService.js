@@ -130,24 +130,7 @@ export const mapService = {
         }
     },
 
-    // Fetch truck state at specific time
-    async fetchTruckState(truckId, time) {
-        if (!time) return null;
-        
-        try {
-            const pad = (num) => String(num).padStart(2, '0');
-            const formattedTime = `${time.getFullYear()}-${pad(time.getMonth() + 1)}-${pad(time.getDate())}T${pad(time.getHours())}:${pad(time.getMinutes())}:${pad(time.getSeconds())}.${time.getMilliseconds()}`;
-            
-            const response = await fetch(`${API_BASE_URL}/truck-state/${truckId}?time=${formattedTime}`);
-            if (!response.ok) {
-                return null;
-            }
-            return await response.text();
-        } catch (error) {
-            //console.error(`Error fetching truck ${truckId} state:`, error);
-            return null;
-        }
-    },
+
 
     // Register averia
     async registrarAveria(truckId, tipoAveria, fechaHoraInicioAveria) {

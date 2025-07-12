@@ -23,7 +23,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   const [startTime, setStartTime] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
   const [lastSystemUpdate, setLastSystemUpdate] = useState(new Date());
-  const [truckStates, setTruckStates] = useState(new Map());
+
   const [overlappingItems, setOverlappingItems] = useState([]);
   const [showOverlapMenu, setShowOverlapMenu] = useState(false);
   const [truckDirections, setTruckDirections] = useState(new Map());
@@ -53,6 +53,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
         const systemData = await mapService.fetchSystem();
         setSystem(systemData);
         const startTimeData = await mapService.fetchStartTime();
+        if(startTimeData===null || startTimeData === undefined)return;
         setStartTime(startTimeData);
       } catch (error) {
         console.error('Error loading system data:', error);
@@ -69,7 +70,8 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
       const newPositions = new Map();
       const newFuels = new Map();
       const newGLPs = new Map();
-
+      if(system.flota === null || system.flota === undefined)
+        return;
       for (const truck of system.flota) {
         try {
           const [position, fuel, glp] = await Promise.all([
@@ -103,7 +105,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   // Update current destinations
   useEffect(() => {
     const updateCurrentDestinations = async () => {
-      if (!currentTime || !system) return;
+      if (!currentTime || !system || !system.flota) return;
 
       const newDestinations = new Map();
       for (const truck of system.flota) {
@@ -118,32 +120,12 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
     updateCurrentDestinations();
   }, [currentTime, system, getCurrentDestination]);
 
-  // Update truck states
-  useEffect(() => {
-    const updateTruckStates = async () => {
-      if (!currentTime || !system) return;
 
-      const newStates = new Map();
-      for (const truck of system.flota) {
-        try {
-          const state = await mapService.fetchTruckState(truck.truckId, currentTime);
-          if (state) {
-            newStates.set(truck.truckId, state);
-          }
-        } catch (error) {
-          console.error(`Error updating truck ${truck.truckId} state:`, error);
-        }
-      }
-      setTruckStates(newStates);
-    };
-
-    updateTruckStates();
-  }, [currentTime, system]);
 
   // Update cisterna GLP
   useEffect(() => {
     const updateCisternaGLPs = async () => {
-      if (!currentTime || !system) return;
+      if (!currentTime || !system || !system.cisternas) return;
 
       const newGLPs = new Map();
       for (const cisterna of system.cisternas) {
@@ -356,7 +338,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
     Array.from(truckPositions.entries()).forEach(([truckId, position]) => {
       const pos = toScreenPosition(position.x, position.y);
       if (Math.abs(pos.x - x) < threshold && Math.abs(pos.y - y) < threshold) {
-        const truck = system.flota.find(t => t.truckId === truckId);
+        const truck = system?.flota?.find(t => t.truckId === truckId);
         if (truck) {
           items.push({ type: 'truck', id: truckId, label: `Camión ${truck.codigo}` });
         }
@@ -442,7 +424,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
 
   // Function to calculate the remaining route based on truck position
   const calculateRemainingRoute = (truckId, currentDest, truckPosition) => {
-    if (!currentDest || !currentDest.route || !truckPosition) {
+    if (!currentDest || !currentDest.route || !truckPosition || !truckPosition.x || !truckPosition.y) {
       return null;
     }
 
@@ -457,6 +439,11 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
       const node1 = route[i];
       const node2 = route[i + 1];
       
+      // Skip if nodes are undefined or don't have x,y properties
+      if (!node1 || !node2 || !node1.x || !node1.y || !node2.x || !node2.y) {
+        continue;
+      }
+      
       // Calculate distance from truck to line segment
       const distance = distanceToLineSegment(truckPos, node1, node2);
       
@@ -469,6 +456,10 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
     // If truck is very close to the last node, consider route complete
     if (bestSegmentIndex >= route.length - 2) {
       const lastNode = route[route.length - 1];
+      if (!lastNode || !lastNode.x || !lastNode.y) {
+        return null; // Invalid last node
+      }
+      
       const distanceToLast = Math.sqrt(
         Math.pow(lastNode.x - truckPos.x, 2) + Math.pow(lastNode.y - truckPos.y, 2)
       );
@@ -484,6 +475,14 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
 
   // Helper function to calculate distance from point to line segment
   const distanceToLineSegment = (point, lineStart, lineEnd) => {
+    // Add null checks for all parameters
+    if (!point || !lineStart || !lineEnd || 
+        !point.x || !point.y || 
+        !lineStart.x || !lineStart.y || 
+        !lineEnd.x || !lineEnd.y) {
+      return Infinity; // Return a large distance if any parameter is invalid
+    }
+    
     const A = point.x - lineStart.x;
     const B = point.y - lineStart.y;
     const C = lineEnd.x - lineStart.x;
@@ -604,7 +603,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
         </svg>
 
         {/* Draw current routes */}
-        {system.flota.map((truck, index) => {
+        {system?.flota?.map((truck, index) => {
           const currentDest = currentDestinations.get(truck.truckId);
           const truckPosition = truckPositions.get(truck.truckId);
           
@@ -616,14 +615,16 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
           // If no remaining route, don't render anything
           if (!remainingRoute || remainingRoute.length < 2) return null;
 
-          const color = `hsl(${(index * 360) / system.flota.length}, 70%, 50%)`;
+          const color = `hsl(${(index * 360) / (system.flota?.length || 1)}, 70%, 50%)`;
           return (
             <svg key={`route-${truck.truckId}`} className="route-line">
               <polyline
-                points={remainingRoute.map((node) => {
-                  const pos = toScreenPosition(node.x, node.y);
-                  return `${pos.x},${pos.y}`;
-                }).join(' ')}
+                points={remainingRoute
+                  .filter(node => node && node.x !== undefined && node.y !== undefined)
+                  .map((node) => {
+                    const pos = toScreenPosition(node.x, node.y);
+                    return `${pos.x},${pos.y}`;
+                  }).join(' ')}
                 fill="none"
                 stroke={color}
                 strokeWidth="2"
@@ -634,7 +635,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
         })}
 
         {/* Draw blocked routes with improved visibility */}
-        {system.bloqueos.map((bloqueo, index) => {
+        {system?.bloqueos?.map((bloqueo, index) => {
           let isActive = false;
           if (currentTime) {
             isActive = currentTime >= new Date(bloqueo.fechaHoraInicio) &&
@@ -693,7 +694,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
 
         {/* Draw trucks with direction arrows */}
         {Array.from(truckPositions.entries()).map(([truckId, position]) => {
-          const truck = system.flota.find(t => t.truckId === truckId);
+          const truck = system?.flota?.find(t => t.truckId === truckId);
           if (!truck) return null;
 
           const currentFuel = Number(truckFuels.get(truckId) || 0);
@@ -730,7 +731,7 @@ ${currentDest ? `\nEn: ${currentDest.destinationType}` : ''}`}
         })}
 
         {/* Draw cisternas */}
-        {system.cisternas.map((cisterna, index) => {
+        {system?.cisternas?.map((cisterna, index) => {
           const pos = toScreenPosition(cisterna.ubicacion.x, cisterna.ubicacion.y);
           const currentGLP = cisternaGLPs.get(cisterna.id) ?? cisterna.cargaGLPActual;
           return (
@@ -758,12 +759,12 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
         })}
 
         {/* Draw pedidos */}
-        {system.pedidos
-          .filter((pedido) => {
+        {system?.pedidos
+          ?.filter((pedido) => {
             const estado = pedidosEstados[pedido.id] ?? pedido.estado;
             return estado !== 'ENTREGADO';
           })
-          .map((pedido, index) => {
+          ?.map((pedido, index) => {
             const pos = toScreenPosition(pedido.ubicacion.x, pedido.ubicacion.y);
             return (
               <div
@@ -829,25 +830,23 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
                       <strong>Placa:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.plate}</span>
                     </div>
                     <div className="info-item">
-                      <strong>Tipo:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.tipo?.codigo || 'N/A'}</span>
+                      <strong>Tipo:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.tipoCamion?.id || 'N/A'}</span>
                     </div>
+                    
                     <div className="info-item">
-                      <strong>Estado:</strong> <span style={{ color: getStatusColor(truckStates.get(selectedItem.id) || 'UNKNOWN') }}>{truckStates.get(selectedItem.id) || 'N/A'}</span>
-                    </div>
-                    <div className="info-item">
-                      <strong>Combustible actual:</strong> <span>{Number(truckFuels.get(selectedItem.id) || 0).toFixed(2)}%</span>
+                      <strong>Combustible actual:</strong> <span>{Number(truckFuels.get(selectedItem.id) || 0).toFixed(2)}</span>
                     </div>
                     <div className="info-item">
                       <strong>GLP actual:</strong> <span>{Number(truckGLPs.get(selectedItem.id) || 0).toFixed(2)}L</span>
                     </div>
                     <div className="info-item">
-                      <strong>Capacidad GLP:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.tipo?.cargaGLPMax?.toFixed(2) || 'N/A'}L</span>
+                      <strong>Capacidad GLP:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.tipoCamion?.cargaGLPMax?.toFixed(2) || 'N/A'}L</span>
                     </div>
                     <div className="info-item">
-                      <strong>Capacidad Combustible:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.tipo?.capCombustibleMax?.toFixed(2) || 'N/A'}L</span>
+                      <strong>Capacidad Combustible:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.tipoCamion?.capCombustibleMax?.toFixed(2) || 'N/A'}L</span>
                     </div>
                     <div className="info-item">
-                      <strong>Velocidad Promedio:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.tipo?.velocidadPromedio?.toFixed(2) || 'N/A'} nodes/min</span>
+                      <strong>Velocidad Promedio:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.tipoCamion?.velocidadPromedio?.toFixed(2) || 'N/A'} nodes/min</span>
                     </div>
                     <div className="info-item">
                       <strong>Combustible consumido:</strong> <span>{Number(system?.flota.find(t => t.truckId === selectedItem.id)?.fuelConsumed || 0).toFixed(2)}L</span>
@@ -883,8 +882,8 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
                 {activeTruckTab === 'destinations' && (
                   <div className="destinations-content">
                     {(() => {
-                      const truck = system?.flota.find(t => t.truckId === selectedItem.id);
-                      const destinations = truck.destinations;
+                      const truck = system?.flota?.find(t => t.truckId === selectedItem.id);
+                      const destinations = truck?.destinations || [];
                       const currentDest = currentDestinations.get(selectedItem.id);
                       
                       return destinations.length > 0 ? (
@@ -937,10 +936,10 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
                                     <label>Salida:</label>
                                     <span>{formatDateTime(dest.departureTime)}</span>
                                   </div>
-                                  {dest.saldoGLPCamion !== undefined && (
+                                  {dest.operacionGLP !== undefined && (
                                     <div className="detail-row">
                                       <label>Operación GLP:</label>
-                                      <span>{dest.saldoGLPCamion.toFixed(2)}L</span>
+                                      <span>{dest.operacionGLP.toFixed(2)}L</span>
                                     </div>
                                   )}
                                   {dest.saldoGLPCamion !== undefined && (
@@ -971,7 +970,7 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
           ) : selectedItem.type === 'cisterna' ? (
             <div className="info-section">
               <h3>Información de Cisterna</h3>
-              {system?.cisternas[selectedItem.id] && (
+              {system?.cisternas?.[selectedItem.id] && (
                 <div className="info-content">
                   <div className="info-item">
                     <strong>Tipo:</strong> <span>{system.cisternas[selectedItem.id].principal ? 'Principal' : 'Secundaria'}</span>
@@ -1003,7 +1002,7 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
           ) : selectedItem.type === 'pedido' ? (
             <div className="info-section">
               <h3>Información de Pedido</h3>
-              {system?.pedidos.find(p => p.id === selectedItem.id) && (
+              {system?.pedidos?.find(p => p.id === selectedItem.id) && (
                 <div className="info-content">
                   <div className="info-item">
                     <strong>Código de Pedido:</strong> <span>{system.pedidos.find(p => p.id === selectedItem.id)?.numeroPedido}</span>

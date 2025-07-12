@@ -664,7 +664,8 @@ public class Camion {
             camion.cargaGLPActual += end.operacionCargaGLP();
             end.setSaldoGLPCamion(camion.getCargaGLPActual());
             end.setSaldoCombustibleCamion(camion.combustibleActual);
-            end.setEstadoCamion(EstadoCamion.EN_RECARGA_COMBUSTIBLE);
+            if(end instanceof Reabastecimiento)
+                end.setEstadoCamion(EstadoCamion.EN_RECARGA_COMBUSTIBLE);
             destinos.add(end);
             return 1;
         }

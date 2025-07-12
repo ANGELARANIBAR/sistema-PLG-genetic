@@ -13,6 +13,15 @@ public class DestinationDTO {
     private List<NodeDTO> route;
     private String destinationType; // "REABASTECIMIENTO", "TRASVASE", "ENTREGA_PEDIDO"
     private double saldoGLPCamion;
+    private double operacionGLP;
+
+    public double getOperacionGLP() {
+        return operacionGLP;
+    }
+
+    public void setOperacionGLP(double operacionGLP) {
+        this.operacionGLP = operacionGLP;
+    }
 
     // Getters and Setters
     public LocalDateTime getArrivalTime() {
