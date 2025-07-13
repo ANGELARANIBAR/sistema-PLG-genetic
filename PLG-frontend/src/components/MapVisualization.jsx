@@ -9,6 +9,7 @@ import truckIconLeft from '../assets/icons/truck-icon-left.svg';
 import truckIconRight from '../assets/icons/truck-icon-right.svg';
 import cisternaIcon from '../assets/icons/cisterna-icon.svg';
 import pedidoIcon from '../assets/icons/pedido-icon.svg';
+import { Box, Typography, LinearProgress, Paper } from '@mui/material';
 
 const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   const [system, setSystem] = useState(null);
@@ -296,17 +297,72 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
     return () => clearInterval(interval);
   }, []);
 
-  if (!system || !startTime) {
-    return (
-      <div className="loading-message">
-        <div>Cargando simulación...</div>
-        {planificationPercentage !== null && (
-          <div style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
-            Progreso de planificación: {planificationPercentage.toFixed(1)}%
-          </div>
+  // Professional loading component
+  const LoadingComponent = ({ percentage }) => (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        backgroundColor: '#f8f9fa',
+        padding: 3
+      }}
+    >
+      <Paper
+        elevation={3}
+        sx={{
+          p: 4,
+          borderRadius: 2,
+          maxWidth: 400,
+          width: '100%',
+          textAlign: 'center'
+        }}
+      >
+        <Typography variant="h5" component="h2" gutterBottom sx={{ color: '#1976d2', fontWeight: 600 }}>
+          Inicializando Simulación
+        </Typography>
+        
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+          Preparando sistema de planificación logística...
+        </Typography>
+        
+        {percentage !== null && (
+          <Box sx={{ width: '100%', mb: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Progreso de planificación
+              </Typography>
+              <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                {percentage.toFixed(1)}%
+              </Typography>
+            </Box>
+            <LinearProgress 
+              variant="determinate" 
+              value={percentage} 
+              sx={{ 
+                height: 8, 
+                borderRadius: 4,
+                backgroundColor: '#e3f2fd',
+                '& .MuiLinearProgress-bar': {
+                  borderRadius: 4,
+                  backgroundColor: '#1976d2'
+                }
+              }} 
+            />
+          </Box>
         )}
-      </div>
-    );
+        
+        <Typography variant="caption" color="text.secondary">
+          Cargando datos del sistema...
+        </Typography>
+      </Paper>
+    </Box>
+  );
+
+  if (!system || !startTime) {
+    return <LoadingComponent percentage={planificationPercentage} />;
   }
 
   // Calculate scale factors to fit the map in the viewport

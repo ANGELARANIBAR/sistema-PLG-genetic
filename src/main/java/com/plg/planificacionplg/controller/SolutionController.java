@@ -100,11 +100,48 @@ public class SolutionController {
     public SistemaPLGDTO getSystem() {
         Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
         
-        if (mejorSolucion == null) {
+        // Only return data from mejorSolucion (real simulation), not from mejorSolucionSiguiente (fake system)
+        if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {
             return new SistemaPLGDTO();
         }
 
         SistemaPLG sistema = mejorSolucion.getSistemaPLG();
+        SistemaPLGDTO dto = new SistemaPLGDTO();
+        
+        dto.setFlota(sistema.getFlota().stream()
+                .map(this::convertToTruckRouteDTO)
+                .collect(Collectors.toList()));
+        
+        dto.setCisternas(sistema.getCisternas().stream()
+                .map(this::convertToCisternaDTO)
+                .collect(Collectors.toList()));
+        
+        dto.setPedidos(sistema.getPedidos().stream()
+                .map(this::convertToPedidoDTO)
+                .collect(Collectors.toList()));
+
+        dto.setBloqueos(sistema.getBloqueos().stream()
+                .map(this::convertToBloqueoDTO)
+                .collect(Collectors.toList()));
+        
+        dto.setDistanciaManzana(sistema.getDistanciaManzana());
+        dto.setMaxXmapa(sistema.getMaxXmapa());
+        dto.setMaxYmapa(sistema.getMaxYmapa());
+        dto.setFechaHoraInicio(sistema.getFechaHoraInicio());
+        dto.setAveriaStartTime(sistema.getAveriaStartTime());
+        return dto;
+    }
+
+    @GetMapping("/initial-system")
+    public SistemaPLGDTO getInitialSystem() {
+        Individuo mejorSolucionSiguiente = PlanificacionPlgApplication.getMejorSolucionSiguiente();
+        
+        // Return data from mejorSolucionSiguiente (initial/fake system)
+        if (mejorSolucionSiguiente == null || mejorSolucionSiguiente.getSistemaPLG() == null) {
+            return new SistemaPLGDTO();
+        }
+
+        SistemaPLG sistema = mejorSolucionSiguiente.getSistemaPLG();
         SistemaPLGDTO dto = new SistemaPLGDTO();
         
         dto.setFlota(sistema.getFlota().stream()
@@ -509,7 +546,10 @@ public class SolutionController {
                     mejorSolucion.getSistemaPLG().getFlota().get(cam.getId()-1).getDestinos().add(destActuAveriado);
                 }
                 cam.getDestinos().add(destActuAveriado);
-            } else mejorSolucion.getSistemaPLG().getFlota().get(cam.getId()-1).getDestinos().add(origenReplan);
+            } else {
+                cam.getDestinos().add(origenReplan);
+                mejorSolucion.getSistemaPLG().getFlota().get(cam.getId()-1).getDestinos().add(origenReplan);
+            }
             mejorSolucion.getSistemaPLG().getFlota().get(cam.getId()-1).setEstado(EstadoCamion.AVERIADO);
             List<Camion>camionesDisponibles = new ArrayList<>();
             List<Pedido>pedidosReprogramados = new ArrayList<>();
@@ -523,7 +563,8 @@ public class SolutionController {
             //camiones disponibles en actrual solucion
             for (int i = 0; i < mejorSolucion.getSistemaPLG().getFlota().size(); i++) {
                 //si el camion no tiene registro de atenciones en la planificaicon
-                if (mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().size() < 3 && (i+1)!=cam.getId()) {
+                if (mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().size() < 3 && (i+1)!=cam.getId()
+                        && mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().getFirst().getEstadoCamion()!=EstadoCamion.AVERIADO) {
                     //dar origen en cisterna principal
                     //Camion nuevoCamion = mejorSolucion.getSistemaPLG().getFlota().get(i);
                     Camion nuevoCamion = new Camion(mejorSolucion.getSistemaPLG().getFlota().get(i));
@@ -578,7 +619,7 @@ public class SolutionController {
                 camionesDisponibles = new ArrayList<>();
                 camionesDisponibles.add(nuevoCamion);
             } else{
-                for (Pedido p : mejorSolucion.getSistemaPLG().getFlota().get(camAveriado.getId()-1).getPedidosAsignados()) {
+                for (Pedido p : mejorSolucion.getSistemaPLG().getFlota().get(idcam-1).getPedidosAsignados()) {
                     if (p.getEstado() == EstadoPedido.PENDIENTE) {
                         //pasan a replanificacion
                         Pedido pedRep = new Pedido(p);
@@ -587,7 +628,7 @@ public class SolutionController {
                         pedRep.setId(idxPedRep++);
                     }
                 }
-                camAveriado.setPedidosAsignados(new ArrayList<>());//caso 2 y 3 donde no atiende sino se va
+                mejorSolucion.getSistemaPLG().getFlota().get(idcam-1).setPedidosAsignados(new ArrayList<>());//caso 2 y 3 donde no atiende sino se va
             }
             LocalDateTime fechaFinPlan = null;
             if(a.getTipo().getId()!=1){
@@ -608,8 +649,8 @@ public class SolutionController {
             double porcentajeElite = 0.1;
             Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
             Individuo mejorSolucionTemp = ga2.ejecutar(2, replanificado);
-            //System.out.println("%%%%%%%%%%%%%%%%%mejorSolucionTemp%%%%%%%%%%%%%%%%%");
-            mejorSolucionTemp.getSistemaPLG().imprimirPlanificacion();
+            System.out.println("%%%%%%%%%%%%%%%%%mejorSolucionTemp%%%%%%%%%%%%%%%%%");
+            //mejorSolucionTemp.getSistemaPLG().imprimirPlanificacion();
             for(int j=0; j<idxPedidosAnterior.size(); j++){
                 Integer idx = idxPedidosAnterior.get(j);
                 pedidosReprogramados.get(j).setId(idx);
@@ -627,6 +668,9 @@ public class SolutionController {
                     fechaFinPlan = c.getDestinos().getLast().getFechaHoraSalida();
                     mejorSolucion.getSistemaPLG().setFechaHoraFinEntregas(fechaFinPlan);
                 }
+            }
+            if(mejorSolucionTemp.getSistemaPLG().getCamionCausanteReplan()!=null){
+                mejorSolucion.getSistemaPLG().getFlota().get(idcam-1).setDestinos(mejorSolucionTemp.getSistemaPLG().getCamionCausanteReplan().getDestinos());
             }
             mejorSolucion.getSistemaPLG().setReplanning(false);
             mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
@@ -703,6 +747,14 @@ public class SolutionController {
     @GetMapping("/batch-refresh-status")
     public Map<String, Object> getBatchRefreshStatus() {
         Map<String, Object> response = new HashMap<>();
+        
+        // Only check for batch refresh if there's an actual simulation running (mejorSolucion)
+        Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
+        if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {
+            response.put("needsRefresh", false);
+            return response;
+        }
+        
         boolean needsRefresh = PlanificacionPlgApplication.isBatchRefreshNeeded();
         
 //        System.out.println("Batch refresh status check - needsRefresh: " + needsRefresh);
@@ -1217,11 +1269,17 @@ public class SolutionController {
     public ResponseEntity<TruckRouteDTO> addTruck(@RequestBody Map<String, Object> request) {
         try {
             Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
-            if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {
+            Individuo mejorSolucionSiguiente = PlanificacionPlgApplication.getMejorSolucionSiguiente();
+            
+            // Use mejorSolucion if available, otherwise use mejorSolucionSiguiente
+            SistemaPLG sistema = null;
+            if (mejorSolucion != null && mejorSolucion.getSistemaPLG() != null) {
+                sistema = mejorSolucion.getSistemaPLG();
+            } else if (mejorSolucionSiguiente != null && mejorSolucionSiguiente.getSistemaPLG() != null) {
+                sistema = mejorSolucionSiguiente.getSistemaPLG();
+            } else {
                 return ResponseEntity.badRequest().build();
             }
-
-            SistemaPLG sistema = mejorSolucion.getSistemaPLG();
             
             // Extract truck data from request
             String placa = (String) request.get("placa");
@@ -1293,6 +1351,15 @@ public class SolutionController {
             // Add to fleet
             sistema.getFlota().add(nuevoCamion);
             PlanificacionPlgApplication.getFlotaXTipoCam().set(tipoCamion.getId()-1, nuevoCamion.getIdxPorTipo());
+            
+            // If we're using mejorSolucionSiguiente, also update mejorSolucion if it exists
+            if (mejorSolucion != null && mejorSolucion.getSistemaPLG() != null) {
+                // We're already using mejorSolucion, so no need to update
+            } else if (mejorSolucionSiguiente != null && mejorSolucionSiguiente.getSistemaPLG() != null) {
+                // We're using mejorSolucionSiguiente, so the truck was added there
+                // This is fine for the fake system
+            }
+            
             // Return the new truck data
             return ResponseEntity.ok(convertToTruckRouteDTO(nuevoCamion));
             

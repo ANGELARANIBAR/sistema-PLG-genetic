@@ -61,6 +61,10 @@ export default function NuevoVehiculo() {
       }, 1500);
     } catch (err) {
       setError('Error al guardar el camión: ' + err.message);
+      // If the error indicates no system is available, show a more helpful message
+      if (err.message.includes('Error al agregar nuevo camión')) {
+        setError('No hay sistema disponible. El sistema se inicializará automáticamente cuando sea necesario.');
+      }
     } finally {
       setLoading(false);
     }

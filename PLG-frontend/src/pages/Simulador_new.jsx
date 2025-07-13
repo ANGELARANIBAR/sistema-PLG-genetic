@@ -8,7 +8,8 @@ import {
     AccordionDetails,
     Divider,
     Paper,
-    TextField
+    TextField,
+    LinearProgress
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -88,17 +89,68 @@ export default function Simulador() {
         return () => window.removeEventListener("resize", calc);
     }, []);
 
-    if (!currentTime || !simulationStarted) {
-        return (
-            <Box sx={{ 
-                display: 'flex', 
-                height: `calc(100vh - ${navbarHeight}px)`,
+    // Professional loading component
+    const LoadingComponent = () => (
+        <Box
+            sx={{
+                display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center'
-            }}>
-                <Typography variant="h6">Cargando simulación...</Typography>
-            </Box>
-        );
+                justifyContent: 'center',
+                height: `calc(100vh - ${navbarHeight}px)`,
+                backgroundColor: '#f8f9fa',
+                padding: 3
+            }}
+        >
+            <Paper
+                elevation={3}
+                sx={{
+                    p: 4,
+                    borderRadius: 2,
+                    maxWidth: 400,
+                    width: '100%',
+                    textAlign: 'center'
+                }}
+            >
+                <Typography variant="h5" component="h2" gutterBottom sx={{ color: '#1976d2', fontWeight: 600 }}>
+                    Inicializando Simulación
+                </Typography>
+                
+                <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                    Preparando sistema de planificación logística...
+                </Typography>
+                
+                <Box sx={{ width: '100%', mb: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                        <Typography variant="body2" color="text.secondary">
+                            Cargando datos
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                            Inicializando...
+                        </Typography>
+                    </Box>
+                    <LinearProgress 
+                        sx={{ 
+                            height: 8, 
+                            borderRadius: 4,
+                            backgroundColor: '#e3f2fd',
+                            '& .MuiLinearProgress-bar': {
+                                borderRadius: 4,
+                                backgroundColor: '#1976d2'
+                            }
+                        }} 
+                    />
+                </Box>
+                
+                <Typography variant="caption" color="text.secondary">
+                    Configurando parámetros del sistema...
+                </Typography>
+            </Paper>
+        </Box>
+    );
+
+    if (!currentTime || !simulationStarted) {
+        return <LoadingComponent />;
     }
 
     return (

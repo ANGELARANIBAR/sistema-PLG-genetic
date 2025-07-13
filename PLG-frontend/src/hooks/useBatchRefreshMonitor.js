@@ -11,11 +11,26 @@ export const useBatchRefreshMonitor = (enabled = true, intervalMs = 2000, onRefr
 
         const checkBatchRefresh = async () => {
             try {
-                const response = await simulationService.getBatchRefreshStatus();
+                // Check if there's a real simulation running by calling the system endpoint
+                // The system endpoint now only returns data from mejorSolucion (real simulation)
+                const response = await fetch('/api/solution/system');
+                if (!response.ok) {
+                    return;
+                }
                 
-                //console.log('Batch refresh check:', response);
+                const systemData = await response.json();
                 
-                if (response.needsRefresh) {
+                // Only poll for batch refresh if there's actual fleet data from a real simulation
+                // If systemData is empty or has no fleet, it means no real simulation is running
+                if (!systemData || !systemData.flota || systemData.flota.length === 0) {
+                    return;
+                }
+                
+                const batchResponse = await simulationService.getBatchRefreshStatus();
+                
+                //console.log('Batch refresh check:', batchResponse);
+                
+                if (batchResponse.needsRefresh) {
                     //console.log('Batch refresh needed. Refreshing page...');
                     // Add a small delay to ensure the backend has processed everything
                     setTimeout(() => {

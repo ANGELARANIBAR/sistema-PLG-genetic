@@ -135,11 +135,16 @@ public Individuo(){}
             flota.add(c);
         }
         if(code == 2){
+            if(sistema.getCamionCausanteReplan() != null){
+                sistemaPLG.setCamionCausanteReplan(flota.get(sistema.getCamionCausanteReplan().getId()-1));
+                sistemaPLG.getCamionCausanteReplan().setEstado(EstadoCamion.AVERIADO);
+            }
             if(sistema.getCamionesAveriados()!=null)
                 for(Camion c : sistema.getCamionesAveriados()){
                     sistemaPLG.getCamionesAveriados().add(flota.get(c.getId()-1));
                     if(flota.get(c.getId()-1).getAverias() == null)flota.get(c.getId()-1).setAverias(new ArrayList<>());
                     flota.get(c.getId()-1).getAverias().add(c.getAverias().getLast());
+                    flota.get(c.getId()-1).setEstado(EstadoCamion.AVERIADO);
                 }
         }
         for(Pedido pedido: sistema.getPedidos()){
@@ -302,6 +307,7 @@ public Individuo(){}
                         fitness = 0.0;
                         return;
                     }
+
                     camion.getDestinos().add(0, destinos.get(0).copiar());
                     camion.setCargaGLPActual(sistema.getFlota().get(camion.getId() - 1).getCargaGLPActual());
                     camion.setCombustibleActual(sistema.getFlota().get(camion.getId() - 1).getCombustibleActual());
@@ -331,7 +337,6 @@ public Individuo(){}
             if(considerarMantenimiento(camion)==-1) return;
 
             int resultado = camion.construirRutaHaciaPedido(code, sistemaPLG);
-
             if (pedidosXcargasGLP.get(camionIdx).isEmpty() && pedidosAsignados.isEmpty() && (resultado == -3 || resultado == -5)) {
                 //cuando camion sin nada asignado da errores en planificación
                 continue;
@@ -348,7 +353,13 @@ public Individuo(){}
 
         }
         //if(sistemaPLG.getCamionCausanteReplan()!=null && sistemaPLG.getCamionCausanteReplan().getAverias().getLast().getTipo().getId()==1){
+        if(sistema.getCamionCausanteReplan()!=null){
+            System.out.println("Ub replan 0 " + sistemaPLG.getCamionCausanteReplan().getDestinos().get(0).getRuta());
+            System.out.println("Ub replan 1 " + sistemaPLG.getCamionCausanteReplan().getDestinos().get(1).getRuta());
+        }
         for(Camion camion : sistemaPLG.getCamionesAveriados()){
+
+            if(camion.getAverias().getLast().getTipo().getId()!=1)continue;//solo 1 tiene pedidos programados
             //Camion camion = sistemaPLG.getCamionCausanteReplan();
             List<Destino> destinos = sistema.getFlota().get(camion.getId() - 1).getDestinos();
             if(camion.getCargaGLPActual()<sistema.getFlota().get(camion.getId()-1).getCargaGLPActual()){
@@ -388,10 +399,10 @@ public Individuo(){}
             camion.getDestinos().getFirst().setSaldoGLPCamion(camion.getCargaGLPActual());
             camion.getDestinos().getFirst().setSaldoCombustibleCamion(camion.getCombustibleActual());
             int resultado = camion.construirRutaHaciaPedido(code, sistemaPLG);
-            if (pedidosXcargasGLP.get(camion.getId()).isEmpty() && asignacion
-                    .get(camion.getId()).isEmpty() && (resultado == -3 || resultado == -5)) {
-                //cuando camion sin nada asignado da errores en planificación
 
+            if (pedidosXcargasGLP.get(camion.getId()).isEmpty() && asignacion
+                    .get(camion.getId()).isEmpty() && ((resultado == -3 && camion.getId()!=sistema.getCamionCausanteReplan().getId())|| resultado == -5)) {
+                //cuando camion sin nada asignado da errores en planificación
             }
             else{
                 if (resultado != 0) {

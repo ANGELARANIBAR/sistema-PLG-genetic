@@ -1,9 +1,22 @@
 export const fetchFlota = async () => {
-  const response = await fetch('/api/solution/system'); 
+  // First try to get data from the real simulation
+  let response = await fetch('/api/solution/system'); 
   if (!response.ok) {
     throw new Error('Error al obtener datos de la flota');
   }
-  const data = await response.json();
+  let data = await response.json();
+  
+  // If the real system has fleet data, use it
+  if (data.flota && data.flota.length > 0) {
+    return data.flota;
+  }
+  
+  // If no real simulation data, try the initial system
+  response = await fetch('/api/solution/initial-system');
+  if (!response.ok) {
+    throw new Error('Error al obtener datos de la flota inicial');
+  }
+  data = await response.json();
   return data.flota || [];
 };
 

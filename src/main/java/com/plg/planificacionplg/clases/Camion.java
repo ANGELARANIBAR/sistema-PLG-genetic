@@ -291,6 +291,8 @@ public class Camion {
         Destino destinoInicial = destinos.get(0);
         int pedidosCant = destinos.size();
         int cantNodosInicial=pedidosCant, index = 0;
+
+
         if(pedidosCant == 2) {
             if (destinos.getFirst().getUbicacion().sonIguales(destinos.getLast().getUbicacion())) {
                 return -5;

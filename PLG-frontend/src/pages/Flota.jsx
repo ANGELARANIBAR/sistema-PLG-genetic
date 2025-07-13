@@ -103,11 +103,37 @@ export default function Flota() {
     );
   }
 
+  // Check if there's no fleet data (no system available)
+  if (!vehicles || vehicles.length === 0) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h4" component="h1" fontWeight="700" gutterBottom>
+          Flota
+        </Typography>
+        
+        <Alert severity="info" sx={{ mb: 3 }}>
+          No hay sistema disponible. El sistema se inicializará automáticamente cuando sea necesario.
+        </Alert>
+      </Box>
+    );
+  }
+
+  // Check if we're showing the initial fleet (before simulation)
+  const isInitialFleet = vehicles.length > 0 && vehicles.every(v => 
+    v.destinations && v.destinations.length === 0
+  );
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" component="h1" fontWeight="700" gutterBottom>
         Flota
       </Typography>
+
+      {isInitialFleet && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Mostrando flota inicial. Para ver la flota en acción, inicie una simulación desde la página de Simulación.
+        </Alert>
+      )}
 
       <Box sx={{ display: "flex", mt: 3, mb: 3, gap: 2, alignItems: "center" }}>
         <TextField

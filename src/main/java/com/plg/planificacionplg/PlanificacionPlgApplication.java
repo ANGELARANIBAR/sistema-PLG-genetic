@@ -65,8 +65,8 @@ public class PlanificacionPlgApplication {
 
     private static void estadoInicialSistemaPLG(){
         SistemaPLG sistemaPLG = new SistemaPLG();
-        PlanificacionPlgApplication.setMejorSolucion(new Individuo());
-        mejorSolucion.setSistemaPLG(sistemaPLG);
+        PlanificacionPlgApplication.setMejorSolucionSiguiente(new Individuo());
+        mejorSolucionSiguiente.setSistemaPLG(sistemaPLG);
         sistemaPLG.setPedidos(new ArrayList<>());
         sistemaPLG.setBloqueos(new ArrayList<>());
 
@@ -200,7 +200,7 @@ public class PlanificacionPlgApplication {
 
     public static void ejecutarAlgoritmo(int escenario) {
 
-        SistemaPLG sistemaPLG = PlanificacionPlgApplication.mejorSolucion.getSistemaPLG();
+        SistemaPLG sistemaPLG = PlanificacionPlgApplication.mejorSolucionSiguiente.getSistemaPLG();
 
         LocalDateTime fechaInicio = (fechaHoraInicio != null) ? fechaHoraInicio : LocalDateTime.now();
         sistemaPLG.setFechaHoraInicio(fechaInicio);
