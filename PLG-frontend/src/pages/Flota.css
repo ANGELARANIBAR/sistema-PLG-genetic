@@ -41,6 +41,36 @@
 }
 
 .status-disponible {
+  background-color: #10b981;
+  color: white;
+}
+
+.status-en-ruta {
   background-color: #3b82f6;
+  color: white;
+}
+
+.status-en-retorno {
+  background-color: #8b5cf6;
+  color: white;
+}
+
+.status-averiado {
+  background-color: #ef4444;
+  color: white;
+}
+
+.status-despachando {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.status-recargando {
+  background-color: #06b6d4;
+  color: white;
+}
+
+.status-default {
+  background-color: #6b7280;
   color: white;
 } 

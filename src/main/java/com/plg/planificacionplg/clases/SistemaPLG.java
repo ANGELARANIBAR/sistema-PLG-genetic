@@ -471,6 +471,7 @@ public class SistemaPLG {
                 cargaBloqueos(archivo.getAbsolutePath(), fechaHoraInicio);
             }
         }
+        getBloqueos().sort(Comparator.comparing(Bloqueo::getFechaHoraInicio));
     }
 
     public void cargaBloqueos(String rutaArchivo, LocalDateTime fechaHoraInicio){

@@ -132,35 +132,51 @@ public class Ruta {
 
     // Simulación de bloqueo entre nodos (puedes cambiar según tus datos)
     private boolean estaBloqueado(Nodo a, LocalDateTime fechaHoraSalida, SistemaPLG sistemaPLG, double tiempoLlegada) {
-        LocalDateTime llegada = fechaHoraSalida.plusSeconds((long)(tiempoLlegada * 60));
-        for (Bloqueo bloqueo : sistemaPLG.getBloqueos()) {
-            //System.out.println("Para llegar a "+a+" en tiempo d "+tiempoLlegada);
-            if (bloqueo.getFechaHoraInicio().isBefore(llegada) &&
-                    bloqueo.getFechaHoraFin().isAfter(llegada)) {
+        LocalDateTime llegada = fechaHoraSalida.plusSeconds((long) (tiempoLlegada * 60));
+        List<Bloqueo> bloqueos = sistemaPLG.getBloqueos();
 
+        // Búsqueda binaria del primer bloqueo cuyo inicio sea >= llegada - margen
+        int izquierda = 0, derecha = bloqueos.size() - 1;
+        int inicioBusqueda = bloqueos.size(); // valor por defecto si no encuentra
+
+        while (izquierda <= derecha) {
+            int mid = (izquierda + derecha) / 2;
+            Bloqueo b = bloqueos.get(mid);
+
+            if (b.getFechaHoraFin().isBefore(llegada)) {
+                izquierda = mid + 1;
+            } else {
+                inicioBusqueda = mid;
+                derecha = mid - 1;
+            }
+        }
+
+        // Recorremos solo desde donde podrían haber bloqueos activos
+        for (int i = inicioBusqueda; i < bloqueos.size(); i++) {
+            Bloqueo bloqueo = bloqueos.get(i);
+
+            if (bloqueo.getFechaHoraInicio().isAfter(llegada)) break;
+
+            if (bloqueo.getFechaHoraFin().isAfter(llegada)) {
                 if (bloqueo.getRutasBloqueadas().size() >= 2) {
                     Nodo nodo1 = bloqueo.getRutasBloqueadas().get(0);
 
-                    for (int i = 1; i < bloqueo.getRutasBloqueadas().size(); i += 1) {
-                        Nodo nodo2 = bloqueo.getRutasBloqueadas().get(i);
+                    for (int j = 1; j < bloqueo.getRutasBloqueadas().size(); j++) {
+                        Nodo nodo2 = bloqueo.getRutasBloqueadas().get(j);
 
-                        if (a.estaEntre(nodo1, nodo2)){
-
-                            //System.out.println("Esta bloqueado entre: " + nodo1 + " y " + nodo2 + " a las " + llegada);
+                        if (a.estaEntre(nodo1, nodo2)) {
                             return true;
                         }
+
                         nodo1 = nodo2;
                     }
                 }
-            } else {
-                if(bloqueo.getFechaHoraInicio().isAfter(llegada)) {
-                    return false;
-                }
-                //System.out.println("Bloqueo está fuera de tiempo.");
             }
         }
+
         return false;
     }
+
 
 
     private List<Nodo> reconstruirCamino(Map<Nodo, Nodo> cameFrom, Nodo actual) {

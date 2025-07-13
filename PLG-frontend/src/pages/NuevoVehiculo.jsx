@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
@@ -10,22 +10,76 @@ import {
   Select,
   FormControl,
   InputLabel,
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { fetchTipoCamiones, addNuevoCamion } from '../services/flotaService';
 import './NuevoVehiculo.css';
 
 export default function NuevoVehiculo() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+  const [tipoCamiones, setTipoCamiones] = useState([]);
+  const [formData, setFormData] = useState({
+    placa: '',
+    tipoCamionId: '',
+    observaciones: ''
+  });
+
+  useEffect(() => {
+    const loadTipoCamiones = async () => {
+      try {
+        const tipos = await fetchTipoCamiones();
+        setTipoCamiones(tipos);
+      } catch (err) {
+        setError('Error al cargar tipos de camión: ' + err.message);
+      }
+    };
+    loadTipoCamiones();
+  }, []);
 
   const handleCancel = () => {
     navigate('/flota');
   };
 
-  const handleSave = () => {
-    // Here you would add code to save the vehicle data
-    // For now, just navigate back to the flota page
-    navigate('/flota');
+  const handleSave = async () => {
+    if (!formData.placa || !formData.tipoCamionId) {
+      setError('Por favor complete todos los campos obligatorios');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      await addNuevoCamion(formData);
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/flota');
+      }, 1500);
+    } catch (err) {
+      setError('Error al guardar el camión: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ p: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3 }}>
@@ -36,6 +90,18 @@ export default function NuevoVehiculo() {
       <Typography variant="body1" color="text.secondary" sx={{ mt: 1, mb: 3 }}>
         Complete el formulario para registrar un nuevo vehículo a la flota.
       </Typography>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert severity="success" sx={{ mb: 3 }}>
+          Camión agregado exitosamente. Redirigiendo...
+        </Alert>
+      )}
       
       <Paper variant="outlined" sx={{ p: 4, borderRadius: 2 }}>
         <Grid container spacing={3}>
@@ -47,65 +113,27 @@ export default function NuevoVehiculo() {
               fullWidth
               placeholder="Ingrese la placa del vehículo"
               size="small"
+              value={formData.placa}
+              onChange={(e) => handleInputChange('placa', e.target.value)}
             />
           </Grid>
           
           <Grid item xs={12} md={6}>
             <Typography variant="subtitle2" fontWeight="500" gutterBottom>
-              Tipo*
+              Tipo de Camión*
             </Typography>
             <FormControl fullWidth size="small">
               <Select
                 displayEmpty
-                defaultValue=""
+                value={formData.tipoCamionId}
+                onChange={(e) => handleInputChange('tipoCamionId', e.target.value)}
               >
                 <MenuItem value="">Seleccione el tipo</MenuItem>
-                <MenuItem value="A">Tipo A</MenuItem>
-                <MenuItem value="B">Tipo B</MenuItem>
-                <MenuItem value="C">Tipo C</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          
-          <Grid item xs={12} md={6}>
-            <Typography variant="subtitle2" fontWeight="500" gutterBottom>
-              Carga GLP (m³)*
-            </Typography>
-            <TextField 
-              fullWidth
-              placeholder="Ingrese la capacidad de carga"
-              size="small"
-              type="number"
-            />
-          </Grid>
-          
-          <Grid item xs={12} md={6}>
-            <Typography variant="subtitle2" fontWeight="500" gutterBottom>
-              Fecha de fabricación*
-            </Typography>
-            <TextField 
-              fullWidth
-              placeholder="YYYY-MM-DD"
-              size="small"
-              type="date"
-              InputLabelProps={{
-                shrink: true,
-              }}
-            />
-          </Grid>
-          
-          <Grid item xs={12} md={6}>
-            <Typography variant="subtitle2" fontWeight="500" gutterBottom>
-              Estado*
-            </Typography>
-            <FormControl fullWidth size="small">
-              <Select
-                displayEmpty
-                defaultValue="disponible"
-              >
-                <MenuItem value="disponible">Disponible</MenuItem>
-                <MenuItem value="mantenimiento">En mantenimiento</MenuItem>
-                <MenuItem value="reparacion">En reparación</MenuItem>
+                {tipoCamiones.map((tipo) => (
+                  <MenuItem key={tipo.id} value={tipo.id}>
+                    {tipo.codigo} - Carga: {tipo.cargaGLPMax} m³, Peso: {tipo.pesoGLPMax} ton
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Grid>
@@ -119,6 +147,8 @@ export default function NuevoVehiculo() {
               placeholder="Ingrese cualquier observación sobre el vehículo"
               multiline
               rows={4}
+              value={formData.observaciones}
+              onChange={(e) => handleInputChange('observaciones', e.target.value)}
             />
           </Grid>
           
@@ -128,6 +158,7 @@ export default function NuevoVehiculo() {
                 variant="outlined" 
                 className="cancel-button"
                 onClick={handleCancel}
+                disabled={loading}
               >
                 Cancelar
               </Button>
@@ -136,8 +167,9 @@ export default function NuevoVehiculo() {
                 color="secondary"
                 className="save-button"
                 onClick={handleSave}
+                disabled={loading || !formData.placa || !formData.tipoCamionId}
               >
-                Guardar
+                {loading ? 'Guardando...' : 'Guardar'}
               </Button>
             </Box>
           </Grid>

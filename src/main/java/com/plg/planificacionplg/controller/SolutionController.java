@@ -1212,4 +1212,92 @@ public class SolutionController {
         }
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/add-truck")
+    public ResponseEntity<TruckRouteDTO> addTruck(@RequestBody Map<String, Object> request) {
+        try {
+            Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
+            if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            SistemaPLG sistema = mejorSolucion.getSistemaPLG();
+            
+            // Extract truck data from request
+            String placa = (String) request.get("placa");
+            Integer tipoCamionId = (Integer) request.get("tipoCamionId");
+            
+            if (placa == null || tipoCamionId == null) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            // Find the truck type
+            TipoCamion tipoCamion = null;
+            switch (tipoCamionId) {
+                case 1:
+                    tipoCamion = new TipoCamion();
+                    tipoCamion.setId(1);
+                    tipoCamion.setCodigo("TA");
+                    tipoCamion.setTara(2.5);
+                    tipoCamion.setPesoGLPMax(12.5);
+                    tipoCamion.setCargaGLPMax(25);
+                    tipoCamion.setCapCombustibleMax(25);
+                    tipoCamion.setVelocidadPromedio(5.0/6.0);
+                    break;
+                case 2:
+                    tipoCamion = new TipoCamion();
+                    tipoCamion.setId(2);
+                    tipoCamion.setCodigo("TB");
+                    tipoCamion.setTara(2.0);
+                    tipoCamion.setPesoGLPMax(7.5);
+                    tipoCamion.setCargaGLPMax(15);
+                    tipoCamion.setCapCombustibleMax(25);
+                    tipoCamion.setVelocidadPromedio(5.0/6.0);
+                    break;
+                case 3:
+                    tipoCamion = new TipoCamion();
+                    tipoCamion.setId(3);
+                    tipoCamion.setCodigo("TC");
+                    tipoCamion.setTara(1.5);
+                    tipoCamion.setPesoGLPMax(5.0);
+                    tipoCamion.setCargaGLPMax(10);
+                    tipoCamion.setCapCombustibleMax(25);
+                    tipoCamion.setVelocidadPromedio(5.0/6.0);
+                    break;
+                case 4:
+                    tipoCamion = new TipoCamion();
+                    tipoCamion.setId(4);
+                    tipoCamion.setCodigo("TD");
+                    tipoCamion.setTara(1.0);
+                    tipoCamion.setPesoGLPMax(2.5);
+                    tipoCamion.setCargaGLPMax(5);
+                    tipoCamion.setCapCombustibleMax(25);
+                    tipoCamion.setVelocidadPromedio(5.0/6.0);
+                    break;
+                default:
+                    return ResponseEntity.badRequest().build();
+            }
+
+            // Create new truck
+            Camion nuevoCamion = new Camion();
+            nuevoCamion.setId(sistema.getFlota().size() + 1);
+            nuevoCamion.setIdxPorTipo(PlanificacionPlgApplication.getFlotaXTipoCam().get(tipoCamion.getId()-1)+1);
+            nuevoCamion.setPlaca(placa);
+            nuevoCamion.setTipo(tipoCamion);
+            nuevoCamion.setCodigo(tipoCamion.getCodigo() + String.format("%02d", nuevoCamion.getIdxPorTipo()));
+            nuevoCamion.setEstado(EstadoCamion.DISPONIBLE);
+            nuevoCamion.setCombustibleActual(tipoCamion.getCapCombustibleMax());
+            nuevoCamion.setCargaGLPActual(0.0);
+            nuevoCamion.setUbicacionActual(sistema.getCisternas().get(0).getUbicacion()); // Start at main cisterna
+            
+            // Add to fleet
+            sistema.getFlota().add(nuevoCamion);
+            PlanificacionPlgApplication.getFlotaXTipoCam().set(tipoCamion.getId()-1, nuevoCamion.getIdxPorTipo());
+            // Return the new truck data
+            return ResponseEntity.ok(convertToTruckRouteDTO(nuevoCamion));
+            
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 } 

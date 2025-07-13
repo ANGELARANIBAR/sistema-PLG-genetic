@@ -45,6 +45,9 @@ public class PlanificacionPlgApplication {
     @Setter @Getter
     private static boolean allBatchesProcessed = false;
 
+    @Setter @Getter
+    private static List<Integer> flotaXTipoCam = new ArrayList<>(Arrays.asList(2, 3, 4, 10));
+
     // Rutas base para los archivos de datos
     private static final String BASE_DIR = "src/main/java/com/plg/planificacionplg/test/";
     private static final String PEDIDOS_FILE = BASE_DIR + "pedidos.20250419/";
@@ -54,12 +57,19 @@ public class PlanificacionPlgApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(PlanificacionPlgApplication.class, args);
+        estadoInicialSistemaPLG();
 //        fechaHoraInicio = LocalDateTime.of(2025, 3, 23, 10, 30);
 //        ejecutarAlgoritmo(2);
     }
 
 
-    public static void ejecutarAlgoritmo(int escenario) {
+    private static void estadoInicialSistemaPLG(){
+        SistemaPLG sistemaPLG = new SistemaPLG();
+        PlanificacionPlgApplication.setMejorSolucion(new Individuo());
+        mejorSolucion.setSistemaPLG(sistemaPLG);
+        sistemaPLG.setPedidos(new ArrayList<>());
+        sistemaPLG.setBloqueos(new ArrayList<>());
+
         List<Cisterna> cisternas = new ArrayList<>();
         Cisterna principal = new Cisterna();
         principal.setId(1);
@@ -88,19 +98,9 @@ public class PlanificacionPlgApplication {
         cintermedio2.setHoraAbastecimento(LocalTime.MIN);
         cisternas.add(cintermedio2);
 
-        SistemaPLG sistemaPLG = new SistemaPLG();
+
         // Use fechaHoraInicio from frontend if available, otherwise use current time
-        LocalDateTime fechaInicio = (fechaHoraInicio != null) ? fechaHoraInicio : LocalDateTime.now();
-        sistemaPLG.setFechaHoraInicio(fechaInicio);
-        listaPedidosTotal = new ArrayList<>();
-        if(escenario == 1 || escenario == 3) {
-            listaPedidosTotal = sistemaPLG.cargarPedidosDesdeCarpeta(PEDIDOS_FILE, fechaInicio, LocalDateTime.MAX);
-        }
-        else if(escenario == 2) {
-            listaPedidosTotal = sistemaPLG.cargarPedidosDesdeCarpeta(PEDIDOS_FILE, fechaInicio, fechaInicio.plusDays(7));
-            System.out.println("Pedidos cantidad: " + sistemaPLG.getPedidos().size());
-        }
-        sistemaPLG.setPedidosTodos(new ArrayList<>(sistemaPLG.getPedidos()));
+
         sistemaPLG.setCisternas(cisternas);
         sistemaPLG.setDistanciaManzana(1);
         sistemaPLG.setMaxXmapa(70);
@@ -113,7 +113,7 @@ public class PlanificacionPlgApplication {
                 LocalTime.MAX
         ));
         double velocidadPromedio = 5.0 / 6.0;
-        List<Integer>flotaXTipoCam = Arrays.asList(2, 3, 4, 10);
+
         TipoCamion tipoCamion1 = new TipoCamion();
         tipoCamion1.setId(1);
         tipoCamion1.setTara(2.5);
@@ -195,6 +195,24 @@ public class PlanificacionPlgApplication {
             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
             sistemaPLG.getFlota().add(camion);
         }
+
+    }
+
+    public static void ejecutarAlgoritmo(int escenario) {
+
+        SistemaPLG sistemaPLG = PlanificacionPlgApplication.mejorSolucion.getSistemaPLG();
+
+        LocalDateTime fechaInicio = (fechaHoraInicio != null) ? fechaHoraInicio : LocalDateTime.now();
+        sistemaPLG.setFechaHoraInicio(fechaInicio);
+        listaPedidosTotal = new ArrayList<>();
+        if(escenario == 1 || escenario == 3) {
+            listaPedidosTotal = sistemaPLG.cargarPedidosDesdeCarpeta(PEDIDOS_FILE, fechaInicio, LocalDateTime.MAX);
+        }
+        else if(escenario == 2) {
+            listaPedidosTotal = sistemaPLG.cargarPedidosDesdeCarpeta(PEDIDOS_FILE, fechaInicio, fechaInicio.plusDays(7));
+            System.out.println("Pedidos cantidad: " + sistemaPLG.getPedidos().size());
+        }
+        sistemaPLG.setPedidosTodos(new ArrayList<>(sistemaPLG.getPedidos()));
 
 
         sistemaPLG.cargarBloqueosDesdeCarpeta(BLOQUEOS_FILE);
