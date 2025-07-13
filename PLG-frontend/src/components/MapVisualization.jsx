@@ -523,7 +523,9 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
       'ENTREGA PEDIDO': 'Entrega de Pedido',
       'EN_RECARGA_GLP': 'Recarga de GLP',
       'EN_RECARGA_COMBUSTIBLE': 'Recarga de Combustible',
-      'EN_MANTENIMIENTO': 'En Mantenimiento'
+      'EN_MANTENIMIENTO': 'En Mantenimiento',
+      'AVERIADO': 'Averiado'
+
     };
     return labels[type] || type;
   };

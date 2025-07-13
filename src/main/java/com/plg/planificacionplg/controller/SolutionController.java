@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -496,7 +497,8 @@ public class SolutionController {
             }
             Destino destActuAveriado = mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getDestinos()
                     .get(cam.getIdxDestinoEnCurso());
-            origenReplan.setSaldoGLPCamion(cam.calcularGLPActual(inicioAveria));
+            cam.setCargaGLPActual(mejorSolucion.getSistemaPLG().calcularGLPActual(cam.getId(), inicioAveria));
+            origenReplan.setSaldoGLPCamion(cam.getCargaGLPActual());
             origenReplan.setSaldoCombustibleCamion(cam.getCombustibleActual());
             origenReplan.setEstadoCamion(EstadoCamion.AVERIADO);
             mejorSolucion.getSistemaPLG().getFlota().get(cam.getId()-1).setDestinos(new ArrayList<>());
@@ -566,7 +568,10 @@ public class SolutionController {
                 camAveriado.setPedidosAsignados(pedidosPendientes); // solo pedidos pendients
                 replanificado.setFlota(new ArrayList<>());
                 Camion nuevoCamion = new Camion(mejorSolucion.getSistemaPLG().getFlota().get(camAveriado.getId()-1));
+                nuevoCamion.setCargasGLP(new ArrayList<>());
                 nuevoCamion.getDestinos().add(origenReplan);
+                nuevoCamion.setCargaGLPActual(cam.getCargaGLPActual());
+                nuevoCamion.setCombustibleActual(cam.getCombustibleActual());
                 idxFlotaAnterior.add(nuevoCamion.getId());//guardar id (verdadero) momentaenamente
                 replanificado.getFlota().add(nuevoCamion);
                 nuevoCamion.setId(1);//necesario para replan de camiones
@@ -584,6 +589,7 @@ public class SolutionController {
                 }
                 camAveriado.setPedidosAsignados(new ArrayList<>());//caso 2 y 3 donde no atiende sino se va
             }
+            LocalDateTime fechaFinPlan = null;
             if(a.getTipo().getId()!=1){
                 replanificado.setCamionCausanteReplan(cam);
                 replanificado.setCamionesAveriados(new ArrayList<>());
@@ -602,11 +608,13 @@ public class SolutionController {
             double porcentajeElite = 0.1;
             Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
             Individuo mejorSolucionTemp = ga2.ejecutar(2, replanificado);
-            //mejorSolucion.getSistemaPLG().imprimirPlanificacion();
+            //System.out.println("%%%%%%%%%%%%%%%%%mejorSolucionTemp%%%%%%%%%%%%%%%%%");
+            mejorSolucionTemp.getSistemaPLG().imprimirPlanificacion();
             for(int j=0; j<idxPedidosAnterior.size(); j++){
                 Integer idx = idxPedidosAnterior.get(j);
                 pedidosReprogramados.get(j).setId(idx);
-                mejorSolucion.getSistemaPLG().getPedidos().set(idx-1, pedidosReprogramados.get(j));
+                mejorSolucionTemp.getSistemaPLG().getPedidos().get(j).setId(idx);
+                mejorSolucion.getSistemaPLG().getPedidos().set(idx-1, mejorSolucionTemp.getSistemaPLG().getPedidos().get(j));
             }
             for(int j=0; j< camionesDisponibles.size(); j++){
                 Camion c = mejorSolucionTemp.getSistemaPLG().getFlota().get(j);
@@ -615,6 +623,10 @@ public class SolutionController {
                 mejorSolucion.getSistemaPLG().getFlota().get(idCam-1).setPedidosAsignados(c.getPedidosAsignados());
                 mejorSolucion.getAsignacion().put(idCam, mejorSolucionTemp.getAsignacion().get(c.getId()));
                 mejorSolucion.getPedidosXcargasGLP().put(idCam, mejorSolucionTemp.getPedidosXcargasGLP().get(c.getId()));
+                if(fechaFinPlan==null || (fechaFinPlan.isAfter(mejorSolucion.getSistemaPLG().getFechaHoraFinEntregas()))){
+                    fechaFinPlan = c.getDestinos().getLast().getFechaHoraSalida();
+                    mejorSolucion.getSistemaPLG().setFechaHoraFinEntregas(fechaFinPlan);
+                }
             }
             mejorSolucion.getSistemaPLG().setReplanning(false);
             mejorSolucion.getSistemaPLG().setAveriaStartTime(null);

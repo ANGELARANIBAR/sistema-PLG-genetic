@@ -59,10 +59,19 @@ public class Ruta {
         return Math.abs(a.getPosX() - b.getPosX()) + Math.abs(a.getPosY() - b.getPosY()); // Manhattan
     }
 
-    public List<Nodo> aStar(Nodo origen, Nodo destino, SistemaPLG sistemaPLG, double velocidadCamion, LocalDateTime fechaSalida) {
+    public List<Nodo> aStar(Nodo origenOr, Nodo destinoOr, SistemaPLG sistemaPLG, double velocidadCamion, LocalDateTime fechaSalida) {
         Map<Nodo, Double> gScore = new HashMap<>();
         Map<Nodo, Double> fScore = new HashMap<>();
         Map<Nodo, Nodo> cameFrom = new HashMap<>();
+
+        Nodo origen = new Nodo(
+                Math.round(origenOr.getPosX()),
+                Math.round(origenOr.getPosY())
+        );
+        Nodo destino = new Nodo(
+                Math.round(destinoOr.getPosX()),
+                Math.round(destinoOr.getPosY())
+        );
 
         Comparator<Nodo> comparator = Comparator.comparingDouble(fScore::get);
         PriorityQueue<Nodo> abiertos = new PriorityQueue<>(comparator);
@@ -190,8 +199,8 @@ public class Ruta {
 
     public static void main(String[] args) {
             // Crear nodos de origen y destino
-            Nodo origen = new Nodo(0, 0);
-            Nodo destino = new Nodo(2, 1);
+            Nodo origen = new Nodo(1, 2.666666);
+            Nodo destino = new Nodo(5, 12);
 
             // Crear sistema con dimensiones y distancia entre manzanas
             SistemaPLG sistemaPLG = new SistemaPLG();
