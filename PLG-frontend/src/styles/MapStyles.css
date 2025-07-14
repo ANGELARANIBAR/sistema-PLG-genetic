@@ -20,10 +20,13 @@
 .map-container {
   display: flex;
   flex-direction: row;
-  height: calc(100vh - 50px);
+  height: 100%;
   width: 100%;
   overflow: hidden;
   background-color: #f0f0f0;
+  padding-left: 0px;
+  padding-bottom: 0px;
+  
 }
 
 .map-visualization {
@@ -36,6 +39,11 @@
                     linear-gradient(90deg, rgba(200, 200, 200, 0.1) 1px, transparent 1px);
   background-size: 20px 20px;
   padding-bottom: 30px;
+  padding-left: 24px;
+  padding-bottom: 24px;
+  box-sizing: border-box;
+  border: 1px solid #000;
+  margin: 2px;
 }
 
 .map-sidebar {
@@ -1013,5 +1021,80 @@
   
   .detail-row span {
     text-align: left;
+  }
+} 
+
+@media (max-width: 768px) {
+  .map-container {
+    padding-left: 12px;
+    padding-bottom: 12px;
+  }
+  .map-visualization {
+    padding-left: 12px;
+    padding-bottom: 12px;
+    border-width: 3px;
+    margin: 4px;
+  }
+} 
+
+@media (min-width: 769px) {
+  .map-sidebar.collapsed {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    pointer-events: none;
+    position: relative;
+    transition: width 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  .map-sidebar.collapsed > *:not(.sidebar-toggle-btn) {
+    display: none !important;
+  }
+  .map-sidebar.collapsed .sidebar-toggle-btn {
+    pointer-events: auto !important;
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    left: auto !important;
+    z-index: 2000 !important;
+  }
+  .sidebar-toggle-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    left: auto;
+    z-index: 1001;
+    background: #f3f3f3 !important;
+    border: none !important;
+    border-radius: 50% !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    max-width: 36px !important;
+    max-height: 36px !important;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #111;
+    font-weight: bold;
+    font-size: 28px;
+    box-shadow: none !important;
+    transition: none;
+    pointer-events: auto;
+    outline: none;
+    padding: 0;
+    margin: 0;
+  }
+  .sidebar-toggle-btn:hover, .sidebar-toggle-btn:focus {
+    background: #f3f3f3 !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none;
   }
 } 

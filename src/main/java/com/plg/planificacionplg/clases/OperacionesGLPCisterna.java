@@ -37,4 +37,13 @@ public class OperacionesGLPCisterna {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cisterna_id", nullable = false)
     private Cisterna cisterna;
+
+    public OperacionesGLPCisterna (OperacionesGLPCisterna otro){
+        this.id = otro.getId();
+        this.saldoGLP = otro.getSaldoGLP();
+        this.cantSalidaGLP = otro.getCantSalidaGLP();
+        this.fechaHoraOperacion = otro.getFechaHoraOperacion();
+        this.camion = otro.getCamion();
+        this.cisterna = otro.getCisterna();
+    }
 }

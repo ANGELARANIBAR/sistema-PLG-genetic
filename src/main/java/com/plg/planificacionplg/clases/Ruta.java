@@ -98,7 +98,7 @@ public class Ruta {
                 //if (estaTramoBloqueado(actual, vecino, sistemaPLG, tiempoLlegada)) continue;
 
                 if (!vecino.sonIguales(destino) && estaBloqueado(vecino, fechaSalida, sistemaPLG, tiempoLlegada)) continue;
-                vecino.setLlegada(sistemaPLG.getFechaHoraInicio().plusSeconds((long)tiempoLlegada*60));
+                vecino.setLlegada(fechaSalida.plusSeconds((long)tiempoLlegada*60));
                 if (tentativeG < gScore.getOrDefault(vecino, Double.MAX_VALUE)) {
                     cameFrom.put(vecino, actual);
                     gScore.put(vecino, tentativeG);
@@ -135,44 +135,44 @@ public class Ruta {
         LocalDateTime llegada = fechaHoraSalida.plusSeconds((long) (tiempoLlegada * 60));
         List<Bloqueo> bloqueos = sistemaPLG.getBloqueos();
 
-        // Búsqueda binaria del primer bloqueo cuyo inicio sea >= llegada - margen
+        // Buscar el último bloqueo que empieza antes o igual a llegada
         int izquierda = 0, derecha = bloqueos.size() - 1;
-        int inicioBusqueda = bloqueos.size(); // valor por defecto si no encuentra
+        int finBusqueda = 0;
 
         while (izquierda <= derecha) {
             int mid = (izquierda + derecha) / 2;
             Bloqueo b = bloqueos.get(mid);
 
-            if (b.getFechaHoraFin().isBefore(llegada)) {
-                izquierda = mid + 1;
-            } else {
-                inicioBusqueda = mid;
+            if (b.getFechaHoraInicio().isAfter(llegada)) {
                 derecha = mid - 1;
+            } else {
+                finBusqueda = mid;
+                izquierda = mid + 1;
             }
         }
 
-        // Recorremos solo desde donde podrían haber bloqueos activos
-        for (int i = inicioBusqueda; i < bloqueos.size(); i++) {
+        // Recorremos solo hasta el último bloqueo que empieza antes de llegada
+        for (int i = 0; i <= finBusqueda; i++) {
             Bloqueo bloqueo = bloqueos.get(i);
 
-            if (bloqueo.getFechaHoraInicio().isAfter(llegada)) break;
+            if (bloqueo.getFechaHoraFin().isBefore(llegada)) continue;
 
-            if (bloqueo.getFechaHoraFin().isAfter(llegada)) {
-                if (bloqueo.getRutasBloqueadas().size() >= 2) {
-                    Nodo nodo1 = bloqueo.getRutasBloqueadas().get(0);
 
-                    for (int j = 1; j < bloqueo.getRutasBloqueadas().size(); j++) {
-                        Nodo nodo2 = bloqueo.getRutasBloqueadas().get(j);
+            if (bloqueo.getRutasBloqueadas().size() >= 2) {
+                Nodo nodo1 = bloqueo.getRutasBloqueadas().get(0);
 
-                        if (a.estaEntre(nodo1, nodo2)) {
-                            return true;
-                        }
+                for (int j = 1; j < bloqueo.getRutasBloqueadas().size(); j++) {
+                    Nodo nodo2 = bloqueo.getRutasBloqueadas().get(j);
 
-                        nodo1 = nodo2;
+                    if (a.estaEntre(nodo1, nodo2)) {
+                        return true;
                     }
+
+                    nodo1 = nodo2;
                 }
             }
         }
+
 
         return false;
     }

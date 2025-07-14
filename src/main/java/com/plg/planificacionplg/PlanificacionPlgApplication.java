@@ -267,7 +267,7 @@ public class PlanificacionPlgApplication {
         );
         mejorSolucion.getSistemaPLG().cargarAverias(AVERIAS_FILE);
         mejorSolucion.getSistemaPLG().imprimirPlanificacion();
-        PlanificacionPlgApplication.setBatchRefreshNeeded(true);
+        PlanificacionPlgApplication.setBatchRefreshNeeded(true);//true
         batchActual = 1;
         
         // Process all remaining batches
@@ -560,7 +560,7 @@ public class PlanificacionPlgApplication {
                 // Update the main solution with the next batch result
 
                 PlanificacionPlgApplication.setMejorSolucion(mejorSolucionSiguiente);
-                PlanificacionPlgApplication.setBatchRefreshNeeded(true);
+                PlanificacionPlgApplication.setBatchRefreshNeeded(false);//true);
                 mejorSolucion = mejorSolucionSiguiente;
                 System.out.println("Continuing with remaining batches...");
 

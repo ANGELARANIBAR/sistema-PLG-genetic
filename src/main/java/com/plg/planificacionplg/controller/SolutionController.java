@@ -669,13 +669,13 @@ public class SolutionController {
                     mejorSolucion.getSistemaPLG().setFechaHoraFinEntregas(fechaFinPlan);
                 }
             }
-            if(mejorSolucionTemp.getSistemaPLG().getCamionCausanteReplan()!=null){
-                mejorSolucion.getSistemaPLG().getFlota().get(idcam-1).setDestinos(mejorSolucionTemp.getSistemaPLG().getCamionCausanteReplan().getDestinos());
-            }
+//            if(mejorSolucionTemp.getSistemaPLG().getCamionCausanteReplan()!=null){
+//                mejorSolucion.getSistemaPLG().getFlota().get(idcam-1).setDestinos(mejorSolucionTemp.getSistemaPLG().getCamionCausanteReplan().getDestinos());
+//            }
             mejorSolucion.getSistemaPLG().setReplanning(false);
             mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
 
-            PlanificacionPlgApplication.setMejorSolucion(mejorSolucion);
+            //PlanificacionPlgApplication.setMejorSolucion(mejorSolucion);
 
 
         } finally {
@@ -1005,6 +1005,17 @@ public class SolutionController {
         dto.setCapacidadTotal(cisterna.getCapacidadTotal());
         dto.setUbicacion(new NodeDTO(cisterna.getUbicacion().getPosX(), cisterna.getUbicacion().getPosY()));
         dto.setHoraAbastecimento(cisterna.getHoraAbastecimento());
+        if (cisterna.getOperacionesGLPCisterna() != null) {
+            dto.setOperacionesGLPCisterna(new ArrayList<>());
+
+            // Hacemos una copia de la lista antes de iterarla
+            List<OperacionesGLPCisterna> copia = new ArrayList<>(cisterna.getOperacionesGLPCisterna());
+
+            for (OperacionesGLPCisterna op : copia) {
+                dto.getOperacionesGLPCisterna().add(new OperacionesGLPCisternaDTO(op));
+            }
+        }
+
         return dto;
     }
 

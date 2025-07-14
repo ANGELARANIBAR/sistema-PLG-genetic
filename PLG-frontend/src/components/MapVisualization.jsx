@@ -34,6 +34,16 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   const [planificationPercentage, setPlanificationPercentage] = useState(null);
   const [activeTruckTab, setActiveTruckTab] = useState('info');
   const mapContainerRef = useRef(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768;
+
+  // Click to toggle sidebar
+  const handleSidebarToggle = () => {
+    if (isDesktop) setSidebarCollapsed((prev) => !prev);
+  };
+
+  // Sidebar classes
+  const sidebarClass = `map-sidebar${sidebarCollapsed ? " collapsed" : ""}`;
 
   const getCurrentDestination = useCallback(async (truck) => {
     if (!currentTime) return null;
@@ -856,7 +866,39 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
       </div>
 
       {/* Sidebar */}
-      <div className="map-sidebar">
+      <div className={sidebarClass}>
+        {isDesktop && (
+          <button
+            className="sidebar-toggle-btn"
+            onClick={handleSidebarToggle}
+            style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              background: '#f3f3f3',
+              border: 'none',
+              borderRadius: '50%',
+              cursor: 'pointer',
+              zIndex: 1001,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#111',
+              fontWeight: 'bold',
+              fontSize: 28,
+              width: 36,
+              height: 36,
+              boxShadow: 'none',
+              transition: 'none',
+              outline: 'none',
+              padding: 0,
+              margin: 0,
+            }}
+            title={sidebarCollapsed ? "Mostrar panel" : "Ocultar panel"}
+          >
+            {sidebarCollapsed ? '‹' : '›'}
+          </button>
+        )}
         {selectedItem ? (
           selectedItem.type === 'truck' ? (
             <div className="info-section">
@@ -1044,11 +1086,11 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
                   </div>
                   {system.cisternas[selectedItem.id].operacionesGLPCisterna?.length > 0 && (
                     <div className="operaciones-section">
-                      <strong>Últimas Operaciones:</strong>
+                      <strong>Siguientes Operaciones:</strong>
                       <div className="operaciones-list">
                         {system.cisternas[selectedItem.id].operacionesGLPCisterna.slice(-3).map((op, idx) => (
                           <div key={idx} className="operacion-item">
-                            {new Date(op.fechaHoraOperacion).toLocaleString()}: {op.cantSalidaGLP.toFixed(2)} GLP (Camión {op.placaCamion})
+                            {new Date(op.fechaHoraOperacion).toLocaleString()}: {op.cantSalidaGLP.toFixed(2)} GLP (Camión {op.camionId})
                           </div>
                         ))}
                       </div>

@@ -14,6 +14,7 @@ import java.util.*;
 public class SistemaPLG {
 
     private long id;
+    private double capMaximaCamion=25.0;
     private List<Cisterna> cisternas;
     private List<Camion> flota;
     private List<Bloqueo> bloqueos;
@@ -351,13 +352,26 @@ public class SistemaPLG {
             LocalDateTime fechaHoraInicioMes = LocalDateTime.of(anio, mes, 1, 0, 0);
             cargarPedidos(archivo.getAbsolutePath(), fechaHoraInicioMes, fechaInicio, fechaFin);
         }
-        if(pedidos==null)return new ArrayList<>();
+        if (pedidos == null) return new ArrayList<>();
+
         pedidos.sort(Comparator.comparing(Pedido::getFechaHoraMaxEntrega));
-        for (int i = 0; i < pedidos.size(); i++) {
-            Pedido p = pedidos.get(i);
-            p.setId(i+1);
+
+        ArrayList<Pedido> pedidosProcesados = new ArrayList<>();
+        int id = 1;
+        for (Pedido p : pedidos) {
+            p.setId(id);
+            if (p.getVolumenGLP() > capMaximaCamion) {
+                List<Pedido>fragmentados = fragmentarPedidoAleatorio(p);
+                pedidosProcesados.addAll(fragmentados);
+                id+=fragmentados.size();
+            } else {
+                pedidosProcesados.add(p);
+                id++;
+            }
         }
-        return new ArrayList<>(pedidos);
+        pedidos = pedidosProcesados;
+        return pedidosProcesados;
+
     }
 
     public void cargarPedidos(String rutaArchivo, LocalDateTime fechaHoraInicioMes, LocalDateTime fechaInicio, LocalDateTime fechaFin) {
@@ -471,7 +485,8 @@ public class SistemaPLG {
                 cargaBloqueos(archivo.getAbsolutePath(), fechaHoraInicio);
             }
         }
-        getBloqueos().sort(Comparator.comparing(Bloqueo::getFechaHoraInicio));
+        bloqueos.sort(Comparator.comparing(Bloqueo::getFechaHoraInicio));
+        //getBloqueos().sort(Comparator.comparing(Bloqueo::getFechaHoraFin));
     }
 
     public void cargaBloqueos(String rutaArchivo, LocalDateTime fechaHoraInicio){
@@ -649,4 +664,45 @@ public class SistemaPLG {
         this.replanning = otro.replanning;
         this.averiaStartTime = otro.averiaStartTime;
     }
+
+    public List<Pedido> fragmentarPedidoAleatorio(Pedido pedidoOriginal) {
+        List<Pedido> subpedidos = new ArrayList<>();
+        Random random = new Random();
+        double volumenRestante = pedidoOriginal.getVolumenGLP();
+        int contador = 0;
+
+        while (volumenRestante > 0) {
+            double maxVol = Math.min(capMaximaCamion, volumenRestante);
+            double volumenFragmento;
+
+            if (volumenRestante <= 1.0) {
+                volumenFragmento = volumenRestante;
+            } else {
+                volumenFragmento = 1.0 + (maxVol - 1.0) * random.nextDouble();
+                volumenFragmento = Math.min(volumenFragmento, volumenRestante);
+            }
+
+            Pedido subpedido = new Pedido();
+            subpedido.setId(pedidoOriginal.getId() + contador++);
+            subpedido.setIdCliente(pedidoOriginal.getIdCliente());
+            subpedido.setNumeroPedido(pedidoOriginal.getNumeroPedido() + "-R" + contador);
+            subpedido.setVolumenGLP(volumenFragmento);
+            subpedido.setVolumenGLPEntregado(0.0);
+            subpedido.setUbicacion(pedidoOriginal.getUbicacion());
+            subpedido.setFechaHoraRegistro(pedidoOriginal.getFechaHoraRegistro());
+            subpedido.setFechaHoraMaxEntrega(pedidoOriginal.getFechaHoraMaxEntrega());
+            subpedido.setTiempoMaxEntrega(pedidoOriginal.getTiempoMaxEntrega());
+            subpedido.setEstado(pedidoOriginal.getEstado());
+            subpedido.setCompletado(false);
+            subpedido.setCamiones(new ArrayList<>());
+            subpedido.setConsumoCombustibleTotal(0.0);
+
+            subpedidos.add(subpedido);
+            volumenRestante -= volumenFragmento;
+        }
+
+        return subpedidos;
+    }
+
+
 }

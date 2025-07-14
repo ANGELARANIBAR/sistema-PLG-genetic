@@ -159,9 +159,13 @@ public Individuo(){}
         }
         for(Cisterna cisterna: sistema.getCisternas()){
             Cisterna cis = new Cisterna(cisterna);
-            cis.setCargaGLPActual(cis.getCargaGLPActual());
+            cis.setOperacionesGLPCisterna(new ArrayList<>());
             if(cisterna.getOperacionesGLPCisterna()!=null)
-                cis.setOperacionesGLPCisterna(new ArrayList<>(cisterna.getOperacionesGLPCisterna()));
+                for(OperacionesGLPCisterna op : cisterna.getOperacionesGLPCisterna()){
+                    OperacionesGLPCisterna nuevo = new OperacionesGLPCisterna(op);
+                    cis.getOperacionesGLPCisterna().add(nuevo);
+                    nuevo.setCisterna(cis);
+                }
             cisternas.add(cis);
         }
     }

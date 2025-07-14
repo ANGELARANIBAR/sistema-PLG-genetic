@@ -1,5 +1,7 @@
 package com.plg.planificacionplg.dto;
 
+import com.plg.planificacionplg.clases.OperacionesGLPCisterna;
+
 import java.time.LocalDateTime;
 
 public class OperacionesGLPCisternaDTO {
@@ -7,6 +9,31 @@ public class OperacionesGLPCisternaDTO {
     private double cantSalidaGLP;
     private LocalDateTime fechaHoraOperacion;
     private String placaCamion;
+    private int camionId;
+    private int id;
+    public OperacionesGLPCisternaDTO(OperacionesGLPCisterna op) {
+        this.id = op.getId();
+        this.saldoGLP = op.getSaldoGLP();
+        this.cantSalidaGLP = op.getCantSalidaGLP();
+        this.fechaHoraOperacion = op.getFechaHoraOperacion();
+        this.camionId = op.getCamion().getId();
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public int getCamionId() {
+        return camionId;
+    }
+
+    public void setCamionId(int camionId) {
+        this.camionId = camionId;
+    }
 
     public double getSaldoGLP() {
         return saldoGLP;
