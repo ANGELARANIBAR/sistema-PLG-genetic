@@ -117,6 +117,9 @@ export default function Simulador() {
                 .then(res => res.json())
                 .then(data => {
                     if (data) {
+                        // Clear lastProcessedFechaHoraFin before setting new fechaHoraFinEntregas
+                        sessionStorage.removeItem('lastProcessedFechaHoraFin');
+                        setLastProcessedFechaHoraFin(null);
                         setFechaHoraFinEntregas(new Date(data));
                     }
                 })
