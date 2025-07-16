@@ -8,6 +8,7 @@ import NuevoPedido from "./pages/NuevoPedido";
 import Flota from "./pages/Flota";
 import NuevoVehiculo from "./pages/NuevoVehiculo";
 import Simulador from "./pages/Simulador";
+import Configuracion from "./pages/Configuracion";
 import Home from "./pages/Home";
 import BatchRefreshMonitor from "./components/BatchRefreshMonitor";
 
@@ -20,8 +21,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/simulacion" element={<Simulacion />} />
         <Route path="/pedidos" element={<Pedidos />} />
-        <Route path="/flota" element={<Flota />} />
-        <Route path="/planificacion" element={<Planificacion />} />
+        <Route path="/configuracion" element={<Configuracion />} />
         <Route path="/nuevo-pedido" element={<NuevoPedido />} />
         <Route path="/nuevo-vehiculo" element={<NuevoVehiculo />} />
         <Route path="/visualizador" element={<Simulador />} />

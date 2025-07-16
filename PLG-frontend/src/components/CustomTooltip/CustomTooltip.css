@@ -1,0 +1,213 @@
+.custom-tooltip {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: none;
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+.tooltip-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.arrow-left {
+  top: 50%;
+  left: -6px;
+  transform: translateY(-50%);
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 6px solid #2c3e50;
+}
+
+.arrow-right {
+  top: 50%;
+  right: -6px;
+  transform: translateY(-50%);
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 6px solid #2c3e50;
+}
+
+.arrow-top {
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid #2c3e50;
+}
+
+.arrow-bottom {
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #2c3e50;
+}
+
+.tooltip-content {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  width: 240px; /* Ancho reducido para menos contenido */
+  max-height: 150px; /* Altura máxima reducida */
+  overflow-y: auto; /* Scroll si el contenido es muy largo */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 12px;
+  line-height: 1.3;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  /* Asegurar que el tooltip no se salga */
+  box-sizing: border-box;
+}
+
+.tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.tooltip-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ecf0f1;
+}
+
+.tooltip-type {
+  font-size: 11px;
+  background: rgba(52, 152, 219, 0.8);
+  color: white;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.tooltip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tooltip-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tooltip-subsection-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #3498db;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1px 0;
+}
+
+.tooltip-label {
+  font-weight: 500;
+  color: #bdc3c7;
+  font-size: 11px;
+  min-width: 70px;
+}
+
+.tooltip-value {
+  font-weight: 600;
+  color: #ecf0f1;
+  text-align: right;
+  font-size: 11px;
+}
+
+.tooltip-status {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.tooltip-status.status-pendiente {
+  background: rgba(241, 196, 15, 0.8);
+  color: #f39c12;
+}
+
+.tooltip-status.status-en_curso {
+  background: rgba(52, 152, 219, 0.8);
+  color: #3498db;
+}
+
+.tooltip-status.status-completado {
+  background: rgba(39, 174, 96, 0.8);
+  color: #27ae60;
+}
+
+.tooltip-status.status-entregado {
+  background: rgba(39, 174, 96, 0.8);
+  color: #27ae60;
+}
+
+.tooltip-status.status-cancelado {
+  background: rgba(231, 76, 60, 0.8);
+  color: #e74c3c;
+}
+
+.tooltip-operation {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 6px;
+  border-radius: 4px;
+  margin-bottom: 3px;
+  border-left: 2px solid #3498db;
+}
+
+.tooltip-operation:last-child {
+  margin-bottom: 0;
+}
+
+.tooltip-simple {
+  font-size: 12px;
+  color: #ecf0f1;
+  padding: 6px 8px;
+  text-align: center;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-90%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-100%);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .tooltip-content {
+    min-width: 240px;
+    max-width: 280px;
+    font-size: 12px;
+  }
+  
+  .tooltip-title {
+    font-size: 13px;
+  }
+  
+  .tooltip-type {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+}

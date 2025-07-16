@@ -14,7 +14,7 @@ import {
   changeOrderState
 } from "../../services/routeService";
 
-const MapVisualization = ({ currentTime, onPauseSimulation }) => {
+const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, selectedItem }) => {
   const [system, setSystem] = useState(null);
   const [truckPositions, setTruckPositions] = useState(new Map());
   const [truckFuels, setTruckFuels] = useState(new Map());
@@ -22,14 +22,12 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   const [cisternaGLPs, setCisternaGLPs] = useState(new Map());
   const [isReplanning, setIsReplanning] = useState(false);
   const [averiaStartTime, setAveriaStartTime] = useState(null);
-  const [selectedItem, setSelectedItem] = useState(null);
   const [currentDestinations, setCurrentDestinations] = useState(new Map());
   const [startTime, setStartTime] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
   const [lastSystemUpdate, setLastSystemUpdate] = useState(new Date());
 
   const [showLegend, setShowLegend] = useState(false);
-  const [activeTruckTab, setActiveTruckTab] = useState('info');
 
   const getCurrentDestination = useCallback(async (truck) => {
     if (!currentTime) return null;
@@ -490,7 +488,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
                 zIndex: 2,
                 cursor: 'pointer'
               }}
-              onClick={() => setSelectedItem({ type: 'pedido', id: pedido.id })}
+              onClick={() => onItemSelect && onItemSelect({ type: 'pedido', id: pedido.id })}
               title={`Order ${pedido.numeroPedido} - GLP: ${pedido.volumenGLP.toFixed(2)}`}
             >
               P{index + 1}
@@ -534,7 +532,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
                 zIndex: 3,
                 cursor: 'pointer'
               }}
-              onClick={() => setSelectedItem({ type: 'truck', id: truckId })}
+              onClick={() => onItemSelect && onItemSelect({ type: 'truck', id: truckId })}
               onContextMenu={(e) => handleTruckRightClick(e, truckId)}
               title={`Truck ${truck.plate} - Fuel: ${currentFuel}% - GLP: ${currentGLP}L`}
             >
@@ -569,7 +567,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
                 zIndex: 2,
                 cursor: 'pointer'
               }}
-              onClick={() => setSelectedItem({ type: 'cisterna', id: index })}
+              onClick={() => onItemSelect && onItemSelect({ type: 'cisterna', id: index })}
               title={`Cisterna ${cisterna.id} - GLP: ${currentGLP.toFixed(2)}L`}
             >
               C{cisterna.id}
@@ -604,311 +602,9 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
             )}
           </div>
         )}
-      </div>      {/* Floating Truck Details Panel - ENCIMA de la grilla */}
-      {/* Truck Details Panel */}
-      {selectedItem && selectedItem.type === 'truck' && (
-        <div style={{
-          position: 'absolute',
-          top: '10px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '400px',
-          backgroundColor: 'white',
-          border: '2px solid #2196F3',
-          borderRadius: '8px',
-          padding: '16px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-          zIndex: 1000
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#2196F3' }}>Truck Details</h3>
-            <button 
-              onClick={() => setSelectedItem(null)}
-              style={{
-                background: 'none',
-                border: 'none',
-                fontSize: '20px',
-                cursor: 'pointer',
-                color: '#666',
-                width: '24px',
-                height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              ×
-            </button>
-          </div>
+      </div>
 
-          {/* Truck Tabs */}
-          <div style={{ display: 'flex', background: '#f5f5f5', borderRadius: '4px', marginBottom: '16px' }}>
-            <button 
-              style={{
-                flex: 1,
-                padding: '8px 12px',
-                background: activeTruckTab === 'info' ? 'white' : 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '12px',
-                fontWeight: '500',
-                color: activeTruckTab === 'info' ? '#2196F3' : '#666',
-                borderBottom: activeTruckTab === 'info' ? '2px solid #2196F3' : '2px solid transparent'
-              }}
-              onClick={() => setActiveTruckTab('info')}
-            >
-              Information
-            </button>
-            <button 
-              style={{
-                flex: 1,
-                padding: '8px 12px',
-                background: activeTruckTab === 'destinations' ? 'white' : 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '12px',
-                fontWeight: '500',
-                color: activeTruckTab === 'destinations' ? '#2196F3' : '#666',
-                borderBottom: activeTruckTab === 'destinations' ? '2px solid #2196F3' : '2px solid transparent'
-              }}
-              onClick={() => setActiveTruckTab('destinations')}
-            >
-              Destinations
-            </button>
-          </div>
-
-          <div style={{ fontSize: '14px' }}>
-            {activeTruckTab === 'info' && (() => {
-              const truck = system?.flota?.find(t => t.truckId === selectedItem.id);
-              const currentFuel = truckFuels.get(selectedItem.id) || 0;
-              const currentGLP = truckGLPs.get(selectedItem.id) || 0;
-              
-              
-              if (!truck) return <p>Truck not found</p>;
-              
-              return (
-                <div>
-                  <p style={{ margin: '8px 0' }}><strong>Plate:</strong> {truck.plate}</p>
-                  <p style={{ margin: '8px 0' }}><strong>Code:</strong> {truck.codigo}</p>
-                  <p style={{ margin: '8px 0' }}><strong>State:</strong> {state}</p>
-                  <p style={{ margin: '8px 0' }}><strong>Fuel:</strong> {currentFuel}%</p>
-                  <p style={{ margin: '8px 0' }}><strong>GLP:</strong> {currentGLP}L</p>
-                </div>
-              );
-            })()}
-
-            {activeTruckTab === 'destinations' && (() => {
-              const truck = system?.flota?.find(t => t.truckId === selectedItem.id);
-              const destinations = getTruckDestinations(truck);
-              const currentDest = currentDestinations.get(selectedItem.id);
-              
-              return destinations.length > 0 ? (
-                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                  {destinations.map((dest, index) => {
-                    // Check if this destination matches the current destination
-                    const isCurrentDestination = currentDest && 
-                      dest.destinationType === currentDest.destinationType &&
-                      dest.fechaHoraLlegada === currentDest.fechaHoraLlegada &&
-                      dest.fechaHoraSalida === currentDest.fechaHoraSalida;
-                    
-                    return (
-                      <div key={index} style={{ 
-                        border: isCurrentDestination ? '2px solid #2196F3' : '1px solid #ddd', 
-                        borderRadius: '4px', 
-                        padding: '8px', 
-                        marginBottom: '8px',
-                        backgroundColor: isCurrentDestination ? '#e3f2fd' : '#fafafa',
-                        boxShadow: isCurrentDestination ? '0 2px 8px rgba(33, 150, 243, 0.3)' : 'none'
-                      }}>
-                        <div style={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center',
-                          marginBottom: '4px',
-                          paddingBottom: '4px',
-                          borderBottom: '1px solid #eee'
-                        }}>
-                          <span style={{ fontWeight: '600', fontSize: '11px' }}>
-                            {getDestinationTypeLabel(dest.destinationType)}
-                            {isCurrentDestination && (
-                              <span style={{ 
-                                marginLeft: '8px', 
-                                color: '#2196F3', 
-                                fontWeight: 'bold',
-                                fontSize: '10px'
-                              }}>
-                                (CURRENT)
-                              </span>
-                            )}
-                          </span>
-                          <span style={{ 
-                            color: getStatusColor(dest.status),
-                            fontSize: '10px',
-                            padding: '1px 4px',
-                            borderRadius: '2px',
-                            backgroundColor: 'rgba(0,0,0,0.1)'
-                          }}>
-                            {dest.status}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '10px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>Location:</span>
-                            <span>({dest.ubicacion?.x || 'N/A'}, {dest.ubicacion?.y || 'N/A'})</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>Arrival:</span>
-                            <span>{formatDateTime(dest.fechaHoraLlegada)}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>Departure:</span>
-                            <span>{formatDateTime(dest.fechaHoraSalida)}</span>
-                          </div>
-                          {dest.glpOperacion && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span>GLP Operation:</span>
-                              <span>{dest.glpOperacion.toFixed(2)}L</span>
-                            </div>
-                          )}
-                          {dest.saldoGLPCamion !== undefined && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span>GLP Balance:</span>
-                              <span>{dest.saldoGLPCamion.toFixed(2)}L</span>
-                            </div>
-                          )}
-                          {dest.saldoCombustibleCamion !== undefined && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span>Fuel Balance:</span>
-                              <span>{dest.saldoCombustibleCamion.toFixed(2)}L</span>
-                            </div>
-                          )}
-                          {dest.orderId && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span>Order ID:</span>
-                              <span>{dest.orderId}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '20px', color: '#666', fontStyle: 'italic' }}>
-                  No destinations found for this truck.
-                </div>
-              );
-            })()}
-          </div>
-        </div>
-      )}
-
-      {/* Floating Cisterna Details Panel - ENCIMA de la grilla */}
-      {selectedItem && selectedItem.type === 'cisterna' && (
-        <div style={{
-          position: 'absolute',
-          top: '10px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '300px',
-          backgroundColor: 'white',
-          border: '2px solid #4CAF50',
-          borderRadius: '8px',
-          padding: '16px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-          zIndex: 1000
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#4CAF50' }}>Cisterna Details</h3>
-            <button 
-              onClick={() => setSelectedItem(null)}
-              style={{
-                background: 'none',
-                border: 'none',
-                fontSize: '20px',
-                cursor: 'pointer',
-                color: '#666',
-                width: '24px',
-                height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              ×
-            </button>
-          </div>
-          {(() => {
-            const cisterna = system?.cisternas?.[selectedItem.id];
-            const currentGLP = cisternaGLPs.get(cisterna?.id) ?? cisterna?.cargaGLPActual;
-            
-            if (!cisterna) return <p>Cisterna not found</p>;
-            
-            return (
-              <div style={{ fontSize: '14px' }}>
-                <p style={{ margin: '8px 0' }}><strong>ID:</strong> {cisterna.id}</p>
-                <p style={{ margin: '8px 0' }}><strong>Principal:</strong> {cisterna.principal ? 'Yes' : 'No'}</p>
-                <p style={{ margin: '8px 0' }}><strong>Current GLP:</strong> {currentGLP?.toFixed(2)}L</p>
-                <p style={{ margin: '8px 0' }}><strong>Total Capacity:</strong> {cisterna.capacidadTotal}L</p>
-                <p style={{ margin: '8px 0' }}><strong>Location:</strong> ({cisterna.ubicacion.x}, {cisterna.ubicacion.y})</p>
-              </div>
-            );
-          })()}
-        </div>
-      )}
-
-      {/* Floating Order Details Panel - ENCIMA de la grilla */}
-      {selectedItem && selectedItem.type === 'pedido' && (
-        <div style={{
-          position: 'absolute',
-          top: '10px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '300px',
-          backgroundColor: 'white',
-          border: '2px solid #800080',
-          borderRadius: '8px',
-          padding: '16px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-          zIndex: 1000
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#800080' }}>Order Details</h3>
-            <button 
-              onClick={() => setSelectedItem(null)}
-              style={{
-                background: 'none',
-                border: 'none',
-                fontSize: '20px',
-                cursor: 'pointer',
-                color: '#666',
-                width: '24px',
-                height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              ×
-            </button>
-          </div>
-          {(() => {
-            const pedido = system?.pedidos?.find(p => p.id === selectedItem.id);
-            
-            if (!pedido) return <p>Order not found</p>;
-            
-            return (
-              <div style={{ fontSize: '14px' }}>
-                <p style={{ margin: '8px 0' }}><strong>Order Number:</strong> {pedido.numeroPedido}</p>
-                <p style={{ margin: '8px 0' }}><strong>Volume:</strong> {pedido.volumenGLP}m³</p>
-                <p style={{ margin: '8px 0' }}><strong>Status:</strong> {pedido.estado}</p>
-                <p style={{ margin: '8px 0' }}><strong>Location:</strong> ({pedido.ubicacion.x}, {pedido.ubicacion.y})</p>
-                <p style={{ margin: '8px 0' }}><strong>Max Delivery Time:</strong> {new Date(pedido.fechaHoraMaxEntrega).toLocaleString()}</p>
-              </div>
-            );
-          })()}
-        </div>
-      )}      {/* Legend Toggle Button */}
+      {/* Legend Toggle Button */}
       <div
         style={{
           position: 'absolute',
@@ -1104,6 +800,11 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
 MapVisualization.propTypes = {
   currentTime: PropTypes.instanceOf(Date),
   onPauseSimulation: PropTypes.func.isRequired,
+  onItemSelect: PropTypes.func,
+  selectedItem: PropTypes.shape({
+    type: PropTypes.string.isRequired,
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired
+  }),
 };
 
 export default MapVisualization;

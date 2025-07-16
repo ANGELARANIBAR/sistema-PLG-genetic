@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import PropTypes from 'prop-types';
 import { mapService } from '../services/mapService';
 import '../styles/MapStyles.css';
 // Importar iconos
@@ -10,8 +11,9 @@ import truckIconRight from '../assets/icons/truck-icon-right.svg';
 import cisternaIcon from '../assets/icons/cisterna-icon.svg';
 import pedidoIcon from '../assets/icons/pedido-icon.svg';
 import { Box, Typography, LinearProgress, Paper } from '@mui/material';
+import CustomTooltip from './CustomTooltip/CustomTooltip';
 
-const MapVisualization = ({ currentTime, onPauseSimulation }) => {
+const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, selectedItem: externalSelectedItem }) => {
   const [system, setSystem] = useState(null);
   const [truckPositions, setTruckPositions] = useState(new Map());
   const [truckFuels, setTruckFuels] = useState(new Map());
@@ -19,7 +21,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   const [cisternaGLPs, setCisternaGLPs] = useState(new Map());
   const [isReplanning, setIsReplanning] = useState(false);
   const [averiaStartTime, setAveriaStartTime] = useState(null);
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [internalSelectedItem, setInternalSelectedItem] = useState(null);
   const [currentDestinations, setCurrentDestinations] = useState(new Map());
   const [startTime, setStartTime] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
@@ -32,18 +34,16 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   const [pedidoEstadoLoading, setPedidoEstadoLoading] = useState(false);
   const [pedidosEstados, setPedidosEstados] = useState({});
   const [planificationPercentage, setPlanificationPercentage] = useState(null);
-  const [activeTruckTab, setActiveTruckTab] = useState('info');
   const mapContainerRef = useRef(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768;
+  const [legendVisible, setLegendVisible] = useState(false);
 
-  // Click to toggle sidebar
-  const handleSidebarToggle = () => {
-    if (isDesktop) setSidebarCollapsed((prev) => !prev);
+  // Use external selectedItem if provided, otherwise use internal state
+  const selectedItem = externalSelectedItem || internalSelectedItem;
+
+  // Toggle legend visibility
+  const handleLegendToggle = () => {
+    setLegendVisible((prev) => !prev);
   };
-
-  // Sidebar classes
-  const sidebarClass = `map-sidebar${sidebarCollapsed ? " collapsed" : ""}`;
 
   const getCurrentDestination = useCallback(async (truck) => {
     if (!currentTime) return null;
@@ -280,10 +280,15 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
     if (selectedItem && selectedItem.type === 'pedido') {
       const estado = pedidosEstados[selectedItem.id];
       if (estado === 'ENTREGADO') {
-        setSelectedItem(null);
+        // Clear selection - prefer using external callback if available
+        if (onItemSelect) {
+          onItemSelect(null);
+        } else {
+          setInternalSelectedItem(null);
+        }
       }
     }
-  }, [pedidosEstados, selectedItem]);
+  }, [pedidosEstados, selectedItem, onItemSelect]);
 
   // Fetch planification percentage periodically
   useEffect(() => {
@@ -378,8 +383,8 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
   // Calculate scale factors to fit the map in the viewport
   const getContainerDimensions = () => {
     if (mapContainerRef.current) {
-      const containerWidth = mapContainerRef.current.clientWidth - 300; // Subtract sidebar width
-      const containerHeight = mapContainerRef.current.clientHeight - 20; // Subtract padding
+      const containerWidth = mapContainerRef.current.clientWidth - 80; // Subtract padding + margin
+      const containerHeight = mapContainerRef.current.clientHeight - 80; // Subtract padding + margin
       return { containerWidth, containerHeight };
     }
     return { containerWidth: 800, containerHeight: 600 };
@@ -438,7 +443,12 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
       setOverlappingItems(items);
       setShowOverlapMenu({ x: e.clientX, y: e.clientY });
     } else {
-      setSelectedItem(item);
+      // Use external onItemSelect if available, otherwise use internal state
+      if (onItemSelect) {
+        onItemSelect(item);
+      } else {
+        setInternalSelectedItem(item);
+      }
     }
   };
 
@@ -641,7 +651,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
 
   return (
     <div className="map-container" ref={mapContainerRef}>
-      <div className="map-visualization" style={{ width: containerWidth }}>
+      <div className="map-visualization">
         {/* Draw grid */}
         <svg className="grid-svg">
           {Array.from({ length: Math.ceil(system.maxXmapa) + 1 }, (_, x) => (
@@ -717,43 +727,19 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
             const nextNode = bloqueo.rutasBloqueadas[nodeIndex + 1];
             const pos1 = toScreenPosition(node.x, node.y);
             const pos2 = toScreenPosition(nextNode.x, nextNode.y);
+            const isSelected = selectedItem?.type === 'bloqueo' && selectedItem.id === index;
             
             return (
-              <svg key={`block-${index}-${nodeIndex}`} className="blocked-route">
+              <svg key={`block-${index}-${nodeIndex}`} className={`blocked-route ${isSelected ? 'selected' : ''}`}>
                 <line
                   x1={pos1.x}
                   y1={pos1.y}
                   x2={pos2.x}
                   y2={pos2.y}
-                  stroke="#FF0000"
-                  strokeWidth="8"
-                  strokeDasharray="10,10"
-                  className="pulsing-line"
-                />
-                {/* Añadir un símbolo de bloqueo en el medio */}
-                <circle
-                  cx={(pos1.x + pos2.x) / 2}
-                  cy={(pos1.y + pos2.y) / 2}
-                  r="8"
-                  fill="#FF0000"
-                  stroke="#FFFFFF"
-                  strokeWidth="2"
-                />
-                <line
-                  x1={(pos1.x + pos2.x) / 2 - 5}
-                  y1={(pos1.y + pos2.y) / 2 - 5}
-                  x2={(pos1.x + pos2.x) / 2 + 5}
-                  y2={(pos1.y + pos2.y) / 2 + 5}
-                  stroke="#FFFFFF"
-                  strokeWidth="2"
-                />
-                <line
-                  x1={(pos1.x + pos2.x) / 2 - 5}
-                  y1={(pos1.y + pos2.y) / 2 + 5}
-                  x2={(pos1.x + pos2.x) / 2 + 5}
-                  y2={(pos1.y + pos2.y) / 2 - 5}
-                  stroke="#FFFFFF"
-                  strokeWidth="2"
+                  stroke={isSelected ? "#FF6B6B" : "#FF0000"}
+                  strokeWidth={isSelected ? "5" : "4"}
+                  style={{ cursor: 'pointer' }}
+                  onClick={(e) => handleMarkerClick(e, { type: 'bloqueo', id: index, data: bloqueo })}
                 />
               </svg>
             );
@@ -775,26 +761,41 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
             checkAndUpdateOrderState(truck, currentDest);
           }
 
+          // Preparar datos para el tooltip
+          const tooltipData = {
+            codigo: truck.codigo,
+            ubicacion: { x: position.x.toFixed(1), y: position.y.toFixed(1) },
+            placa: truck.plate || 'N/A',
+            tipo: truck.tipoCamion?.id || 'N/A',
+            combustibleActual: currentFuel.toFixed(2),
+            combustibleMax: truck.tipoCamion?.capCombustibleMax?.toFixed(2) || 'N/A',
+            combustibleConsumido: Number(truck.fuelConsumed || 0).toFixed(2),
+            glpActual: currentGLP.toFixed(2),
+            glpMax: truck.tipoCamion?.cargaGLPMax?.toFixed(2) || 'N/A',
+            velocidad: truck.tipoCamion?.velocidadPromedio?.toFixed(2) || 'N/A',
+            estadoActual: currentDest ? getDestinationTypeLabel(currentDest.destinationType) : null
+          };
+
           return (
-            <div
+            <CustomTooltip
               key={`truck-${truckId}`}
-              className={`truck-marker ${selectedItem?.type === 'truck' && selectedItem.id === truckId ? 'selected' : ''} direction-${direction}`}
-              style={{
-                left: pos.x - 12,
-                top: pos.y - 12
-              }}
-              onClick={(e) => handleMarkerClick(e, { type: 'truck', id: truckId })}
-              onContextMenu={(e) => handleTruckRightClick(e, truckId)}
-              title={`Camión ${truck.codigo}
-Combustible: ${currentFuel.toFixed(2)}
-GLP: ${currentGLP.toFixed(2)}
-Combustible final: ${Number(truck.fuelConsumed || 0).toFixed(2)}
-${currentDest ? `\nEn: ${currentDest.destinationType}` : ''}`}
+              content={tooltipData}
+              type="truck"
             >
-              <img src={getTruckIcon(truckId)} alt="Truck" className="marker-icon" />
-              <div className={`direction-arrow direction-${direction}`}></div>
-              <span className="marker-label">T{truckId}</span>
-            </div>
+              <div
+                className={`truck-marker ${selectedItem?.type === 'truck' && selectedItem.id === truckId ? 'selected' : ''} direction-${direction}`}
+                style={{
+                  left: pos.x - 12,
+                  top: pos.y - 12
+                }}
+                onClick={(e) => handleMarkerClick(e, { type: 'truck', id: truckId })}
+                onContextMenu={(e) => handleTruckRightClick(e, truckId)}
+              >
+                <img src={getTruckIcon(truckId)} alt="Truck" className="marker-icon" />
+                <div className={`direction-arrow direction-${direction}`}></div>
+                <span className="marker-label">T{truckId}</span>
+              </div>
+            </CustomTooltip>
           );
         })}
 
@@ -802,27 +803,41 @@ ${currentDest ? `\nEn: ${currentDest.destinationType}` : ''}`}
         {system?.cisternas?.map((cisterna, index) => {
           const pos = toScreenPosition(cisterna.ubicacion.x, cisterna.ubicacion.y);
           const currentGLP = cisternaGLPs.get(cisterna.id) ?? cisterna.cargaGLPActual;
+          const porcentajeGLP = ((currentGLP / cisterna.capacidadTotal) * 100).toFixed(1);
+          
+          // Preparar datos para el tooltip
+          const tooltipData = {
+            tipo: cisterna.principal ? 'Cisterna Principal' : 'Cisterna Secundaria',
+            ubicacion: { x: cisterna.ubicacion.x, y: cisterna.ubicacion.y },
+            glpActual: currentGLP.toFixed(2),
+            capacidadTotal: cisterna.capacidadTotal.toFixed(2),
+            porcentaje: porcentajeGLP,
+            horaAbastecimiento: cisterna.horaAbastecimento,
+            operaciones: cisterna.operacionesGLPCisterna?.slice(-3).map(op => ({
+              fecha: new Date(op.fechaHoraOperacion).toLocaleString(),
+              cantidad: op.cantSalidaGLP.toFixed(2),
+              camion: op.camionId || op.placaCamion
+            })) || []
+          };
+
           return (
-            <div
+            <CustomTooltip
               key={`cisterna-${index}`}
-              className={`cisterna-marker ${cisterna.principal ? 'principal' : 'secundaria'} ${selectedItem?.type === 'cisterna' && selectedItem.id === index ? 'selected' : ''}`}
-              style={{
-                left: pos.x - 12,
-                top: pos.y - 12
-              }}
-              onClick={(e) => handleMarkerClick(e, { type: 'cisterna', id: index })}
-              title={`${cisterna.principal ? 'Principal' : 'Secundaria'} Cisterna
-GLP Actual: ${currentGLP.toFixed(2)} / ${cisterna.capacidadTotal.toFixed(2)}
-Hora Abastecimiento: ${cisterna.horaAbastecimento}
-${cisterna.operacionesGLPCisterna?.length ? `
-Últimas operaciones:
-${cisterna.operacionesGLPCisterna.slice(-3).map(op => 
-`- ${new Date(op.fechaHoraOperacion).toLocaleString()}: ${op.cantSalidaGLP.toFixed(2)} GLP (Camión ${op.placaCamion})`
-).join('\n')}` : ''}`}
+              content={tooltipData}
+              type="cisterna"
             >
-              <img src={cisternaIcon} alt="Cisterna" className="marker-icon" />
-              <span className="marker-label">C{index + 1}</span>
-            </div>
+              <div
+                className={`cisterna-marker ${cisterna.principal ? 'principal' : 'secundaria'} ${selectedItem?.type === 'cisterna' && selectedItem.id === index ? 'selected' : ''}`}
+                style={{
+                  left: pos.x - 12,
+                  top: pos.y - 12
+                }}
+                onClick={(e) => handleMarkerClick(e, { type: 'cisterna', id: index })}
+              >
+                <img src={cisternaIcon} alt="Cisterna" className="marker-icon" />
+                <span className="marker-label">C{index + 1}</span>
+              </div>
+            </CustomTooltip>
           );
         })}
 
@@ -834,20 +849,39 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
           })
           ?.map((pedido, index) => {
             const pos = toScreenPosition(pedido.ubicacion.x, pedido.ubicacion.y);
+            const estado = pedidosEstados[pedido.id] ?? pedido.estado;
+            const fechaRegistro = new Date(pedido.fechaHoraRegistro);
+            const fechaMaxEntrega = new Date(pedido.fechaHoraMaxEntrega);
+            
+            // Preparar datos para el tooltip
+            const tooltipData = {
+              numeroPedido: pedido.numeroPedido,
+              ubicacion: { x: pedido.ubicacion.x, y: pedido.ubicacion.y },
+              volumenGLP: pedido.volumenGLP.toFixed(2),
+              fechaRegistro: fechaRegistro.toLocaleDateString() + ' ' + fechaRegistro.toLocaleTimeString(),
+              fechaMaxEntrega: fechaMaxEntrega.toLocaleDateString() + ' ' + fechaMaxEntrega.toLocaleTimeString(),
+              estado: estado,
+              combustibleTotal: pedido.consumoCombustibleTotal?.toFixed(2) || 'N/A'
+            };
+
             return (
-              <div
+              <CustomTooltip
                 key={`pedido-${pedido.id}`}
-                className={`pedido-marker ${selectedItem?.type === 'pedido' && selectedItem.id === pedido.id ? 'selected' : ''}`}
-                style={{
-                  left: pos.x - 12,
-                  top: pos.y - 12
-                }}
-                onClick={(e) => handleMarkerClick(e, { type: 'pedido', id: pedido.id })}
-                title={`Pedido ${pedido.numeroPedido} - GLP: ${pedido.volumenGLP.toFixed(2)}`}
+                content={tooltipData}
+                type="pedido"
               >
-                <img src={pedidoIcon} alt="Pedido" className="marker-icon" />
-                <span className="marker-label">P{pedido.id}</span>
-              </div>
+                <div
+                  className={`pedido-marker ${selectedItem?.type === 'pedido' && selectedItem.id === pedido.id ? 'selected' : ''}`}
+                  style={{
+                    left: pos.x - 12,
+                    top: pos.y - 12
+                  }}
+                  onClick={(e) => handleMarkerClick(e, { type: 'pedido', id: pedido.id })}
+                >
+                  <img src={pedidoIcon} alt="Pedido" className="marker-icon" />
+                  <span className="marker-label">P{pedido.id}</span>
+                </div>
+              </CustomTooltip>
             );
           })}
 
@@ -865,328 +899,140 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
         )}
       </div>
 
-      {/* Sidebar */}
-      <div className={sidebarClass}>
-        {isDesktop && (
-          <button
-            className="sidebar-toggle-btn"
-            onClick={handleSidebarToggle}
-            style={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              background: '#f3f3f3',
-              border: 'none',
-              borderRadius: '50%',
-              cursor: 'pointer',
-              zIndex: 1001,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#111',
-              fontWeight: 'bold',
-              fontSize: 28,
-              width: 36,
-              height: 36,
-              boxShadow: 'none',
-              transition: 'none',
-              outline: 'none',
-              padding: 0,
-              margin: 0,
-            }}
-            title={sidebarCollapsed ? "Mostrar panel" : "Ocultar panel"}
-          >
-            {sidebarCollapsed ? '‹' : '›'}
-          </button>
-        )}
-        {selectedItem ? (
-          selectedItem.type === 'truck' ? (
-            <div className="info-section">
-              <h3>Información de Camión</h3>
-              
-              {/* Truck Tabs */}
-              <div className="truck-tabs">
-                <button 
-                  className={`truck-tab-button ${activeTruckTab === 'info' ? 'active' : ''}`}
-                  onClick={() => setActiveTruckTab('info')}
-                >
-                  Detalle
-                </button>
-                <button 
-                  className={`truck-tab-button ${activeTruckTab === 'destinations' ? 'active' : ''}`}
-                  onClick={() => setActiveTruckTab('destinations')}
-                >
-                  Destinos
-                </button>
-              </div>
+      {/* Legend Toggle Button */}
+      <button
+        className="legend-toggle-btn"
+        onClick={handleLegendToggle}
+        style={{
+          position: 'absolute',
+          bottom: 20,
+          left: 20,
+          background: '#f3f3f3',
+          border: '1px solid #ddd',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          zIndex: 1001,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#333',
+          fontSize: '14px',
+          width: '44px',
+          height: '44px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+          transition: 'all 0.3s ease',
+          outline: 'none',
+          padding: '8px',
+          gap: '2px'
+        }}
+        title="Mostrar/Ocultar leyenda"
+        onMouseEnter={(e) => {
+          e.target.style.background = '#e0e0e0';
+          e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.background = '#f3f3f3';
+          e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
+        }}
+      >
+        <div style={{ width: '20px', height: '2px', backgroundColor: '#333', borderRadius: '1px' }}></div>
+        <div style={{ width: '20px', height: '2px', backgroundColor: '#333', borderRadius: '1px' }}></div>
+        <div style={{ width: '20px', height: '2px', backgroundColor: '#333', borderRadius: '1px' }}></div>
+      </button>
 
-              <div className="truck-tab-content">
-                {activeTruckTab === 'info' && (
-                  <div className="info-content">
-                    <div className="info-item">
-                      <strong>Código:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.codigo}</span>
-                    </div>
-                    <div className="info-item">
-                      <strong>Placa:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.plate}</span>
-                    </div>
-                    <div className="info-item">
-                      <strong>Tipo:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.tipoCamion?.id || 'N/A'}</span>
-                    </div>
-                    
-                    <div className="info-item">
-                      <strong>Combustible actual:</strong> <span>{Number(truckFuels.get(selectedItem.id) || 0).toFixed(2)}</span>
-                    </div>
-                    <div className="info-item">
-                      <strong>GLP actual:</strong> <span>{Number(truckGLPs.get(selectedItem.id) || 0).toFixed(2)}L</span>
-                    </div>
-                    <div className="info-item">
-                      <strong>Capacidad GLP:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.tipoCamion?.cargaGLPMax?.toFixed(2) || 'N/A'}L</span>
-                    </div>
-                    <div className="info-item">
-                      <strong>Capacidad Combustible:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.tipoCamion?.capCombustibleMax?.toFixed(2) || 'N/A'}L</span>
-                    </div>
-                    <div className="info-item">
-                      <strong>Velocidad Promedio:</strong> <span>{system?.flota.find(t => t.truckId === selectedItem.id)?.tipoCamion?.velocidadPromedio?.toFixed(2) || 'N/A'} nodes/min</span>
-                    </div>
-                    <div className="info-item">
-                      <strong>Combustible consumido:</strong> <span>{Number(system?.flota.find(t => t.truckId === selectedItem.id)?.fuelConsumed || 0).toFixed(2)}L</span>
-                    </div>
-                    
-                    {/* Averia Buttons */}
-                    <div className="averia-section">
-                      <h4>Registrar avería</h4>
-                      <div className="averia-buttons">
-                        <button 
-                          onClick={() => handleAveriaOption(1)} 
-                          className="averia-button tipo-1"
-                        >
-                          Tipo 1
-                        </button>
-                        <button 
-                          onClick={() => handleAveriaOption(2)} 
-                          className="averia-button tipo-2"
-                        >
-                          Tipo 2
-                        </button>
-                        <button 
-                          onClick={() => handleAveriaOption(3)} 
-                          className="averia-button tipo-3"
-                        >
-                          Tipo 3
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTruckTab === 'destinations' && (
-                  <div className="destinations-content">
-                    {(() => {
-                      const truck = system?.flota?.find(t => t.truckId === selectedItem.id);
-                      const destinations = truck?.destinations || [];
-                      const currentDest = currentDestinations.get(selectedItem.id);
-                      
-                      return destinations.length > 0 ? (
-                        <div className="destinations-list">
-                          {destinations.map((dest, index) => {
-                            // Check if this destination matches the current destination
-                            const isCurrentDestination = currentDest && 
-                              dest.destinationType === currentDest.destinationType &&
-                              dest.arrivalTime === currentDest.arrivalTime &&
-                              dest.departureTime === currentDest.departureTime;
-                            
-                            return (
-                              <div 
-                                key={index} 
-                                className={`destination-item ${isCurrentDestination ? 'current-destination' : ''}`}
-                                style={{
-                                  border: isCurrentDestination ? '2px solid #2196F3' : '1px solid #ddd',
-                                  backgroundColor: isCurrentDestination ? '#e3f2fd' : '#fafafa',
-                                  boxShadow: isCurrentDestination ? '0 2px 8px rgba(33, 150, 243, 0.3)' : 'none'
-                                }}
-                              >
-                                <div className="destination-header">
-                                  <span className="destination-type">
-                                    {getDestinationTypeLabel(dest.destinationType)}
-                                    {isCurrentDestination && (
-                                      <span style={{ 
-                                        marginLeft: '8px', 
-                                        color: '#2196F3', 
-                                        fontWeight: 'bold',
-                                        fontSize: '12px'
-                                      }}>
-                                        (ACTUAL)
-                                      </span>
-                                    )}
-                                  </span>
-                                  <span className="destination-status" style={{ color: getStatusColor(dest.status) }}>
-                                    {dest.status}
-                                  </span>
-                                </div>
-                                <div className="destination-details">
-                                  <div className="detail-row">
-                                    <label>Ubicación:</label>
-                                    <span>({dest.route[dest.route.length-1]?.x || dest.ubicacion?.x ||'N/A'}, {dest.route[dest.route.length-1]?.y || dest.ubicacion?.y || 'N/A'})</span>
-                                  </div>
-                                  <div className="detail-row">
-                                    <label>Llegada:</label>
-                                    <span>{formatDateTime(dest.arrivalTime)}</span>
-                                  </div>
-                                  <div className="detail-row">
-                                    <label>Salida:</label>
-                                    <span>{formatDateTime(dest.departureTime)}</span>
-                                  </div>
-                                  {dest.operacionGLP !== undefined && (
-                                    <div className="detail-row">
-                                      <label>Operación GLP:</label>
-                                      <span>{dest.operacionGLP.toFixed(2)}L</span>
-                                    </div>
-                                  )}
-                                  {dest.saldoGLPCamion !== undefined && (
-                                    <div className="detail-row">
-                                      <label>Saldo GLP:</label>
-                                      <span>{dest.saldoGLPCamion.toFixed(2)}L</span>
-                                    </div>
-                                  )}
-                                  {dest.orderId && (
-                                    <div className="detail-row">
-                                      <label>ID Pedido:</label>
-                                      <span>{dest.orderId}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="no-destinations">No se encontraron destinos para este camión.</div>
-                      );
-                    })()}
-                  </div>
-                )}
+      {/* Floating Legend */}
+      {legendVisible && (
+        <div 
+          className="floating-legend"
+          style={{
+            position: 'absolute',
+            bottom: 80,
+            left: 20,
+            background: 'rgba(255, 255, 255, 0.95)',
+            border: '1px solid #ddd',
+            borderRadius: '12px',
+            padding: '16px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+            zIndex: 1000,
+            minWidth: '200px',
+            backdropFilter: 'blur(10px)'
+          }}
+        >
+          <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#333', fontWeight: '600' }}>Leyenda</h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src={truckIconUp} alt="Camión" style={{ width: '16px', height: '16px' }} />
               </div>
+              <span style={{ fontSize: '12px', color: '#333' }}>Camión</span>
             </div>
-          ) : selectedItem.type === 'cisterna' ? (
-            <div className="info-section">
-              <h3>Información de Cisterna</h3>
-              {system?.cisternas?.[selectedItem.id] && (
-                <div className="info-content">
-                  <div className="info-item">
-                    <strong>Tipo:</strong> <span>{system.cisternas[selectedItem.id].principal ? 'Principal' : 'Secundaria'}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>GLP Actual:</strong> <span>{(cisternaGLPs.get(system.cisternas[selectedItem.id].id) ?? system.cisternas[selectedItem.id].cargaGLPActual).toFixed(2)}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Capacidad Total:</strong> <span>{system.cisternas[selectedItem.id].capacidadTotal.toFixed(2)}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Hora de Abastecimiento:</strong> <span>{system.cisternas[selectedItem.id].horaAbastecimento}</span>
-                  </div>
-                  {system.cisternas[selectedItem.id].operacionesGLPCisterna?.length > 0 && (
-                    <div className="operaciones-section">
-                      <strong>Siguientes Operaciones:</strong>
-                      <div className="operaciones-list">
-                        {system.cisternas[selectedItem.id].operacionesGLPCisterna.slice(-3).map((op, idx) => (
-                          <div key={idx} className="operacion-item">
-                            {new Date(op.fechaHoraOperacion).toLocaleString()}: {op.cantSalidaGLP.toFixed(2)} GLP (Camión {op.camionId})
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src={cisternaIcon} alt="Cisterna" style={{ width: '16px', height: '16px' }} />
+              </div>
+              <span style={{ fontSize: '12px', color: '#333' }}>Cisterna</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src={pedidoIcon} alt="Pedido" style={{ width: '16px', height: '16px' }} />
+              </div>
+              <span style={{ fontSize: '12px', color: '#333' }}>Pedido</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ 
+                  width: '16px', 
+                  height: '2px', 
+                  background: 'linear-gradient(90deg, #4CAF50, #2196F3)', 
+                  borderRadius: '1px',
+                  position: 'relative'
+                }}>
+                  <div style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    background: 'inherit',
+                    animation: 'dashMove 2s linear infinite',
+                    backgroundImage: 'linear-gradient(90deg, transparent 50%, rgba(255,255,255,0.3) 50%)',
+                    backgroundSize: '8px 100%'
+                  }}></div>
                 </div>
-              )}
+              </div>
+              <span style={{ fontSize: '12px', color: '#333' }}>Ruta</span>
             </div>
-          ) : selectedItem.type === 'pedido' ? (
-            <div className="info-section">
-              <h3>Información de Pedido</h3>
-              {system?.pedidos?.find(p => p.id === selectedItem.id) && (
-                <div className="info-content">
-                  <div className="info-item">
-                    <strong>Código de Pedido:</strong> <span>{system.pedidos.find(p => p.id === selectedItem.id)?.numeroPedido}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Volumen GLP:</strong> <span>{system.pedidos.find(p => p.id === selectedItem.id)?.volumenGLP.toFixed(2)}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Hora Registro:</strong> <span>{new Date(system.pedidos.find(p => p.id === selectedItem.id)?.fechaHoraRegistro || '').toLocaleString()}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Entrega Máxima:</strong> <span>{new Date(system.pedidos.find(p => p.id === selectedItem.id)?.fechaHoraMaxEntrega || '').toLocaleString()}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Estado:</strong> <span>{pedidoEstadoLoading ? 'Cargando...' : (pedidoEstado ?? system.pedidos.find(p => p.id === selectedItem.id)?.estado)}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Ubicación:</strong> <span>({system.pedidos.find(p => p.id === selectedItem.id)?.ubicacion.x}, {system.pedidos.find(p => p.id === selectedItem.id)?.ubicacion.y})</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Combustible total:</strong> <span>{system.pedidos.find(p => p.id === selectedItem.id)?.consumoCombustibleTotal.toFixed(2)}</span>
-                  </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                <div style={{ 
+                  width: '16px', 
+                  height: '3px', 
+                  backgroundColor: '#FF0000', 
+                  borderRadius: '1px',
+                  position: 'relative'
+                }}>
+                  <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '8px',
+                    height: '8px',
+                    backgroundColor: '#FF0000',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '6px',
+                    fontWeight: 'bold'
+                  }}>✕</div>
                 </div>
-              )}
-            </div>
-          ) : null
-        ) : (
-          <div className="info-section">
-            <h3>Información del Sistema</h3>
-            <div className="info-content">
-              <div className="info-item">
-                <strong>Flota:</strong> <span>{system?.flota?.length || 0} camiones</span>
               </div>
-              <div className="info-item">
-                <strong>Pedidos:</strong> <span>{system?.pedidos?.length || 0} pedidos</span>
-              </div>
-              <div className="info-item">
-                <strong>Cisternas:</strong> <span>{system?.cisternas?.length || 0} cisternas</span>
-              </div>
-              {planificationPercentage !== null && (
-                <div className="info-item">
-                  <strong>Progreso:</strong> <span>{planificationPercentage.toFixed(1)}%</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Leyenda fija en la columna de información */}
-        <div className="sidebar-legend">
-          <h4>Leyenda</h4>
-          <div className="legend-content">
-            <div className="legend-item">
-              <div className="legend-icon truck-legend">
-                <img src={truckIconUp} alt="Camión" className="legend-img" />
-              </div>
-              <span>Camión</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-icon cisterna-legend">
-                <img src={cisternaIcon} alt="Cisterna" className="legend-img" />
-              </div>
-              <span>Cisterna</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-icon pedido-legend">
-                <img src={pedidoIcon} alt="Pedido" className="legend-img" />
-              </div>
-              <span>Pedido</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-line route-legend"></div>
-              <span>Ruta</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-block">
-                <div className="legend-block-line"></div>
-                <div className="legend-block-symbol">✕</div>
-              </div>
-              <span>Bloqueo</span>
+              <span style={{ fontSize: '12px', color: '#333' }}>Bloqueo</span>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Context Menu */}
       {contextMenu && (
@@ -1239,7 +1085,12 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
                 key={`overlap-${index}`}
                 className="overlap-item"
                 onClick={() => {
-                  setSelectedItem(item);
+                  // Use external onItemSelect if available, otherwise use internal state
+                  if (onItemSelect) {
+                    onItemSelect(item);
+                  } else {
+                    setInternalSelectedItem(item);
+                  }
                   setShowOverlapMenu(false);
                 }}
               >
@@ -1251,6 +1102,16 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
       )}
     </div>
   );
+};
+
+MapVisualization.propTypes = {
+  currentTime: PropTypes.instanceOf(Date),
+  onPauseSimulation: PropTypes.func.isRequired,
+  onItemSelect: PropTypes.func,
+  selectedItem: PropTypes.shape({
+    type: PropTypes.string.isRequired,
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired
+  }),
 };
 
 export default MapVisualization; 
