@@ -73,11 +73,6 @@
   transition: transform 0.2s ease, filter 0.2s ease;
 }
 
-/* Pedidos aparecen encima de otros elementos */
-.pedido-marker {
-  z-index: 15;
-}
-
 .direction-arrow {
   position: absolute;
   width: 0;

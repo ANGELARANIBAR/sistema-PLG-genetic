@@ -8,10 +8,6 @@ import truckIconDown from '../assets/icons/truck-icon-down.svg';
 import truckIconLeft from '../assets/icons/truck-icon-left.svg';
 import truckIconRight from '../assets/icons/truck-icon-right.svg';
 import cisternaIcon from '../assets/icons/cisterna-icon.svg';
-import PackageIcon from './icons/PackageIcon';
-import TruckIcon from './icons/TruckIcon';
-import BlockIcon from './icons/BlockIcon';
-import RouteIcon from './icons/RouteIcon';
 import pedidoIcon from '../assets/icons/pedido-icon.svg';
 import { Box, Typography, LinearProgress, Paper } from '@mui/material';
 
@@ -66,20 +62,12 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
     const loadSystem = async () => {
       try {
         const systemData = await mapService.fetchSystem();
-        // Check if API returned valid data or if it's undefined/null
-        if (!systemData || systemData === undefined || systemData === null) {
-          throw new Error('API returned no data');
-        }
         setSystem(systemData);
         const startTimeData = await mapService.fetchStartTime();
-        if(startTimeData===null || startTimeData === undefined) {
-          setStartTime(new Date());
-          return;
-        }
+        if(startTimeData===null || startTimeData === undefined)return;
         setStartTime(startTimeData);
       } catch (error) {
         console.error('Error loading system data:', error);
-        // No usar datos dummy - mantener estado vacío hasta que la API esté disponible
       }
     };
     loadSystem();
@@ -95,40 +83,35 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
       const newGLPs = new Map();
       if(system.flota === null || system.flota === undefined)
         return;
-      
-      try {
-        for (const truck of system.flota) {
-          try {
-            const [position, fuel, glp] = await Promise.all([
-              mapService.fetchTruckPosition(truck.truckId, currentTime),
-              mapService.fetchTruckFuel(truck.truckId, currentTime),
-              mapService.fetchTruckGLP(truck.truckId, currentTime)
-            ]);
+      for (const truck of system.flota) {
+        try {
+          const [position, fuel, glp] = await Promise.all([
+            mapService.fetchTruckPosition(truck.truckId, currentTime),
+            mapService.fetchTruckFuel(truck.truckId, currentTime),
+            mapService.fetchTruckGLP(truck.truckId, currentTime)
+          ]);
 
-            if (position) {
-              newPositions.set(truck.truckId, position);
-            }
-            if (fuel !== null) {
-              newFuels.set(truck.truckId, fuel);
-            }
-            if (glp !== null) {
-              newGLPs.set(truck.truckId, glp);
-            }
-          } catch (error) {
-            console.error(`Error updating truck ${truck.truckId}:`, error);
+          if (position) {
+            newPositions.set(truck.truckId, position);
           }
+          if (fuel !== null) {
+            newFuels.set(truck.truckId, fuel);
+          }
+          if (glp !== null) {
+            newGLPs.set(truck.truckId, glp);
+          }
+        } catch (error) {
+          console.error(`Error updating truck ${truck.truckId}:`, error);
         }
-        
-        setTruckPositions(newPositions);
-        setTruckFuels(newFuels);
-        setTruckGLPs(newGLPs);
-      } catch (error) {
-        console.error('Error updating truck data:', error);
       }
+
+      setTruckPositions(newPositions);
+      setTruckFuels(newFuels);
+      setTruckGLPs(newGLPs);
     };
 
     updateTruckData();
-  }, [currentTime, system, truckPositions, truckFuels, truckGLPs]);
+  }, [currentTime, system]);
 
   // Update current destinations
   useEffect(() => {
@@ -156,35 +139,27 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
       if (!currentTime || !system || !system.cisternas) return;
 
       const newGLPs = new Map();
-      try {
-        for (const cisterna of system.cisternas) {
-          try {
-            const glp = await mapService.fetchCisternaGLP(cisterna.id, currentTime);
-            if (glp !== null) {
-              newGLPs.set(cisterna.id, glp);
-            }
-          } catch (error) {
-            console.error(`Error updating cisterna ${cisterna.id} GLP:`, error);
+      for (const cisterna of system.cisternas) {
+        try {
+          const glp = await mapService.fetchCisternaGLP(cisterna.id, currentTime);
+          if (glp !== null) {
+            newGLPs.set(cisterna.id, glp);
           }
+        } catch (error) {
+          console.error(`Error updating cisterna ${cisterna.id} GLP:`, error);
         }
-        setCisternaGLPs(newGLPs);
-      } catch (error) {
-        console.error('Error updating cisterna GLP:', error);
       }
+      setCisternaGLPs(newGLPs);
     };
 
     updateCisternaGLPs();
-  }, [currentTime, system, cisternaGLPs]);
+  }, [currentTime, system]);
 
   // Periodically fetch system data
   useEffect(() => {
     const fetchSystemData = async () => {
       try {
         const systemData = await mapService.fetchSystem();
-        // Check if API returned valid data or if it's undefined/null
-        if (!systemData || systemData === undefined || systemData === null) {
-          throw new Error('API returned no data');
-        }
         setSystem(systemData);
         setLastSystemUpdate(new Date());
       } catch (error) {
@@ -452,31 +427,6 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
       }
     });
 
-    // Check bloqueos
-    system?.bloqueos?.forEach((bloqueo, index) => {
-      let isActive = false;
-      if (currentTime) {
-        isActive = currentTime >= new Date(bloqueo.fechaHoraInicio) &&
-          currentTime <= new Date(bloqueo.fechaHoraFin);
-      }
-      if (!isActive) return;
-
-      // Check if click is near any segment of the blocked route
-      for (let nodeIndex = 0; nodeIndex < bloqueo.rutasBloqueadas.length - 1; nodeIndex++) {
-        const node = bloqueo.rutasBloqueadas[nodeIndex];
-        const nextNode = bloqueo.rutasBloqueadas[nodeIndex + 1];
-        const pos1 = toScreenPosition(node.x, node.y);
-        const pos2 = toScreenPosition(nextNode.x, nextNode.y);
-        
-        // Calculate distance from click point to line segment
-        const distanceToLine = distanceToLineSegment({ x, y }, pos1, pos2);
-        if (distanceToLine < threshold * 2) { // Larger threshold for lines
-          items.push({ type: 'bloqueo', id: index, label: `Bloqueo ${index + 1}` });
-          break; // Only add once per bloqueo
-        }
-      }
-    });
-
     return items;
   };
 
@@ -733,7 +683,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
           // If no remaining route, don't render anything
           if (!remainingRoute || remainingRoute.length < 2) return null;
 
-          const color = "#000000"; // Black routes as requested
+          const color = `hsl(${(index * 360) / (system.flota?.length || 1)}, 70%, 50%)`;
           return (
             <svg key={`route-${truck.truckId}`} className="route-line">
               <polyline
@@ -761,65 +711,53 @@ const MapVisualization = ({ currentTime, onPauseSimulation }) => {
           }
           if (!isActive) return null;
 
-          return (
-            <div
-              key={`bloqueo-container-${index}`}
-              style={{ 
-                position: 'absolute', 
-                top: 0, 
-                left: 0, 
-                width: '100%', 
-                height: '100%', 
-                pointerEvents: 'none' 
-              }}
-            >
-              {bloqueo.rutasBloqueadas.map((node, nodeIndex) => {
-                if (nodeIndex === bloqueo.rutasBloqueadas.length - 1) return null;
-                
-                const nextNode = bloqueo.rutasBloqueadas[nodeIndex + 1];
-                const pos1 = toScreenPosition(node.x, node.y);
-                const pos2 = toScreenPosition(nextNode.x, nextNode.y);
-                
-                return (
-                  <div
-                    key={`bloqueo-line-${index}-${nodeIndex}`}
-                    style={{
-                      position: 'absolute',
-                      left: Math.min(pos1.x, pos2.x) - 10,
-                      top: Math.min(pos1.y, pos2.y) - 10,
-                      width: Math.abs(pos2.x - pos1.x) + 20,
-                      height: Math.abs(pos2.y - pos1.y) + 20,
-                      pointerEvents: 'all',
-                      cursor: 'pointer',
-                      zIndex: 10
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      console.log(`Clicked on bloqueo ${index + 1}`);
-                      setSelectedItem({ type: 'bloqueo', id: index });
-                    }}
-                    title={`Bloqueo ${index + 1} - Click para ver detalles`}
-                  >
-                    <svg 
-                      width="100%" 
-                      height="100%" 
-                      style={{ overflow: 'visible' }}
-                    >
-                      <line
-                        x1={pos1.x - Math.min(pos1.x, pos2.x) + 10}
-                        y1={pos1.y - Math.min(pos1.y, pos2.y) + 10}
-                        x2={pos2.x - Math.min(pos1.x, pos2.x) + 10}
-                        y2={pos2.y - Math.min(pos1.y, pos2.y) + 10}
-                        stroke="#FF0000"
-                        strokeWidth="8"
-                        style={{ pointerEvents: 'all' }}
-                      />
-                    </svg>
-                  </div>
-                );
-              })}
-            </div>
-          );
+          return bloqueo.rutasBloqueadas.map((node, nodeIndex) => {
+            if (nodeIndex === bloqueo.rutasBloqueadas.length - 1) return null;
+            
+            const nextNode = bloqueo.rutasBloqueadas[nodeIndex + 1];
+            const pos1 = toScreenPosition(node.x, node.y);
+            const pos2 = toScreenPosition(nextNode.x, nextNode.y);
+            
+            return (
+              <svg key={`block-${index}-${nodeIndex}`} className="blocked-route">
+                <line
+                  x1={pos1.x}
+                  y1={pos1.y}
+                  x2={pos2.x}
+                  y2={pos2.y}
+                  stroke="#FF0000"
+                  strokeWidth="8"
+                  strokeDasharray="10,10"
+                  className="pulsing-line"
+                />
+                {/* Añadir un símbolo de bloqueo en el medio */}
+                <circle
+                  cx={(pos1.x + pos2.x) / 2}
+                  cy={(pos1.y + pos2.y) / 2}
+                  r="8"
+                  fill="#FF0000"
+                  stroke="#FFFFFF"
+                  strokeWidth="2"
+                />
+                <line
+                  x1={(pos1.x + pos2.x) / 2 - 5}
+                  y1={(pos1.y + pos2.y) / 2 - 5}
+                  x2={(pos1.x + pos2.x) / 2 + 5}
+                  y2={(pos1.y + pos2.y) / 2 + 5}
+                  stroke="#FFFFFF"
+                  strokeWidth="2"
+                />
+                <line
+                  x1={(pos1.x + pos2.x) / 2 - 5}
+                  y1={(pos1.y + pos2.y) / 2 + 5}
+                  x2={(pos1.x + pos2.x) / 2 + 5}
+                  y2={(pos1.y + pos2.y) / 2 - 5}
+                  stroke="#FFFFFF"
+                  strokeWidth="2"
+                />
+              </svg>
+            );
+          });
         })}
 
         {/* Draw trucks with direction arrows */}
@@ -853,15 +791,8 @@ GLP: ${currentGLP.toFixed(2)}
 Combustible final: ${Number(truck.fuelConsumed || 0).toFixed(2)}
 ${currentDest ? `\nEn: ${currentDest.destinationType}` : ''}`}
             >
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '24px',
-                height: '24px'
-              }}>
-                <TruckIcon size={24} />
-              </div>
+              <img src={getTruckIcon(truckId)} alt="Truck" className="marker-icon" />
+              <div className={`direction-arrow direction-${direction}`}></div>
               <span className="marker-label">T{truckId}</span>
             </div>
           );
@@ -908,21 +839,13 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
                 key={`pedido-${pedido.id}`}
                 className={`pedido-marker ${selectedItem?.type === 'pedido' && selectedItem.id === pedido.id ? 'selected' : ''}`}
                 style={{
-                  left: pos.x - 14,
-                  top: pos.y - 14
+                  left: pos.x - 12,
+                  top: pos.y - 12
                 }}
                 onClick={(e) => handleMarkerClick(e, { type: 'pedido', id: pedido.id })}
                 title={`Pedido ${pedido.numeroPedido} - GLP: ${pedido.volumenGLP.toFixed(2)}`}
               >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '28px',
-                  height: '28px'
-                }}>
-                  <PackageIcon size={20} />
-                </div>
+                <img src={pedidoIcon} alt="Pedido" className="marker-icon" />
                 <span className="marker-label">P{pedido.id}</span>
               </div>
             );
@@ -1205,46 +1128,6 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
                 </div>
               )}
             </div>
-          ) : selectedItem.type === 'bloqueo' ? (
-            <div className="info-section">
-              <h3>Información de Bloqueo</h3>
-              {system?.bloqueos?.[selectedItem.id] && (
-                <div className="info-content">
-                  <div className="info-item">
-                    <strong>ID Bloqueo:</strong> <span>Bloqueo {selectedItem.id + 1}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Fecha/Hora Inicio:</strong> <span>{new Date(system.bloqueos[selectedItem.id].fechaHoraInicio).toLocaleString()}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Fecha/Hora Fin:</strong> <span>{new Date(system.bloqueos[selectedItem.id].fechaHoraFin).toLocaleString()}</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Duración:</strong> <span>{Math.round((new Date(system.bloqueos[selectedItem.id].fechaHoraFin) - new Date(system.bloqueos[selectedItem.id].fechaHoraInicio)) / (1000 * 60))} minutos</span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Estado:</strong> <span style={{ color: currentTime >= new Date(system.bloqueos[selectedItem.id].fechaHoraInicio) && currentTime <= new Date(system.bloqueos[selectedItem.id].fechaHoraFin) ? '#e74c3c' : '#95a5a6' }}>
-                      {currentTime >= new Date(system.bloqueos[selectedItem.id].fechaHoraInicio) && currentTime <= new Date(system.bloqueos[selectedItem.id].fechaHoraFin) ? 'ACTIVO' : 'INACTIVO'}
-                    </span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Segmentos Bloqueados:</strong> <span>{system.bloqueos[selectedItem.id].rutasBloqueadas.length - 1} segmentos</span>
-                  </div>
-                  {system.bloqueos[selectedItem.id].rutasBloqueadas.length > 0 && (
-                    <div className="rutas-section">
-                      <strong>Coordenadas Afectadas:</strong>
-                      <div className="rutas-list" style={{ maxHeight: '120px', overflowY: 'auto', fontSize: '12px', marginTop: '5px' }}>
-                        {system.bloqueos[selectedItem.id].rutasBloqueadas.map((ruta, idx) => (
-                          <div key={idx} className="ruta-item" style={{ padding: '2px 5px', backgroundColor: idx % 2 === 0 ? '#f8f9fa' : 'transparent' }}>
-                            Punto {idx + 1}: ({ruta.x}, {ruta.y})
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
           ) : null
         ) : (
           <div className="info-section">
@@ -1274,15 +1157,7 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
           <div className="legend-content">
             <div className="legend-item">
               <div className="legend-icon truck-legend">
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '20px',
-                  height: '20px'
-                }}>
-                  <TruckIcon size={20} />
-                </div>
+                <img src={truckIconUp} alt="Camión" className="legend-img" />
               </div>
               <span>Camión</span>
             </div>
@@ -1294,25 +1169,20 @@ ${cisterna.operacionesGLPCisterna.slice(-3).map(op =>
             </div>
             <div className="legend-item">
               <div className="legend-icon pedido-legend">
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '20px',
-                  height: '20px'
-                }}>
-                  <PackageIcon size={16} />
-                </div>
+                <img src={pedidoIcon} alt="Pedido" className="legend-img" />
               </div>
               <span>Pedido</span>
             </div>
             <div className="legend-item">
-              <RouteIcon size={20} />
+              <div className="legend-line route-legend"></div>
               <span>Ruta</span>
             </div>
             <div className="legend-item">
-              <BlockIcon size={20} />
-              <span>Bloqueo (clickeable)</span>
+              <div className="legend-block">
+                <div className="legend-block-line"></div>
+                <div className="legend-block-symbol">✕</div>
+              </div>
+              <span>Bloqueo</span>
             </div>
           </div>
         </div>
