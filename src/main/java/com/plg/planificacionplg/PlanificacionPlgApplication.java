@@ -503,13 +503,13 @@ public class PlanificacionPlgApplication {
                 System.out.println("Fecha fin de entregas: "+ inicio);
                 System.out.println("primer max: "+ listaPedidosTotal.get(inicioBatch).getFechaHoraMaxEntrega());
                 System.out.println("ultimo max: "+ listaPedidosTotal.get(finBatch-1).getFechaHoraMaxEntrega());
-                for(int j = inicioBatch; j < finBatch; j++) {
-                    if(inicio.plusMinutes(60).isAfter(listaPedidosTotal.get(j).getFechaHoraMaxEntrega())){
-                        //destinar a un camion en caliente
-
-                        inicioBatch++;
-                    }
-                }
+//                for(int j = inicioBatch; j < finBatch; j++) {
+//                    if(inicio.plusMinutes(60).isAfter(listaPedidosTotal.get(j).getFechaHoraMaxEntrega())){
+//                        //destinar a un camion en caliente
+//
+//                        inicioBatch++;
+//                    }
+//                }
                 System.out.println("primer max corregido: "+ listaPedidosTotal.get(inicioBatch).getFechaHoraMaxEntrega());
 
                 if (inicioBatch >= finBatch || inicioBatch >= listaPedidosTotal.size()) {

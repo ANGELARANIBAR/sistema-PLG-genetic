@@ -50,6 +50,16 @@ public class Genetico {
             poblacion.add(ind);
         }
 
+        Individuo perfecto = null;
+        while(perfecto==null){
+            Individuo nuevo = new Individuo(numPedidos, numCamiones, sistema, code);
+            nuevo.evaluar(code, sistema);
+            if (nuevo.getFitness() > 0) {
+                perfecto = nuevo;
+            }
+        }
+        poblacion.add(perfecto);
+        System.out.println("Al menos una solucion hallada");
 
         Individuo mejorSolucion = Collections.max(poblacion, Comparator.comparingDouble(Individuo::getFitness)).clonar(code);
         for (int gen = 0; gen < generaciones; gen++) {
@@ -64,14 +74,7 @@ public class Genetico {
                     nuevaGeneracion.add(poblacion.get(i).clonar(code));
                 }
             }
-            while(nuevaGeneracion.isEmpty()){
-                Individuo nuevo = new Individuo(numPedidos, numCamiones, sistema, code);
-                nuevo.evaluar(code, sistema);
-                if (nuevo.getFitness() > 0) {
-                    nuevaGeneracion.add(nuevo);
-                }
-            }
-            System.out.println("Al menos una solucion hallada");
+
 
             int iter = 0;
             int maxIntentosGlobal = 20; // máximo de intentos permitidos por generación
