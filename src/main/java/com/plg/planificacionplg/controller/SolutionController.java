@@ -1259,7 +1259,7 @@ public class SolutionController {
             return ResponseEntity.ok(response);
         }
         SistemaPLG sistema = mejorSolucion.getSistemaPLG();
-        if (sistema.getFechaHoraPrimerColapso() != null && sistema.getDestinoColapso() != null && sistema.getDestinoColapso().getPedido() != null) {
+        if (false && sistema.getFechaHoraPrimerColapso() != null && sistema.getDestinoColapso() != null && sistema.getDestinoColapso().getPedido() != null) {
             response.put("colapso", true);
             response.put("fechaHoraPrimerColapso", sistema.getFechaHoraPrimerColapso());
             response.put("pedidoCausanteId", sistema.getDestinoColapso().getPedido().getId());

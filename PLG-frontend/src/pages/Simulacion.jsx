@@ -114,9 +114,21 @@ export default function Simulacion() {
           </Box>
 
           <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 4 }}>
-            <Button variant="contained" color="secondary" className="next-button" onClick={() => setTab(1)}>
-              Siguiente
-            </Button>
+            {escenario === "semanal" ? (
+              <Button
+                variant="contained"
+                color="secondary"
+                className="next-button"
+                onClick={handleNext}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Iniciando simulación...' : 'Iniciar simulación'}
+              </Button>
+            ) : (
+              <Button variant="contained" color="secondary" className="next-button" onClick={() => setTab(1)}>
+                Siguiente
+              </Button>
+            )}
           </Box>
         </Paper>
       )}

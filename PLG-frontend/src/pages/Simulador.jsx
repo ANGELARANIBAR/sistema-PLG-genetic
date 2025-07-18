@@ -37,13 +37,10 @@ export default function Simulador() {
     const [simulationStarted, setSimulationStarted] = useState(false);
     const [fechaHoraFinEntregas, setFechaHoraFinEntregas] = useState(null);
     const [isContinuing, setIsContinuing] = useState(false);
-    const [lastProcessedFechaHoraFin, setLastProcessedFechaHoraFin] = useState(() => {
-        // Try to get from sessionStorage on initialization
-        const stored = sessionStorage.getItem('lastProcessedFechaHoraFin');
-        return stored ? new Date(stored) : null;
-    });
+    const [lastProcessedFechaHoraFin, setLastProcessedFechaHoraFin] = useState(null);
     const [colapsoInfo, setColapsoInfo] = useState(null);
     const [showAutoPlayNotification, setShowAutoPlayNotification] = useState(false);
+    const [fechaHoraFinEntregasUpdated, setFechaHoraFinEntregasUpdated] = useState(true);
     
     // UI states
     const [navbarHeight, setNavbarHeight] = useState(65);
@@ -83,10 +80,21 @@ export default function Simulador() {
             }
             // Fetch fechaHoraFinEntregas
             try {
+                //console.log("Function called");
                 const res = await fetch(`${API_BASE}/fecha-hora-fin-entregas`);
+                //console.log("Fetch completed");
                 const data = await res.json();
-                if (data) setFechaHoraFinEntregas(new Date(data));
+                //console.log("JSON parsed:", data);
+                if (data) {
+                    const newValue = new Date(data);
+                    if(fechaHoraFinEntregas === null || fechaHoraFinEntregas.getTime() !== newValue.getTime()){
+                        //console.log("newValue:", newValue);
+                        setFechaHoraFinEntregas(newValue);
+                        //setLastProcessedFechaHoraFin(newValue);
+                    }
+                }
             } catch (e) {
+                console.error("Error in fetch or parsing:", e);
                 setFechaHoraFinEntregas(null);
             }
         };
@@ -98,34 +106,26 @@ export default function Simulador() {
         
         if (!currentTime || !fechaHoraFinEntregas || isContinuing) return;
         
-        // Check if we've already processed this specific fechaHoraFinEntregas
-        if (lastProcessedFechaHoraFin && lastProcessedFechaHoraFin.getTime() === fechaHoraFinEntregas.getTime()) {
+        // Use the boolean flag instead of comparing lastProcessedFechaHoraFin and fechaHoraFinEntregas
+        if (!fechaHoraFinEntregasUpdated || fechaHoraFinEntregas === null || (fechaHoraFinEntregas!==null && lastProcessedFechaHoraFin!==null && lastProcessedFechaHoraFin.getTime() === fechaHoraFinEntregas.getTime())) {
             return;
         }
-        
+        //console.log(lastProcessedFechaHoraFin)
+        //console.log(fechaHoraFinEntregas.getTime())
         if (currentTime >= fechaHoraFinEntregas) {
+    
             setIsContinuing(true);
             setLastProcessedFechaHoraFin(fechaHoraFinEntregas);
-            // Store in sessionStorage to persist across page refreshes
-            sessionStorage.setItem('lastProcessedFechaHoraFin', fechaHoraFinEntregas.toISOString());
+            setFechaHoraFinEntregasUpdated(false);
+            
             console.log("Llamando a nuevo batch")
             fetch(`${API_BASE}/continue-simulation`, { method: "POST" })
-                .then(() => {
-                    // After continuing, fetch new fechaHoraFinEntregas
-                    return fetch(`${API_BASE}/fecha-hora-fin-entregas`);
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data) {
-                        // Clear lastProcessedFechaHoraFin before setting new fechaHoraFinEntregas
-                        sessionStorage.removeItem('lastProcessedFechaHoraFin');
-                        setLastProcessedFechaHoraFin(null);
-                        setFechaHoraFinEntregas(new Date(data));
-                    }
-                })
+                
                 .finally(() => setIsContinuing(false));
+            
         }
-    }, [currentTime, fechaHoraFinEntregas, isContinuing, lastProcessedFechaHoraFin]);
+        // Reset the flag after processing
+    }, [currentTime, fechaHoraFinEntregas, isContinuing, lastProcessedFechaHoraFin, fechaHoraFinEntregasUpdated]);
 
     // Simulation time progression
     useEffect(() => {
@@ -165,16 +165,34 @@ export default function Simulador() {
         return () => clearInterval(intervalId);
     }, []);
 
-    // Clear stored lastProcessedFechaHoraFin when we get a new fechaHoraFinEntregas
+    
     useEffect(() => {
-        if (fechaHoraFinEntregas && lastProcessedFechaHoraFin) {
-            if (fechaHoraFinEntregas.getTime() !== lastProcessedFechaHoraFin.getTime()) {
-                // New fechaHoraFinEntregas received, clear the stored value
-                sessionStorage.removeItem('lastProcessedFechaHoraFin');
-                setLastProcessedFechaHoraFin(null);
+        const intervalId = setInterval(async () => {
+            try {
+                //console.log("Polling for fecha-hora-fin-entregas");
+                const res = await fetch(`${API_BASE}/fecha-hora-fin-entregas`);
+                const data = await res.json();
+                //console.log("JSON parsed:", data);
+                if (data) {
+                    const newValue = new Date(data);
+                    //console.log("new " + newValue.getTime());
+                    //console.log(fechaHoraFinEntregas.getTime());
+                    if (
+                        fechaHoraFinEntregas === null ||
+                        fechaHoraFinEntregas.getTime() !== newValue.getTime()
+                    ) {
+                        setFechaHoraFinEntregas(newValue);
+                        setFechaHoraFinEntregasUpdated(true);
+                    }
+                }
+            } catch (e) {
+                console.error("Error in fetch or parsing:", e);
+                setFechaHoraFinEntregas(null);
             }
-        }
-    }, [fechaHoraFinEntregas, lastProcessedFechaHoraFin]);
+        }, 2000); // Poll every 2 seconds
+
+        return () => clearInterval(intervalId); // Cleanup on unmount
+    }, [fechaHoraFinEntregas]);
 
     const handlePauseSimulation = () => {
         setIsPlaying(false);

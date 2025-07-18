@@ -320,7 +320,7 @@ public class Camion {
             if(destinoFinal instanceof EntregaPedido &&
                     destinoFinal.getFechaHoraLlegada()
                             .isAfter(destinoFinal.getPedido().getFechaHoraMaxEntrega())){
-                if(code != 3)return -1;
+                //if(code != 3)return -1;
                 if(sistemaPLG.getFechaHoraPrimerColapso() == null
                         || sistemaPLG.getFechaHoraPrimerColapso().isAfter(destinoFinal.getPedido().getFechaHoraMaxEntrega())){
                     sistemaPLG.setFechaHoraPrimerColapso(destinoFinal.getPedido().getFechaHoraMaxEntrega());
