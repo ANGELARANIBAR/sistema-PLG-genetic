@@ -23,6 +23,7 @@ import TimerIcon from '@mui/icons-material/Timer';
 import WarningIcon from '@mui/icons-material/Warning';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { fetchTruckDestination, registrarAveria } from '../../services/routeService';
+import { mapService } from '../../services/mapService';
 
 const ItemDetailsPanel = ({ 
     selectedItem, 
@@ -34,6 +35,20 @@ const ItemDetailsPanel = ({
     currentTime 
 }) => {
     const [activeTruckTab, setActiveTruckTab] = useState(0);
+    const [latestTruck, setLatestTruck] = useState(null);
+
+    useEffect(() => {
+        const fetchLatestTruck = async () => {
+            if (selectedItem?.type === 'truck' && selectedItem.id) {
+                const systemData = await mapService.fetchSystem();
+                const truck = systemData?.flota?.find(t => t.truckId === selectedItem.id);
+                setLatestTruck(truck || null);
+            } else {
+                setLatestTruck(null);
+            }
+        };
+        fetchLatestTruck();
+    }, [selectedItem]);
 
     if (!selectedItem || !system) {
         return (
@@ -108,7 +123,7 @@ const ItemDetailsPanel = ({
     };
 
     if (selectedItem.type === 'truck') {
-        const truck = system?.flota?.find(t => t.truckId === selectedItem.id);
+        const truck = latestTruck || system?.flota?.find(t => t.truckId === selectedItem.id);
         const currentFuel = truckFuels.get(selectedItem.id) || 0;
         const currentGLP = truckGLPs.get(selectedItem.id) || 0;
         const destinations = getTruckDestinations(truck);
@@ -305,12 +320,14 @@ const ItemDetailsPanel = ({
                                                             />
                                                         )}
                                                     </Typography>
-                                                    <Chip 
-                                                        label={dest.status || 'PENDIENTE'} 
-                                                        size="small" 
-                                                        color={getStatusColor(dest.status)}
-                                                        sx={{ fontSize: '10px', height: '20px' }}
-                                                    />
+                                                    {dest.destinationType === 'ENTREGA PEDIDO' && (
+                                                        <Chip 
+                                                            label={dest.status || 'PENDIENTE'} 
+                                                            size="small" 
+                                                            color={getStatusColor(dest.status)}
+                                                            sx={{ fontSize: '10px', height: '20px' }}
+                                                        />
+                                                    )}
                                                 </Box>
                                                 
                                                 <Grid container spacing={1} sx={{ mt: 1 }}>
