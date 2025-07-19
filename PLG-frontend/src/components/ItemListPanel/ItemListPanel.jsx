@@ -123,11 +123,11 @@ const ItemListPanel = ({
                     </ListItemIcon>
                     <ListItemText
                         primary={
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="body2" fontWeight="bold">
+                            <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="body2" fontWeight="bold" component="span">
                                     {truck.codigo}
                                 </Typography>
-                                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                <span style={{ display: 'flex', gap: 4 }}>
                                     <Chip 
                                         label={`${currentFuel.toFixed(0)}%`} 
                                         size="small" 
@@ -140,8 +140,8 @@ const ItemListPanel = ({
                                         color="success"
                                         sx={{ fontSize: '10px', height: '18px' }}
                                     />
-                                </Box>
-                            </Box>
+                                </span>
+                            </span>
                         }
                         secondary={
                             <Typography variant="caption" color="text.secondary">
@@ -177,11 +177,11 @@ const ItemListPanel = ({
                     </ListItemIcon>
                     <ListItemText
                         primary={
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="body2" fontWeight="bold">
+                            <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="body2" fontWeight="bold" component="span">
                                     Cisterna {cisterna.id}
                                 </Typography>
-                                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                <span style={{ display: 'flex', gap: 4 }}>
                                     {cisterna.principal && (
                                         <Chip 
                                             label="Principal" 
@@ -196,8 +196,8 @@ const ItemListPanel = ({
                                         color="success"
                                         sx={{ fontSize: '10px', height: '18px' }}
                                     />
-                                </Box>
-                            </Box>
+                                </span>
+                            </span>
                         }
                         secondary={
                             <Typography variant="caption" color="text.secondary">
@@ -231,11 +231,11 @@ const ItemListPanel = ({
                     </ListItemIcon>
                     <ListItemText
                         primary={
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="body2" fontWeight="bold">
+                            <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="body2" fontWeight="bold" component="span">
                                     {pedido.numeroPedido}
                                 </Typography>
-                                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                <span style={{ display: 'flex', gap: 4 }}>
                                     <Chip 
                                         label={pedido.estado} 
                                         size="small" 
@@ -248,8 +248,8 @@ const ItemListPanel = ({
                                         color="info"
                                         sx={{ fontSize: '10px', height: '18px' }}
                                     />
-                                </Box>
-                            </Box>
+                                </span>
+                            </span>
                         }
                         secondary={
                             <Typography variant="caption" color="text.secondary">

@@ -217,8 +217,8 @@ export default function Simulador() {
         if (!currentTime || !fechaHoraFinEntregas || isContinuing) return;
         
         // Use the boolean flag ins(tead of comparing lastProcessedFechaHoraFin and fechaHoraFinEntregas
-        console.log("last proc: "+(lastProcessedFechaHoraFin !== null ? lastProcessedFechaHoraFin.getTime() : "nada"))
-        console.log("fin entre: "+fechaHoraFinEntregas.getTime())
+        //console.log("last proc: "+(lastProcessedFechaHoraFin !== null ? lastProcessedFechaHoraFin.getTime() : "nada"))
+        //console.log("fin entre: "+fechaHoraFinEntregas.getTime())
         if (fechaHoraFinEntregas === null || 
             (fechaHoraFinEntregas!==null && lastProcessedFechaHoraFin!==null && 
                 lastProcessedFechaHoraFin.getTime() === fechaHoraFinEntregas.getTime())) {

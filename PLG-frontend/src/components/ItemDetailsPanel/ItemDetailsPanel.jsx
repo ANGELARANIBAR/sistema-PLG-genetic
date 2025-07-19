@@ -277,8 +277,8 @@ const ItemDetailsPanel = ({
                                 destinations.map((dest, index) => {
                                     const isCurrentDestination = currentDest && 
                                         dest.destinationType === currentDest.destinationType &&
-                                        dest.fechaHoraLlegada === currentDest.fechaHoraLlegada &&
-                                        dest.fechaHoraSalida === currentDest.fechaHoraSalida;
+                                        dest.arrivalTime === currentDest.arrivalTime &&
+                                        dest.departureTime === currentDest.departureTime;
                                     
                                     return (
                                         <Card 
@@ -321,12 +321,12 @@ const ItemDetailsPanel = ({
                                                     </Grid>
                                                     <Grid item xs={6}>
                                                         <Typography variant="caption" display="block">
-                                                            <strong>Llegada:</strong> {formatDateTime(dest.fechaHoraLlegada)}
+                                                            <strong>Llegada:</strong> {formatDateTime(dest.arrivalTime)}
                                                         </Typography>
                                                     </Grid>
                                                     <Grid item xs={6}>
                                                         <Typography variant="caption" display="block">
-                                                            <strong>Salida:</strong> {formatDateTime(dest.fechaHoraSalida)}
+                                                            <strong>Salida:</strong> {formatDateTime(dest.departureTime)}
                                                         </Typography>
                                                     </Grid>
                                                     {dest.glpOperacion && (
