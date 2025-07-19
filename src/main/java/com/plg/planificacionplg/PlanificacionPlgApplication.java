@@ -16,7 +16,7 @@ public class PlanificacionPlgApplication {
     @Setter @Getter
     private static Individuo mejorSolucion;
     @Setter @Getter
-    private static Boolean sigListo = true;
+    private static Boolean sigListo = false;
     @Setter @Getter
     private static Individuo mejorSolucionSiguiente;
     @Setter @Getter
@@ -47,6 +47,9 @@ public class PlanificacionPlgApplication {
 
     @Setter @Getter
     private static List<Integer> flotaXTipoCam = new ArrayList<>(Arrays.asList(2, 3, 4, 10));
+
+    @Setter @Getter
+    private static boolean cancelarReplanificacion = false;
 
     // Rutas base para los archivos de datos
     private static final String BASE_DIR = "src/main/java/com/plg/planificacionplg/test/";
@@ -202,7 +205,7 @@ public class PlanificacionPlgApplication {
 
         SistemaPLG sistemaPLG = PlanificacionPlgApplication.mejorSolucionSiguiente.getSistemaPLG();
 
-        LocalDateTime fechaInicio = (fechaHoraInicio != null) ? fechaHoraInicio : LocalDateTime.now();
+        LocalDateTime fechaInicio = (fechaHoraInicio != null) ? fechaHoraInicio : null;
         sistemaPLG.setFechaHoraInicio(fechaInicio);
         listaPedidosTotal = new ArrayList<>();
         if(escenario == 1 || escenario == 3) {
@@ -534,17 +537,17 @@ public class PlanificacionPlgApplication {
                 
                 // Process the batch
                 PlanificacionPlgApplication.setBatchActual(batchActual + 1);
-                while (!PlanificacionPlgApplication.sigListo) {
-                    try {
-                        Thread.sleep(100); // Check every 100ms
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
-                }
-                sigListo = false;
+                PlanificacionPlgApplication.setCancelarReplanificacion(false);
 
-                PlanificacionPlgApplication.replanificar(PlanificacionPlgApplication.getMejorSolucionSiguiente(), inicio, pedidosNuevos);
+                Thread hiloReplanificacion = new Thread(() -> {
+                    PlanificacionPlgApplication.replanificar(
+                            PlanificacionPlgApplication.getMejorSolucionSiguiente(),
+                            inicio,
+                            pedidosNuevos
+                    );
+                });
+                hiloReplanificacion.start();
+
 
                 while (PlanificacionPlgApplication.isWaitingForContinueSimulation()) {
                     try {
@@ -554,11 +557,21 @@ public class PlanificacionPlgApplication {
                         break;
                     }
                 }
+                // El frontend ya pidió la solución anterior. Cancelar replanificación.
+                PlanificacionPlgApplication.setCancelarReplanificacion(true);
                 // After processing the second batch, pause and wait for continueSimulation API
                 PlanificacionPlgApplication.setWaitingForContinueSimulation(true);
-                System.out.println("Pausing after second batch. Waiting for continueSimulation API...");
-                // Update the main solution with the next batch result
+                while (!PlanificacionPlgApplication.getSigListo()) {
+                    try {
+                        Thread.sleep(100); // Check every 100ms
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
 
+                System.out.println("actualizando system al front");
+                PlanificacionPlgApplication.setSigListo(false);
                 PlanificacionPlgApplication.setMejorSolucion(mejorSolucionSiguiente);
                 PlanificacionPlgApplication.setBatchRefreshNeeded(false);//true);
                 mejorSolucion = mejorSolucionSiguiente;

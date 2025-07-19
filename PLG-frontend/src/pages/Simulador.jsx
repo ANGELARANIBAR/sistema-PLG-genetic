@@ -104,7 +104,7 @@ export default function Simulador() {
                 setSimulationStartTime(startTime);
                 setSimulationStarted(true);
             } catch (error) {
-                const currentDateTime = new Date();
+                const currentDateTime = null;
                 setCurrentTime(currentDateTime);
                 setSimulationStartTime(currentDateTime);
                 setSimulationStarted(true);
@@ -216,18 +216,22 @@ export default function Simulador() {
         
         if (!currentTime || !fechaHoraFinEntregas || isContinuing) return;
         
-        // Use the boolean flag instead of comparing lastProcessedFechaHoraFin and fechaHoraFinEntregas
-        if (!fechaHoraFinEntregasUpdated || fechaHoraFinEntregas === null || (fechaHoraFinEntregas!==null && lastProcessedFechaHoraFin!==null && lastProcessedFechaHoraFin.getTime() === fechaHoraFinEntregas.getTime())) {
+        // Use the boolean flag ins(tead of comparing lastProcessedFechaHoraFin and fechaHoraFinEntregas
+        console.log("last proc: "+(lastProcessedFechaHoraFin !== null ? lastProcessedFechaHoraFin.getTime() : "nada"))
+        console.log("fin entre: "+fechaHoraFinEntregas.getTime())
+        if (fechaHoraFinEntregas === null || 
+            (fechaHoraFinEntregas!==null && lastProcessedFechaHoraFin!==null && 
+                lastProcessedFechaHoraFin.getTime() === fechaHoraFinEntregas.getTime())) {
             return;
         }
-        //console.log(lastProcessedFechaHoraFin)
-        //console.log(fechaHoraFinEntregas.getTime())
         if (currentTime >= fechaHoraFinEntregas) {
     
             setIsContinuing(true);
             setLastProcessedFechaHoraFin(fechaHoraFinEntregas);
             setFechaHoraFinEntregasUpdated(false);
             
+            //console.log("fin entregas : " + fechaHoraFinEntregas)
+            //console.log("current time : " + currentTime)
             console.log("Llamando a nuevo batch")
             fetch(`${API_BASE}/continue-simulation`, { method: "POST" })
                 
@@ -246,7 +250,7 @@ export default function Simulador() {
                 setCurrentTime(prevTime => {
                     if (!prevTime) return new Date();
                     // Use seconds instead of minutes for smoother movement
-                    return new Date(prevTime.getTime() + 15000 * playbackSpeed);
+                    return new Date(prevTime.getTime() + 55000 * playbackSpeed);
                 });
             }, 1000);
         }
@@ -292,11 +296,11 @@ export default function Simulador() {
                         fechaHoraFinEntregas.getTime() !== newValue.getTime()
                     ) {
                         setFechaHoraFinEntregas(newValue);
-                        setFechaHoraFinEntregasUpdated(true);
+                        //setFechaHoraFinEntregasUpdated(true);
                     }
                 }
             } catch (e) {
-                console.error("Error in fetch or parsing:", e);
+                //console.error("Error in fetch or parsing:", e);
                 setFechaHoraFinEntregas(null);
             }
         }, 2000); // Poll every 2 seconds
@@ -563,7 +567,7 @@ export default function Simulador() {
                                             Estado de la Simulación
                                         </Typography>
                                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                            Tiempo simulado: {currentTime.toLocaleString()}
+                                            Tiempo simulado: {(currentTime !== null ? currentTime : new Date()).toLocaleString()}
                                         </Typography>
                                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                                             Tiempo real actual: {new Date().toLocaleString()}

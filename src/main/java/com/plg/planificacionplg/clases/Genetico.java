@@ -13,6 +13,7 @@ public class Genetico {
     private final double probMutacion;
     private final double porcentajeElite;
     private int numIndividuosExploratorios = 15;
+    @Getter @Setter private Individuo primerSolucionValida = null;
     @Getter @Setter private List<Double> resultados;
 
     public Genetico(int tamPoblacion, int generaciones, double probCruce, double probMutacion, double porcentajeElite) {
@@ -59,11 +60,16 @@ public class Genetico {
             }
         }
         poblacion.add(perfecto);
+        primerSolucionValida = perfecto;
         System.out.println("Al menos una solucion hallada");
 
         Individuo mejorSolucion = Collections.max(poblacion, Comparator.comparingDouble(Individuo::getFitness)).clonar(code);
         for (int gen = 0; gen < generaciones; gen++) {
             PlanificacionPlgApplication.setPorcentajeEjecucion(100.0 * (gen + 1) / generaciones);
+            if (PlanificacionPlgApplication.isCancelarReplanificacion()) {
+                System.out.println("Replanificación cancelada.");
+                return perfecto; // salir anticipadamente
+            }
             List<Individuo> nuevaGeneracion = new ArrayList<>();
 
             // Elitismo

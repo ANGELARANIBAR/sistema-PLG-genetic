@@ -160,12 +160,14 @@ public Individuo(){}
         for(Cisterna cisterna: sistema.getCisternas()){
             Cisterna cis = new Cisterna(cisterna);
             cis.setOperacionesGLPCisterna(new ArrayList<>());
-            if(cisterna.getOperacionesGLPCisterna()!=null)
-                for(OperacionesGLPCisterna op : cisterna.getOperacionesGLPCisterna()){
+            if(cisterna.getOperacionesGLPCisterna()!=null){
+                List<OperacionesGLPCisterna>temp = new ArrayList<>(cisterna.getOperacionesGLPCisterna());
+                for(OperacionesGLPCisterna op : temp){
                     OperacionesGLPCisterna nuevo = new OperacionesGLPCisterna(op);
                     cis.getOperacionesGLPCisterna().add(nuevo);
                     nuevo.setCisterna(cis);
                 }
+            }
             cisternas.add(cis);
         }
     }
