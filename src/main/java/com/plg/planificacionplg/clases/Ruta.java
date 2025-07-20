@@ -215,8 +215,8 @@ public class Ruta {
 
     public static void main(String[] args) {
             // Crear nodos de origen y destino
-            Nodo origen = new Nodo(1, 2.666666);
-            Nodo destino = new Nodo(5, 12);
+            Nodo origen = new Nodo(5, 3);
+            Nodo destino = new Nodo(9, 0);
 
             // Crear sistema con dimensiones y distancia entre manzanas
             SistemaPLG sistemaPLG = new SistemaPLG();
@@ -231,6 +231,9 @@ public class Ruta {
             Nodo bloqueado3 = new Nodo(1, 1);
 
             Bloqueo bloqueo = new Bloqueo();
+
+            System.out.println("Heuristica : " + Ruta.heuristica(origen, destino));
+
             bloqueo.setFechaHoraInicio(LocalDateTime.now().minusMinutes(10));
             bloqueo.setFechaHoraFin(LocalDateTime.now().plusMinutes(8));
             bloqueo.setRutasBloqueadas(Arrays.asList(bloqueado1, bloqueado2, bloqueado3));

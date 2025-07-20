@@ -36,18 +36,30 @@ const ItemDetailsPanel = ({
 }) => {
     const [activeTruckTab, setActiveTruckTab] = useState(0);
     const [latestTruck, setLatestTruck] = useState(null);
+    const [localSystem, setLocalSystem] = useState(system);
 
     useEffect(() => {
+        
         const fetchLatestTruck = async () => {
             if (selectedItem?.type === 'truck' && selectedItem.id) {
                 const systemData = await mapService.fetchSystem();
                 const truck = systemData?.flota?.find(t => t.truckId === selectedItem.id);
+                system = systemData;
                 setLatestTruck(truck || null);
             } else {
                 setLatestTruck(null);
             }
         };
         fetchLatestTruck();
+    }, [selectedItem]);
+
+    useEffect(() => {
+    async function fetchSys() {
+        const data = await mapService.fetchSystem();
+        setLocalSystem(data);
+        // setLatestTruck como antes
+    }
+    fetchSys();
     }, [selectedItem]);
 
     if (!selectedItem || !system) {
@@ -595,7 +607,7 @@ const ItemDetailsPanel = ({
     }
 
     if (selectedItem.type === 'pedido') {
-        const pedido = system?.pedidos?.find(p => p.id === selectedItem.id);
+        const pedido = localSystem?.pedidos?.find(p => p.id === selectedItem.id);
 
         if (!pedido) return (
             <Paper elevation={3} sx={{ p: 3, height: '100%' }}>

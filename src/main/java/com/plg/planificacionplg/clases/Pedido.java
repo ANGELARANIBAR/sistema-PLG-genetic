@@ -1,11 +1,10 @@
 package com.plg.planificacionplg.clases;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import jakarta.persistence.*;
 import jakarta.annotation.PostConstruct;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +53,11 @@ public class Pedido{
     
     @Column(name = "completado", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     private boolean completado;
-    
+
+    @Getter
+    @Setter
+    private double costoAlgoritmoPedido;
+
     @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
     @JoinTable(
         name = "pedido_camiones",

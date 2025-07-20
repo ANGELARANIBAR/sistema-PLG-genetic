@@ -354,12 +354,13 @@ public class SistemaPLG {
         }
         if (pedidos == null) return new ArrayList<>();
 
-        pedidos.sort(Comparator.comparing(Pedido::getFechaHoraMaxEntrega));
+        pedidos.sort(Comparator.comparing(Pedido::getCostoAlgoritmoPedido));
 
         ArrayList<Pedido> pedidosProcesados = new ArrayList<>();
         int id = 1;
         for (Pedido p : pedidos) {
             p.setId(id);
+            //System.out.println(p.getCostoAlgoritmoPedido());
             if (p.getVolumenGLP() > capMaximaCamion) {
                 List<Pedido>fragmentados = fragmentarPedidoAleatorio(p);
                 pedidosProcesados.addAll(fragmentados);
@@ -405,12 +406,33 @@ public class SistemaPLG {
                 pedidoNuevo.setCompletado(false);
                 pedidoNuevo.setCamiones(new ArrayList<>());
                 pedidoNuevo.setConsumoCombustibleTotal(0);
+                calcularCostoPedido(pedidoNuevo);
                 pedidos.add(pedidoNuevo);
             }
         } catch (IOException e) {
             System.out.println("Error al leer el archivo: " + e.getMessage());
         }
     }
+    private void calcularCostoPedido(Pedido pedidoNuevo) {
+        long tiempoRestante = Duration.between(fechaHoraInicio, pedidoNuevo.getFechaHoraMaxEntrega()).getSeconds();
+        double distancia = Ruta.heuristica(cisternas.getFirst().getUbicacion(), pedidoNuevo.getUbicacion());
+
+        // Escalar para no saturar la sigmoide (muy importante)
+        double escalaTiempo = 7200.0;   // 1 hora ≈ 1.0 en z
+        double escalaDistancia = maxXmapa+maxYmapa+2; // 100 km ≈ 1.0 en z
+
+        double urgencia = 1.0 / (1.0 + Math.exp(-(tiempoRestante / escalaTiempo)));
+        double lejanía = 1.0 / (1.0 + Math.exp(-(distancia / escalaDistancia)));
+
+        // Invertimos para que menor valor signifique mayor prioridad
+        double costo = (1 - urgencia) * 0.8 + (1 - lejanía) * 0.2;
+
+        pedidoNuevo.setCostoAlgoritmoPedido(costo);
+    }
+
+
+
+
     public void cargarAverias(String rutaArchivo) {
         TipoAveria tipoAveria1 = new TipoAveria();
         tipoAveria1.setId(1);
@@ -696,6 +718,7 @@ public class SistemaPLG {
             subpedido.setCompletado(false);
             subpedido.setCamiones(new ArrayList<>());
             subpedido.setConsumoCombustibleTotal(0.0);
+            subpedido.setCostoAlgoritmoPedido(pedidoOriginal.getCostoAlgoritmoPedido());
 
             subpedidos.add(subpedido);
             volumenRestante -= volumenFragmento;

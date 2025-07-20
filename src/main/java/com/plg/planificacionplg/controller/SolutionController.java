@@ -563,8 +563,9 @@ public class SolutionController {
             //camiones disponibles en actrual solucion
             for (int i = 0; i < mejorSolucion.getSistemaPLG().getFlota().size(); i++) {
                 //si el camion no tiene registro de atenciones en la planificaicon
-                if (mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().size() < 3 && (i+1)!=cam.getId()
-                        && mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().getFirst().getEstadoCamion()!=EstadoCamion.AVERIADO) {
+                if((i+1)==cam.getId()
+                        || mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().getFirst().getEstadoCamion()==EstadoCamion.AVERIADO)continue;
+                if (mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().size() < 3) {
                     //dar origen en cisterna principal
                     //Camion nuevoCamion = mejorSolucion.getSistemaPLG().getFlota().get(i);
                     Camion nuevoCamion = new Camion(mejorSolucion.getSistemaPLG().getFlota().get(i));

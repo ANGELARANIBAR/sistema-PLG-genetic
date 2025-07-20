@@ -106,8 +106,8 @@ public class PlanificacionPlgApplication {
 
         sistemaPLG.setCisternas(cisternas);
         sistemaPLG.setDistanciaManzana(1);
-        sistemaPLG.setMaxXmapa(70);
-        sistemaPLG.setMaxYmapa(50);
+        sistemaPLG.setMaxXmapa(71);
+        sistemaPLG.setMaxYmapa(51);
         sistemaPLG.setBloqueos(new ArrayList<>());
         sistemaPLG.setFlota(new ArrayList<>());
         sistemaPLG.setTurnosFin(List.of(
@@ -241,7 +241,7 @@ public class PlanificacionPlgApplication {
         for (int i = 0; i < sistemaPLG.getPedidos().size(); i++) {
             double carga = sistemaPLG.getPedidos().get(i).getVolumenGLP();
 
-            if (cargaActual + carga > capMaxFlota*0.8) {
+            if (cargaActual + carga > capMaxFlota*1.2) {
                 inicioBatchActual = i; // nuevo batch empieza aquí
                 break;
             }

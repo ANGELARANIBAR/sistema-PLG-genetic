@@ -31,7 +31,7 @@ public class Genetico {
 
         List<Individuo> poblacion = new ArrayList<>();
         Random rand = new Random();
-        numIndividuosExploratorios = (int)(tamPoblacion*0.2);
+        numIndividuosExploratorios = (int)(tamPoblacion*0.1);
         // Inicializar población aleatora controlada
 //        System.out.println("Inicio replan");
 
@@ -137,6 +137,7 @@ public class Genetico {
             }
 
             System.out.println("Gen " + (gen + 1)  + " - Fitness: " + mejorSolucion.getFitness());
+            primerSolucionValida = mejorSolucion;
             resultados.add(mejorSolucion.getFitness());
         }
 

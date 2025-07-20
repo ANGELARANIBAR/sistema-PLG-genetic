@@ -28,7 +28,7 @@ public Individuo(){}
         for (int i = 1; i < numPedidos; i++){
             if(sistema.getPedidos().get(i-1).getEstado()==EstadoPedido.PENDIENTE) pedidos.add(sistema.getPedidos().get(i-1).getId());
         }
-        Collections.shuffle(pedidos);
+        //Collections.shuffle(pedidos);
         int nIntentos=0;Boolean sePuedoAsociarPedido = false;
         if(nIndividuo<7){
             asignarEquitativamente(numCamiones, pedidos, sistema);
@@ -359,10 +359,10 @@ public Individuo(){}
 
         }
         //if(sistemaPLG.getCamionCausanteReplan()!=null && sistemaPLG.getCamionCausanteReplan().getAverias().getLast().getTipo().getId()==1){
-        if(sistema.getCamionCausanteReplan()!=null){
-            System.out.println("Ub replan 0 " + sistemaPLG.getCamionCausanteReplan().getDestinos().get(0).getRuta());
-            System.out.println("Ub replan 1 " + sistemaPLG.getCamionCausanteReplan().getDestinos().get(1).getRuta());
-        }
+//        if(sistema.getCamionCausanteReplan()!=null){
+//            System.out.println("Ub replan 0 " + sistemaPLG.getCamionCausanteReplan().getDestinos().get(0).getRuta());
+//            System.out.println("Ub replan 1 " + sistemaPLG.getCamionCausanteReplan().getDestinos().get(1).getRuta());
+//        }
         for(Camion camion : sistemaPLG.getCamionesAveriados()){
 
             if(camion.getAverias().getLast().getTipo().getId()!=1)continue;//solo 1 tiene pedidos programados
@@ -425,6 +425,10 @@ public Individuo(){}
         double totalTiempo = 0;
 
         for (Camion c : flota) {
+            if(c.getDestinos().size()<3){
+                c.setEstado(EstadoCamion.DISPONIBLE);
+            }
+            else if(c.getEstado()!=EstadoCamion.AVERIADO) c.setEstado(EstadoCamion.EN_RUTA);
             if (!c.getDestinos().isEmpty()) {
                 totalDistancia += c.getDistanciaTotal();
                 totalCombustible += c.getCombustibleEmpleado();
