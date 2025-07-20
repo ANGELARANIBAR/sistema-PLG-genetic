@@ -241,7 +241,7 @@ public class PlanificacionPlgApplication {
         for (int i = 0; i < sistemaPLG.getPedidos().size(); i++) {
             double carga = sistemaPLG.getPedidos().get(i).getVolumenGLP();
 
-            if (cargaActual + carga > capMaxFlota*1.2) {
+            if (cargaActual + carga > capMaxFlota) {
                 inicioBatchActual = i; // nuevo batch empieza aquí
                 break;
             }

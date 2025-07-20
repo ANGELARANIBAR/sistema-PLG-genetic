@@ -130,6 +130,19 @@ export const mapService = {
         }
     },
 
+    // Fetch number of trucks en ruta
+    async fetchCamionesEnRuta() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/camiones-en-ruta`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch camiones en ruta');
+            }
+            return await response.json();
+        } catch (error) {
+            //console.error('Error fetching camiones en ruta:', error);
+            return 0;
+        }
+    },
 
 
     // Register averia

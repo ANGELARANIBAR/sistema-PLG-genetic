@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
     Box,
     Typography,
@@ -13,12 +13,15 @@ import {
     Tabs,
     Tab,
     Divider,
-    Paper
+    Paper,
+    CircularProgress,
+    Tooltip
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import StorageIcon from '@mui/icons-material/Storage';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import { mapService } from '../../services/mapService';
 
 const ItemListPanel = ({ 
     system, 
@@ -30,6 +33,24 @@ const ItemListPanel = ({
 }) => {
     const [activeTab, setActiveTab] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
+    const [camionesEnRuta, setCamionesEnRuta] = useState(null);
+
+    useEffect(() => {
+        let mounted = true;
+        let intervalId;
+        async function fetchData() {
+            const count = await mapService.fetchCamionesEnRuta();
+            if (mounted) setCamionesEnRuta(count);
+        }
+        fetchData();
+        intervalId = setInterval(fetchData, 5000); // Poll every second
+        return () => { 
+            mounted = false;
+            clearInterval(intervalId);
+        };
+    }, [system]);
+
+    const totalFlota = system?.flota?.length || 0;
 
     const handleTabChange = (event, newValue) => {
         setActiveTab(newValue);
@@ -278,71 +299,103 @@ const ItemListPanel = ({
     const { data, render } = getCurrentData();
 
     return (
-        <Paper elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ p: 2, pb: 1 }}>
-                <Typography variant="h6" gutterBottom>
-                    Elementos del Sistema
-                </Typography>
-                
-                <Tabs 
-                    value={activeTab} 
-                    onChange={handleTabChange}
-                    variant="fullWidth"
-                    sx={{ mb: 2 }}
-                >
-                    <Tab 
-                        label={`Camiones (${filteredTrucks.length})`}
-                        icon={<LocalShippingIcon fontSize="small" />}
-                        iconPosition="start"
-                    />
-                    <Tab 
-                        label={`Cisternas (${filteredCisternas.length})`}
-                        icon={<StorageIcon fontSize="small" />}
-                        iconPosition="start"
-                    />
-                    <Tab 
-                        label={`Pedidos (${filteredPedidos.length})`}
-                        icon={<ShoppingCartIcon fontSize="small" />}
-                        iconPosition="start"
-                    />
-                </Tabs>
-
-                <TextField
-                    fullWidth
-                    size="small"
-                    placeholder={`Buscar ${activeTab === 0 ? 'camiones' : activeTab === 1 ? 'cisternas' : 'pedidos'}...`}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <SearchIcon fontSize="small" />
-                            </InputAdornment>
-                        ),
-                    }}
-                />
+        <>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 1 }}>
+                <Tooltip title="Camiones en ruta / Total flota">
+                    <Box sx={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                        <CircularProgress 
+                            variant="determinate" 
+                            value={totalFlota > 0 && camionesEnRuta !== null ? (camionesEnRuta / totalFlota) * 100 : 0} 
+                            size={48}
+                            color="primary"
+                        />
+                        <Box
+                            sx={{
+                                top: 0,
+                                left: 0,
+                                bottom: 0,
+                                right: 0,
+                                position: 'absolute',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '100%',
+                                height: '100%',
+                            }}
+                        >
+                            <Typography variant="caption" component="div" color="text.secondary">
+                                {camionesEnRuta !== null ? `${camionesEnRuta}/${totalFlota}` : '--'}
+                            </Typography>
+                        </Box>
+                    </Box>
+                </Tooltip>
             </Box>
+            <Paper elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ p: 2, pb: 1 }}>
+                    <Typography variant="h6" gutterBottom>
+                        Elementos del Sistema
+                    </Typography>
+                    
+                    <Tabs 
+                        value={activeTab} 
+                        onChange={handleTabChange}
+                        variant="fullWidth"
+                        sx={{ mb: 2 }}
+                    >
+                        <Tab 
+                            label={`Camiones (${filteredTrucks.length})`}
+                            icon={<LocalShippingIcon fontSize="small" />}
+                            iconPosition="start"
+                        />
+                        <Tab 
+                            label={`Cisternas (${filteredCisternas.length})`}
+                            icon={<StorageIcon fontSize="small" />}
+                            iconPosition="start"
+                        />
+                        <Tab 
+                            label={`Pedidos (${filteredPedidos.length})`}
+                            icon={<ShoppingCartIcon fontSize="small" />}
+                            iconPosition="start"
+                        />
+                    </Tabs>
 
-            <Divider />
+                    <TextField
+                        fullWidth
+                        size="small"
+                        placeholder={`Buscar ${activeTab === 0 ? 'camiones' : activeTab === 1 ? 'cisternas' : 'pedidos'}...`}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon fontSize="small" />
+                                </InputAdornment>
+                            ),
+                        }}
+                    />
+                </Box>
 
-            <Box sx={{ flex: 1, overflowY: 'auto' }}>
-                <List dense>
-                    {data.length > 0 ? (
-                        data.map((item, index) => render(item, index))
-                    ) : (
-                        <ListItem>
-                            <ListItemText
-                                primary={
-                                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                                        {searchQuery ? 'No se encontraron resultados' : 'No hay elementos disponibles'}
-                                    </Typography>
-                                }
-                            />
-                        </ListItem>
-                    )}
-                </List>
-            </Box>
-        </Paper>
+                <Divider />
+
+                <Box sx={{ flex: 1, overflowY: 'auto' }}>
+                    <List dense>
+                        {data.length > 0 ? (
+                            data.map((item, index) => render(item, index))
+                        ) : (
+                            <ListItem>
+                                <ListItemText
+                                    primary={
+                                        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                                            {searchQuery ? 'No se encontraron resultados' : 'No hay elementos disponibles'}
+                                        </Typography>
+                                    }
+                                />
+                            </ListItem>
+                        )}
+                    </List>
+                </Box>
+            </Paper>
+        </>
     );
 };
 

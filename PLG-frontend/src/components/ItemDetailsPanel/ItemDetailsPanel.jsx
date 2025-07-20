@@ -135,7 +135,7 @@ const ItemDetailsPanel = ({
     };
 
     if (selectedItem.type === 'truck') {
-        const truck = latestTruck || system?.flota?.find(t => t.truckId === selectedItem.id);
+        const truck = latestTruck || localSystem?.flota?.find(t => t.truckId === selectedItem.id);
         const currentFuel = truckFuels.get(selectedItem.id) || 0;
         const currentGLP = truckGLPs.get(selectedItem.id) || 0;
         const destinations = getTruckDestinations(truck);
@@ -477,7 +477,7 @@ const ItemDetailsPanel = ({
     }
 
     if (selectedItem.type === 'cisterna') {
-        const cisterna = system?.cisternas?.[selectedItem.id];
+        const cisterna = localSystem?.cisternas?.[selectedItem.id];
         const currentGLP = cisternaGLPs.get(cisterna?.id) ?? cisterna?.cargaGLPActual;
 
         if (!cisterna) return (

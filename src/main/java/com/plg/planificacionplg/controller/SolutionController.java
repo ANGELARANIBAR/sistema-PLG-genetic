@@ -131,6 +131,29 @@ public class SolutionController {
         dto.setAveriaStartTime(sistema.getAveriaStartTime());
         return dto;
     }
+    @GetMapping("/camiones-en-ruta")
+    public int getCamionesEnRuta() {
+        Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
+
+        // Only return data from mejorSolucion (real simulation), not from mejorSolucionSiguiente (fake system)
+        if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {
+            return 0;
+        }
+
+        SistemaPLG sistema = mejorSolucion.getSistemaPLG();
+        int cont = 0;
+        if(sistema.getFlota()==null)return 0;
+        for(Camion c : sistema.getFlota()){
+            if(c.getDestinos().size()>2){
+                if(c.getEstado()==EstadoCamion.AVERIADO ||
+                        c.getDestinos().getFirst().getEstadoCamion()==EstadoCamion.AVERIADO)continue;
+                cont++;
+
+            }
+        }
+
+        return cont;
+    }
 
     @GetMapping("/initial-system")
     public SistemaPLGDTO getInitialSystem() {
@@ -563,8 +586,9 @@ public class SolutionController {
             //camiones disponibles en actrual solucion
             for (int i = 0; i < mejorSolucion.getSistemaPLG().getFlota().size(); i++) {
                 //si el camion no tiene registro de atenciones en la planificaicon
-                if((i+1)==cam.getId()
-                        || mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().getFirst().getEstadoCamion()==EstadoCamion.AVERIADO)continue;
+                if((i+1)==cam.getId() ||
+                        mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().getFirst().getEstadoCamion()
+                                ==EstadoCamion.AVERIADO)continue;
                 if (mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().size() < 3) {
                     //dar origen en cisterna principal
                     //Camion nuevoCamion = mejorSolucion.getSistemaPLG().getFlota().get(i);
@@ -586,6 +610,9 @@ public class SolutionController {
                     origen.setSaldoCombustibleCamion(nuevoCamion.getCombustibleActual());
                     nuevoCamion.setEstado(EstadoCamion.DISPONIBLE);
                     nuevoCamion.setUbicacionActual(origen.getUbicacion());
+                }
+                else{
+                    //usar posicion final de camiones que salieron a ruta. preferibelemnte solo 1 camion
                 }
 
             }

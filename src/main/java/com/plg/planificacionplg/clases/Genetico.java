@@ -62,7 +62,10 @@ public class Genetico {
         poblacion.add(perfecto);
         primerSolucionValida = perfecto;
         System.out.println("Al menos una solucion hallada");
-
+        if (PlanificacionPlgApplication.isCancelarReplanificacion()) {
+            System.out.println("Replanificación cancelada.");
+            return perfecto; // salir anticipadamente
+        }
         Individuo mejorSolucion = Collections.max(poblacion, Comparator.comparingDouble(Individuo::getFitness)).clonar(code);
         for (int gen = 0; gen < generaciones; gen++) {
             PlanificacionPlgApplication.setPorcentajeEjecucion(100.0 * (gen + 1) / generaciones);
@@ -88,6 +91,10 @@ public class Genetico {
             if(sistema.getCamionCausanteReplan()!=null)maxIntentosGlobal=0;
             while ((intentosGlobales < maxIntentosGlobal
             || nuevaGeneracion.isEmpty())) { //si no hay pedidos validos se queda
+                if (PlanificacionPlgApplication.isCancelarReplanificacion()) {
+                    System.out.println("Replanificación cancelada.");
+                    return perfecto; // salir anticipadamente
+                }
                 if (iter > tamPoblacion*0.8) {
                     int generados = 0;
                     int intentos = 0;
@@ -95,6 +102,10 @@ public class Genetico {
 
                     while (generados < numIndividuosExploratorios && intentos < maxIntentos && nuevaGeneracion.size() < tamPoblacion) {
                         Individuo nuevo = new Individuo(numPedidos, numCamiones, sistema, code);
+                        if (PlanificacionPlgApplication.isCancelarReplanificacion()) {
+                            System.out.println("Replanificación cancelada.");
+                            return perfecto; // salir anticipadamente
+                        }
                         nuevo.evaluar(code, sistema);
                         if (nuevo.getFitness() > 0) {
                             nuevaGeneracion.add(nuevo); // ++ exploratorio

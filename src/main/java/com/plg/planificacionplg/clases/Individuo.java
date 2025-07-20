@@ -14,7 +14,8 @@ public class Individuo {
 
     private double fitness;
     private SistemaPLG sistemaPLG;
-public Individuo(){}
+    public Individuo(){}
+
     public Individuo(int numPedidos, int numCamiones, SistemaPLG sistema, int code) {
         numCamiones += 1;
         numPedidos += 1;
@@ -35,7 +36,8 @@ public Individuo(){}
 
         }
         else{
-            Random rand = new Random();
+            Random rand = new Random(System.nanoTime() + nIndividuo * 997);
+
             for (int pedido : pedidos) {
                 int camion=1+rand.nextInt(numCamiones-1);
                 nIntentos=0;
@@ -76,7 +78,7 @@ public Individuo(){}
         for (int i = 1; i < numCamiones; i++) {
             int ini=0;
             List<Integer> cargasGLP = new ArrayList<>();
-            Random randCargaGLP = new Random();
+            Random randCargaGLP = new Random(System.nanoTime() + nIndividuo * 9973);
             int cantPedRestantes = asignacion.get(i).size(), acc = 0;
             while(cantPedRestantes > 0){
                 nIntentos = 0;
