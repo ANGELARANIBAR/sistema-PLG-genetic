@@ -114,6 +114,10 @@ public class Cisterna {
             OperacionesGLPCisterna ultimaDelDia = (indexUltOpDelDia < operacionesGLPCisterna.size() + 1 && indexUltOpDelDia > 0)
                     ? operacionesGLPCisterna.get(indexUltOpDelDia - 1) : null;
 
+            if(ultimaDelDia != null && ultimaDelDia.getFechaHoraOperacion().isBefore(fechaHora)){
+                ultimaDelDia = anterior; //ahora es el ultimo
+                indexUltOpDelDia = index;
+            }
 
             int tamanoOperacionesHoy = indexUltOpDelDia-index;
             if(ultimaDelDia == null){
@@ -202,7 +206,10 @@ public class Cisterna {
             OperacionesGLPCisterna ultimaDelDia = (indexUltOpDelDia < operacionesGLPCisterna.size() + 1 && indexUltOpDelDia > 0)
                     ? operacionesGLPCisterna.get(indexUltOpDelDia - 1) : null;
 
-
+            if(ultimaDelDia != null && ultimaDelDia.getFechaHoraOperacion().isBefore(fechaHora)){
+                ultimaDelDia = anterior;
+                indexUltOpDelDia = index;
+            }
             int tamanoOperacionesHoy = indexUltOpDelDia-index;
             if(ultimaDelDia == null){
                 tamanoOperacionesHoy = 0; // el ultimo sera nueva operacion
@@ -251,18 +258,18 @@ public class Cisterna {
         cisterna.setId(1);
         cisterna.setCapacidadTotal(10000.0);
         cisterna.setCargaGLPActual(8000.0);
-        cisterna.setHoraAbastecimento(LocalTime.now().plusMinutes(4));
+        cisterna.setHoraAbastecimento(LocalTime.MIN);
 
         // Crear un camión
         Camion camion = new Camion();
         camion.setId(1);
         camion.setPlaca("XYZ-123");
-        for(int i = 0; i < 15; i++){
+        for(int i = 0; i < 50; i++){
 
             // Simular una solicitud de retiro a las 08:30 del día actual
-            LocalDateTime fechaHoraRetiro = LocalDateTime.now().plusHours(i*6);
+            LocalDateTime fechaHoraRetiro = LocalDateTime.now().plusHours(i*2);
 
-            double cantidadSolicitada = 3000.0;
+            double cantidadSolicitada = 1100.0;
 
             // Intentar registrar el retiro
             boolean exito = cisterna.puedeRetirarGLP(fechaHoraRetiro, cantidadSolicitada);
@@ -280,7 +287,10 @@ public class Cisterna {
                 System.out.println("No hay suficiente GLP para ese horario.");
             }
         }
-
+        System.out.println("🕒 " + "getFechaHoraOperacion()" +
+                " |  " + "PLACA" +
+                " |  " + "solicitud de GLP" +
+                " |  Saldo: ");
         // Mostrar operaciones registradas
         for (OperacionesGLPCisterna op : cisterna.getOperacionesGLPCisterna()) {
             System.out.println("🕒 " + op.getFechaHoraOperacion() +
