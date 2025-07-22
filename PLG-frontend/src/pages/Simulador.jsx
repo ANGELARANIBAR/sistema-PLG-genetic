@@ -250,7 +250,7 @@ export default function Simulador() {
                 setCurrentTime(prevTime => {
                     if (!prevTime) return new Date();
                     // Use seconds instead of minutes for smoother movement
-                    return new Date(prevTime.getTime() + 65000 * playbackSpeed);
+                    return new Date(prevTime.getTime() + 865000 * playbackSpeed);
                 });
             }, 1000);
         }
