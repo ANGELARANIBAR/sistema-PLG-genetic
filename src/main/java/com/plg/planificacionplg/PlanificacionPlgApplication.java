@@ -853,7 +853,7 @@ public class PlanificacionPlgApplication {
                     else origenReplan.setSaldoGLPCamion(0.0);
                     origenReplan.setSaldoCombustibleCamion(nuevoCamion.getCombustibleActual());
                     List<Destino>destinos = mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos();
-                    nuevoCamion.getDestinos().add(destinos.get(destinos.size()-1).copiar()); // ya no retornar al inicio
+                    nuevoCamion.getDestinos().add(destinos.get(destinos.size()-2).copiar()); // ya no retornar al inicio
                     nuevoCamion.getDestinos().getFirst().setFechaHoraLlegada(inicioReplan); //no imoporta
 
                     camionesEnRuta.add(mejorSolucion.getSistemaPLG().getFlota().get(i));
