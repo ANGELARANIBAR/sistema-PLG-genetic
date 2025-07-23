@@ -72,6 +72,13 @@ export default function Simulador() {
     const [currentDestinations, setCurrentDestinations] = useState(new Map());
     const [selectedItem, setSelectedItem] = useState(null);
 
+    // Set the interval in hours here:
+    const simulatedIntervalHours = 2;
+
+    // Add this:
+    const [fechaFinSimulation, setFechaFinSimulation] = useState(null);
+    const fechaStartSimulationAbsolute = React.useRef(null);
+
     // Monitor for batch refresh notifications
     useBatchRefreshMonitor(true, 2000);
 
@@ -99,15 +106,23 @@ export default function Simulador() {
         const loadStartTimeAndFin = async () => {
             try {
                 const startTimeString = await mapService.fetchStartTime();
+                //console.log("Fetched startTimeString:", startTimeString);
                 const startTime = new Date(startTimeString);
+                //console.log("Parsed startTime:", startTime);
+                if (fechaStartSimulationAbsolute.current === null && startTime) {
+                    fechaStartSimulationAbsolute.current = startTime;
+                    setFechaFinSimulation(new Date(startTime.getTime() + simulatedIntervalHours * 60 * 60 * 1000));
+                }
                 setCurrentTime(startTime);
                 setSimulationStartTime(startTime);
                 setSimulationStarted(true);
+                //console.log("Simulation initialized:", startTime);
             } catch (error) {
                 const currentDateTime = null;
                 setCurrentTime(currentDateTime);
                 setSimulationStartTime(currentDateTime);
                 setSimulationStarted(true);
+                console.error("Error initializing simulation:", error);
             }
             // Fetch fechaHoraFinEntregas
             try {
@@ -214,7 +229,8 @@ export default function Simulador() {
     // Watch for currentTime >= fechaHoraFinEntregas to continue simulation
     useEffect(() => {
         
-        if (!currentTime || !fechaHoraFinEntregas || isContinuing) return;
+        
+        if (!currentTime || !fechaHoraFinEntregas || isContinuing || !fechaStartSimulationAbsolute) return;
         
         // Use the boolean flag ins(tead of comparing lastProcessedFechaHoraFin and fechaHoraFinEntregas
         //console.log("last proc: "+(lastProcessedFechaHoraFin !== null ? lastProcessedFechaHoraFin.getTime() : "nada"))
@@ -229,7 +245,6 @@ export default function Simulador() {
             setIsContinuing(true);
             setLastProcessedFechaHoraFin(fechaHoraFinEntregas);
             setFechaHoraFinEntregasUpdated(false);
-            
             //console.log("fin entregas : " + fechaHoraFinEntregas)
             //console.log("current time : " + currentTime)
             console.log("Llamando a nuevo batch")
@@ -250,7 +265,7 @@ export default function Simulador() {
                 setCurrentTime(prevTime => {
                     if (!prevTime) return new Date();
                     // Use seconds instead of minutes for smoother movement
-                    return new Date(prevTime.getTime() + 865000 * playbackSpeed);
+                    return new Date(prevTime.getTime() + 65000 * playbackSpeed);
                 });
             }, 1000);
         }
@@ -307,6 +322,26 @@ export default function Simulador() {
 
         return () => clearInterval(intervalId); // Cleanup on unmount
     }, [fechaHoraFinEntregas]);
+
+    // Add the effect to call the API at each interval
+    useEffect(() => {
+        if (!currentTime || !fechaFinSimulation) return;
+
+        if (currentTime >= fechaFinSimulation) {
+            setIsContinuing(true);
+            setLastProcessedFechaHoraFin(fechaHoraFinEntregas);
+            setFechaHoraFinEntregasUpdated(false);
+            // Call the API
+            console.log("Continuando la simulacion then")
+            fetch(`${API_BASE}/continue-simulation`, { method: "POST" })
+                .finally(() => {
+                    // Advance fechaFinSimulation by another interval
+                    setFechaFinSimulation(
+                        prev => new Date(prev.getTime() + simulatedIntervalHours * 60 * 60 * 1000)
+                    );
+                });
+        }
+    }, [currentTime, fechaFinSimulation]);
 
     const handlePauseSimulation = () => {
         setIsPlaying(false);
@@ -395,6 +430,7 @@ export default function Simulador() {
         </Box>
     );
 
+    
     if (!currentTime || !simulationStarted) {
         return <LoadingComponent />;
     }
@@ -636,6 +672,7 @@ export default function Simulador() {
                                         truckFuels={truckFuels}
                                         truckGLPs={truckGLPs}
                                         cisternaGLPs={cisternaGLPs}
+                                        currentTime={currentTime} // pass currentTime here
                                     />
                                 </Box>
                             )}

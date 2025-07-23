@@ -613,6 +613,16 @@ public class SolutionController {
                 }
                 else{
                     //usar posicion final de camiones que salieron a ruta. preferibelemnte solo 1 camion
+                    Camion camionEnCaliente = mejorSolucion.getSistemaPLG().getFlota().get(i);
+                    idxFlotaAnterior.add(camionEnCaliente.getId());
+                    Camion nuevoCamion = new Camion(camionEnCaliente);
+                    camionesDisponibles.add(nuevoCamion);
+                    nuevoCamion.setId(camionesDisponibles.size());
+                    Destino penultimoDestino = camionEnCaliente.getDestinos().get(camionEnCaliente.getDestinos().size() - 2);
+                    nuevoCamion.setUbicacionActual(penultimoDestino.getUbicacion());
+                    nuevoCamion.setCargaGLPActual(0.0);
+                    nuevoCamion.setCombustibleActual(penultimoDestino.getSaldoCombustibleCamion());
+                    nuevoCamion.getDestinos().add(penultimoDestino.copiar());
                 }
 
             }
@@ -688,8 +698,11 @@ public class SolutionController {
             for(int j=0; j< camionesDisponibles.size(); j++){
                 Camion c = mejorSolucionTemp.getSistemaPLG().getFlota().get(j);
                 int idCam = idxFlotaAnterior.get(j);
-                mejorSolucion.getSistemaPLG().getFlota().get(idCam-1).setDestinos(c.getDestinos());
-                mejorSolucion.getSistemaPLG().getFlota().get(idCam-1).setPedidosAsignados(c.getPedidosAsignados());
+                Camion camionReal = mejorSolucion.getSistemaPLG().getFlota().get(idCam-1);
+                if(!camionReal.getDestinos().isEmpty())camionReal.getDestinos().removeLast();
+                if(!camionReal.getDestinos().isEmpty())camionReal.getDestinos().removeLast();
+                camionReal.getDestinos().addAll(c.getDestinos());
+                camionReal.setPedidosAsignados(c.getPedidosAsignados());
                 mejorSolucion.getAsignacion().put(idCam, mejorSolucionTemp.getAsignacion().get(c.getId()));
                 mejorSolucion.getPedidosXcargasGLP().put(idCam, mejorSolucionTemp.getPedidosXcargasGLP().get(c.getId()));
                 if(fechaFinPlan==null || (fechaFinPlan.isAfter(mejorSolucion.getSistemaPLG().getFechaHoraFinEntregas()))){

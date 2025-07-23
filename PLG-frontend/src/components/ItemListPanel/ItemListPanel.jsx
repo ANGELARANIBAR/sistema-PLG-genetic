@@ -29,11 +29,13 @@ const ItemListPanel = ({
     selectedItem,
     truckFuels,
     truckGLPs,
-    cisternaGLPs 
+    cisternaGLPs,
+    currentTime // <-- add currentTime prop
 }) => {
     const [activeTab, setActiveTab] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [camionesEnRuta, setCamionesEnRuta] = useState(null);
+    const [pedidoEstados, setPedidoEstados] = useState({});
 
     useEffect(() => {
         let mounted = true;
@@ -49,13 +51,6 @@ const ItemListPanel = ({
             clearInterval(intervalId);
         };
     }, [system]);
-
-    const totalFlota = system?.flota?.length || 0;
-
-    const handleTabChange = (event, newValue) => {
-        setActiveTab(newValue);
-        setSearchQuery(''); // Clear search when switching tabs
-    };
 
     // Filter function for search
     const filterItems = (items, query, type) => {
@@ -100,6 +95,28 @@ const ItemListPanel = ({
     const filteredPedidos = useMemo(() => {
         return filterItems(system?.pedidos || [], searchQuery, 'pedidos');
     }, [system?.pedidos, searchQuery]);
+
+    useEffect(() => {
+        if (!currentTime || !filteredPedidos.length) return;
+        let mounted = true;
+        const fetchEstados = async () => {
+            const estados = {};
+            await Promise.all(filteredPedidos.map(async (pedido) => {
+                const estado = await mapService.fetchPedidoEstado(pedido.id, new Date(currentTime));
+                estados[pedido.id] = estado || pedido.estado;
+            }));
+            if (mounted) setPedidoEstados(estados);
+        };
+        fetchEstados();
+        return () => { mounted = false; };
+    }, [currentTime, filteredPedidos]);
+
+    const totalFlota = system?.flota?.length || 0;
+
+    const handleTabChange = (event, newValue) => {
+        setActiveTab(newValue);
+        setSearchQuery(''); // Clear search when switching tabs
+    };
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -232,6 +249,8 @@ const ItemListPanel = ({
     };
 
     const renderPedidoItem = (pedido) => {
+        const estado = pedidoEstados[pedido.id] ?? pedido.estado;
+        const loading = pedidoEstados[pedido.id] === undefined;
         return (
             <ListItem key={pedido.id} disablePadding>
                 <ListItemButton 
@@ -258,9 +277,9 @@ const ItemListPanel = ({
                                 </Typography>
                                 <span style={{ display: 'flex', gap: 4 }}>
                                     <Chip 
-                                        label={pedido.estado} 
+                                        label={loading ? <CircularProgress size={12} /> : estado} 
                                         size="small" 
-                                        color={getStatusColor(pedido.estado)}
+                                        color={getStatusColor(estado)}
                                         sx={{ fontSize: '10px', height: '18px' }}
                                     />
                                     <Chip 

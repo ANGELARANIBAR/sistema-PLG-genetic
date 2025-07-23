@@ -418,14 +418,14 @@ public class SistemaPLG {
         double distancia = Ruta.heuristica(cisternas.getFirst().getUbicacion(), pedidoNuevo.getUbicacion());
 
         // Escalar para no saturar la sigmoide (muy importante)
-        double escalaTiempo = 7200.0;   // 1 hora ≈ 1.0 en z
+        double escalaTiempo = 7*24*60*60;   // 1 semana en segundos
         double escalaDistancia = maxXmapa+maxYmapa+2; // 100 km ≈ 1.0 en z
 
         double urgencia = 1.0 / (1.0 + Math.exp(-(tiempoRestante / escalaTiempo)));
         double lejanía = 1.0 / (1.0 + Math.exp(-(distancia / escalaDistancia)));
 
         // Invertimos para que menor valor signifique mayor prioridad
-        double costo = (1 - urgencia) * 0.8 + (1 - lejanía) * 0.2;
+        double costo = urgencia * 0.9 + lejanía * 0.1;
 
         pedidoNuevo.setCostoAlgoritmoPedido(costo);
     }
