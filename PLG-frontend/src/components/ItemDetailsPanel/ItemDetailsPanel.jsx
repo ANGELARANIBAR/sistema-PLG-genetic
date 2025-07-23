@@ -348,11 +348,14 @@ const ItemDetailsPanel = ({
                                                             <strong>Ubicación:</strong> ({dest.ubicacion?.x || 'N/A'}, {dest.ubicacion?.y || 'N/A'})
                                                         </Typography>
                                                     </Grid>
+                                                    {dest.arrivalTime != null && (
                                                     <Grid item xs={6}>
                                                         <Typography variant="caption" display="block">
-                                                            <strong>Llegada:</strong> {formatDateTime(dest.arrivalTime)}
+                                                        <strong>Llegada:</strong> {formatDateTime(dest.arrivalTime)}
                                                         </Typography>
                                                     </Grid>
+                                                    )}
+
                                                     <Grid item xs={6}>
                                                         <Typography variant="caption" display="block">
                                                             <strong>Salida:</strong> {formatDateTime(dest.departureTime)}
@@ -383,6 +386,13 @@ const ItemDetailsPanel = ({
                                                         <Grid item xs={6}>
                                                             <Typography variant="caption" display="block">
                                                                 <strong>ID Pedido:</strong> {dest.orderId}
+                                                            </Typography>
+                                                        </Grid>
+                                                    )}
+                                                    {dest.orderNumber && (
+                                                        <Grid item xs={6}>
+                                                            <Typography variant="caption" display="block">
+                                                                <strong>Código:</strong> {dest.orderNumber}
                                                             </Typography>
                                                         </Grid>
                                                     )}
