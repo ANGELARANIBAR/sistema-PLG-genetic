@@ -1240,7 +1240,7 @@ public class SolutionController {
         if (mejorSolucion == null) {
             return "INEXISTENTE";
         }
-        if(pedidoId>mejorSolucion.getSistemaPLG().getPedidos().size())return "ENTREGADO";
+        if(pedidoId>mejorSolucion.getSistemaPLG().getPedidos().size())return "PENDIENTE";
         Pedido p = mejorSolucion.getSistemaPLG().getPedidos().get(pedidoId-1);
         if(p != null && p.getFechaHoraEntrega()!=null) {
             if(!p.getFechaHoraEntrega().plusMinutes(15).isAfter(time)){
