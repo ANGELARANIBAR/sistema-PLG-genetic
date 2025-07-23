@@ -297,7 +297,7 @@ public class Camion {
             if (destinos.getFirst().getUbicacion().sonIguales(destinos.getLast().getUbicacion())) {
                 return -5;
             }
-            if(insertarNodosIntermediosCargaCombustible(destinos.getFirst(), destinos.getLast(), sistemaPLG)==-1)return -4;
+            if(insertarNodosIntermediosCargaCombustible(destinos.getFirst(), destinos.getLast(), sistemaPLG, 0)==-1)return -4;
         }
         else for (int i = 1; i < pedidosCant; i++) {
             index=index+destinos.size()-cantNodosInicial+1;
@@ -311,7 +311,7 @@ public class Camion {
 
             int resultadoNodosIntermedios = insertarNodosIntermediosCargaGLP(destinoInicial, destinoFinal, sistemaPLG);
             if (resultadoNodosIntermedios == 1) {//caso en que no necesitas GLP, y puede que necesitss gasolina
-                if(insertarNodosIntermediosCargaCombustible(destinoInicial, destinoFinal, sistemaPLG)==-1)return -4;
+                if(insertarNodosIntermediosCargaCombustible(destinoInicial, destinoFinal, sistemaPLG, 0)==-1)return -4;
             } else if (resultadoNodosIntermedios == -1) {
                 //System.out.println(pedidosCant-2+"?? 1: "+destinoInicial.getUbicacion()+" 2: "+destinoFinal.getUbicacion());
                 return -3; // no se puede llegar a pedidoDestino solucion No Valida
@@ -516,10 +516,11 @@ public class Camion {
         return false;
     }
 
-    private int insertarNodosIntermediosCargaCombustible(Destino start, Destino end, SistemaPLG sistemaPLG) { //reformular
+    private int insertarNodosIntermediosCargaCombustible(Destino start, Destino end, SistemaPLG sistemaPLG, int intentos) { //reformular
         //que no se repita el nodo Reabastecimiento entre dos pedidos
         //distancia manhatan que te deja mas cerca del otro pedido, no repetir nodo cisterna entre dos pedidos
-
+        intentos++;
+        if(intentos==5){return -1;}
         if (start.getUbicacion().sonIguales(end.getUbicacion())) {
             return -1;
         }
@@ -576,7 +577,7 @@ public class Camion {
                     combustibleActual = tipo.getCapCombustibleMax(); //llenar combusitible
                     mejorReabastecimiento.setSaldoCombustibleCamion(combustibleActual);
                     distanciaTotal += mejorReabastecimiento.getRuta().getDistanciaTotal();
-                    return insertarNodosIntermediosCargaCombustible(mejorReabastecimiento, end, sistemaPLG);
+                    return insertarNodosIntermediosCargaCombustible(mejorReabastecimiento, end, sistemaPLG, intentos);
                 }
             }
             return -1;
