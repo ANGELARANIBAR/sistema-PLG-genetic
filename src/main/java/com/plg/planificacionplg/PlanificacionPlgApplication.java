@@ -792,6 +792,7 @@ public class PlanificacionPlgApplication {
         replanificado.setCamionCausanteReplan(null);
         try{
             List<Camion>camionesEnRuta = new ArrayList<>();
+            List<Pedido>pedidosEnCurso = new ArrayList<>();
             for (int i = 0; i < mejorSolucion.getSistemaPLG().getFlota().size(); i++) {
                 //si el camion no tiene registro de atenciones en la planificaicon
 
@@ -856,6 +857,7 @@ public class PlanificacionPlgApplication {
                     nuevoCamion.getDestinos().getFirst().setFechaHoraLlegada(inicioReplan); //no imoporta
 
                     camionesEnRuta.add(mejorSolucion.getSistemaPLG().getFlota().get(i));
+                    pedidosEnCurso.addAll(mejorSolucion.getSistemaPLG().getFlota().get(i).getPedidosAsignados());
                     System.out.println("camion en ruta> "+nuevoCamion.getId());
                     System.out.println("camion en ruta> "+nuevoCamion.getUbicacionActual());
                 }
@@ -873,6 +875,10 @@ public class PlanificacionPlgApplication {
             for(Camion c : camionesEnRuta) {
                 mejorSolucion.getSistemaPLG().getFlota().get(c.getId()-1).getDestinos().removeFirst();
                 mejorSolucion.getSistemaPLG().getFlota().get(c.getId()-1).getDestinos().addAll(0, c.getDestinos());
+            }
+            for(Pedido p : pedidosEnCurso) {
+                mejorSolucion.getSistemaPLG().getPedidos().add(p);
+                p.setId(mejorSolucion.getSistemaPLG().getPedidos().size());
             }
             mejorSolucion.getSistemaPLG().setReplanning(false);
             mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
