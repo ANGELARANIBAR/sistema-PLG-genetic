@@ -836,7 +836,7 @@ public class PlanificacionPlgApplication {
                     continue;
                 }
 
-                if (nuevoCamion.getEstado() != EstadoCamion.EN_RUTA && nuevoCamion.getEstado() != EstadoCamion.EN_RETORNO) {//despachando o recargando
+                if (false && (nuevoCamion.getEstado() != EstadoCamion.EN_RUTA && nuevoCamion.getEstado() != EstadoCamion.EN_RETORNO)) {//despachando o recargando
                     nuevoCamion.getDestinos().add(destinoActual); //inicio, no es modificable en la construccion de rutas
                     System.out.println(nuevoCamion.getEstado());
                     System.out.println("camion que no esta en ruta> "+nuevoCamion.getId());
@@ -857,7 +857,9 @@ public class PlanificacionPlgApplication {
                     nuevoCamion.getDestinos().getFirst().setFechaHoraLlegada(inicioReplan); //no imoporta
 
                     camionesEnRuta.add(mejorSolucion.getSistemaPLG().getFlota().get(i));
-                    pedidosEnCurso.addAll(mejorSolucion.getSistemaPLG().getFlota().get(i).getPedidosAsignados());
+                    for(Pedido p : mejorSolucion.getSistemaPLG().getFlota().get(i).getPedidosAsignados()){
+                        pedidosEnCurso.add(new Pedido(p));
+                    }
                     System.out.println("camion en ruta> "+nuevoCamion.getId());
                     System.out.println("camion en ruta> "+nuevoCamion.getUbicacionActual());
                 }
@@ -872,13 +874,16 @@ public class PlanificacionPlgApplication {
             System.out.println("%%%%%%%%%%%%%%%%%%%%REPLANNING%%%%%%%%%%%%%%%%%%%%");
             mejorSolucion = ga2.ejecutar(2, replanificado);
             mejorSolucion.getSistemaPLG().imprimirPlanificacion();
-            for(Camion c : camionesEnRuta) {
-                mejorSolucion.getSistemaPLG().getFlota().get(c.getId()-1).getDestinos().removeFirst();
-                mejorSolucion.getSistemaPLG().getFlota().get(c.getId()-1).getDestinos().addAll(0, c.getDestinos());
-            }
-            for(Pedido p : pedidosEnCurso) {
+            //pedidosEnCurso = new ArrayList<>();
+            for(Pedido p : pedidosEnCurso) { /// repeticion de pedidos que no se completan en mas de un batch
                 mejorSolucion.getSistemaPLG().getPedidos().add(p);
                 p.setId(mejorSolucion.getSistemaPLG().getPedidos().size());
+            }
+            for(Camion c : camionesEnRuta) {
+                List<Destino>destinos = new ArrayList<>(c.getDestinos());
+                destinos.removeLast(); // remover retorno a base
+                mejorSolucion.getSistemaPLG().getFlota().get(c.getId()-1).getDestinos().removeFirst(); //eliminar primer destino
+                mejorSolucion.getSistemaPLG().getFlota().get(c.getId()-1).getDestinos().addAll(0, destinos); ///ver casos de repeticion de destinos tho
             }
             mejorSolucion.getSistemaPLG().setReplanning(false);
             mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
