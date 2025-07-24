@@ -24,6 +24,7 @@ import StopIcon from '@mui/icons-material/Stop';
 import MapVisualization from "../components/MapVisualization";
 import ItemListPanel from "../components/ItemListPanel/ItemListPanel";
 import ItemDetailsPanel from "../components/ItemDetailsPanel/ItemDetailsPanel";
+import BloqueosListPanel from "../components/BloqueosListPanel/BloqueosListPanel";
 import { mapService } from "../services/mapService";
 import { useBatchRefreshMonitor } from "../hooks/useBatchRefreshMonitor";
 import { 
@@ -350,8 +351,8 @@ export default function Simulador() {
 
     const handleItemSelect = (item) => {
         setSelectedItem(item);
-        // Switch to details tab when an item is selected (tab 1, not 2 since we removed Control tab)
-        setActivePanelTab(1);
+        // Switch to details tab when an item is selected (now tab 2 instead of 1)
+        setActivePanelTab(2);
         // Show panel if it's hidden when an item is selected
         if (!isPanelVisible) {
             setIsPanelVisible(true);
@@ -719,6 +720,7 @@ export default function Simulador() {
                                     variant="fullWidth"
                                 >
                                     <Tab label="Elementos" />
+                                    <Tab label="Bloqueos" />
                                     <Tab label="Detalles" disabled={!selectedItem} />
                                 </Tabs>
                             </Box>
@@ -740,8 +742,20 @@ export default function Simulador() {
                                     </Box>
                                 )}
 
-                                {/* Details Tab */}
+                                {/* Bloqueos Tab */}
                                 {activePanelTab === 1 && (
+                                    <Box sx={{ height: '100%' }}>
+                                        <BloqueosListPanel
+                                            system={system}
+                                            currentTime={currentTime}
+                                            onItemSelect={handleItemSelect}
+                                            selectedItem={selectedItem}
+                                        />
+                                    </Box>
+                                )}
+
+                                {/* Details Tab */}
+                                {activePanelTab === 2 && (
                                     <Box sx={{ height: '100%', p: 2 }}>
                                         <ItemDetailsPanel
                                             selectedItem={selectedItem}
