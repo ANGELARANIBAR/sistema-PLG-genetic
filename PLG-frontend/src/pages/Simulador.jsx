@@ -569,17 +569,6 @@ export default function Simulador() {
                                 {Math.floor(realTimeElapsed / 60)}m {realTimeElapsed % 60}s
                             </Typography>
                         </Box>
-                        
-                        <Box sx={{ textAlign: 'center' }}>
-                            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }} fontWeight="bold">
-                                Estado
-                            </Typography>
-                            <Typography variant="body2" fontWeight="bold" sx={{ 
-                                color: isPlaying ? '#4ade80' : '#fbbf24' 
-                            }}>
-                                {isPlaying ? 'Ejecutándose' : 'Pausado'}
-                            </Typography>
-                        </Box>
 
                         {/* Progress bar */}
                         {simulationStartTime && fechaHoraFinEntregas && (
