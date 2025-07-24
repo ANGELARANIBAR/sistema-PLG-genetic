@@ -255,6 +255,20 @@ public class PlanificacionPlgApplication {
         System.out.println("Iniciando Planificación");
         System.out.println("Procesando batch Nro: " + 1);
         System.out.println("Cantidad pedidos: " + sistemaPLG.getPedidos().size());
+        //hilo para sacar solucion en 5 segundos
+        Thread hiloSaltoAlgoritmo = new Thread(() -> {
+            try {
+                Thread.sleep(5000); // Esperar 5 segundos
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt(); // Restablecer el estado de interrupción
+                System.err.println("Hilo interrumpido: " + e.getMessage());
+                return;
+            }
+
+            // Levantar la bandera después de la espera
+            PlanificacionPlgApplication.setCancelarReplanificacion(true);
+        });hiloSaltoAlgoritmo.start();
+
         Genetico ga = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
         if(escenario==3){
             mejorSolucion = ga.ejecutar(escenario, sistemaPLG);
@@ -263,6 +277,7 @@ public class PlanificacionPlgApplication {
             mejorSolucion = ga.ejecutar(1, sistemaPLG);
 
         }
+        PlanificacionPlgApplication.setCancelarReplanificacion(false);
         // Load maintenance and averias
         mejorSolucion.getSistemaPLG().cargarMantenimientos(
                 MANTENIMIENTO_FILE,
