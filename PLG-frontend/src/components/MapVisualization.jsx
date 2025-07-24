@@ -498,6 +498,24 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
     }
   };
 
+  // Get truck color based on GLP capacity percentage
+  const getTruckColorFilter = (currentGLP, maxGLP) => {
+    if (!maxGLP || maxGLP === 0) return 'none';
+    
+    const percentage = (currentGLP / maxGLP) * 100;
+    
+    if (percentage >= 70) {
+      // Verde brillante (70-100%)
+      return 'brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%) hue-rotate(120deg)';
+    } else if (percentage >= 30) {
+      // Amarillo brillante (30-69%)
+      return 'brightness(0) saturate(100%) invert(85%) sepia(100%) saturate(1000%) hue-rotate(0deg) brightness(100%) contrast(100%)';
+    } else {
+      // Rojo brillante (0-29%)
+      return 'brightness(0) saturate(100%) invert(17%) sepia(95%) saturate(7498%) hue-rotate(356deg) brightness(100%) contrast(118%)';
+    }
+  };
+
   // Function to calculate the remaining route based on truck position
   const calculateRemainingRoute = (truckId, currentDest, truckPosition) => {
     if (!currentDest || !currentDest.route || !truckPosition || !truckPosition.x || !truckPosition.y) {
@@ -693,7 +711,6 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
           // If no remaining route, don't render anything
           if (!remainingRoute || remainingRoute.length < 2) return null;
 
-          const color = `hsl(${(index * 360) / (system.flota?.length || 1)}, 70%, 50%)`;
           return (
             <svg key={`route-${truck.truckId}`} className="route-line">
               <polyline
@@ -704,7 +721,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
                     return `${pos.x},${pos.y}`;
                   }).join(' ')}
                 fill="none"
-                stroke={color}
+                stroke="#333333"
                 strokeWidth="2"
                 strokeDasharray="5,5"
               />
@@ -737,7 +754,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
                   x2={pos2.x}
                   y2={pos2.y}
                   stroke={isSelected ? "#FF6B6B" : "#FF0000"}
-                  strokeWidth={isSelected ? "5" : "4"}
+                  strokeWidth={isSelected ? "3" : "2"}
                   style={{ cursor: 'pointer' }}
                   onClick={(e) => handleMarkerClick(e, { type: 'bloqueo', id: index, data: bloqueo })}
                 />
@@ -755,6 +772,10 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
           const currentGLP = Number(truckGLPs.get(truckId) || 0);
           const pos = toScreenPosition(position.x, position.y);
           const direction = truckDirections.get(truckId) || 'up';
+          
+          // Calcular el filtro de color basado en la capacidad de GLP
+          const maxGLP = truck.tipoCamion?.cargaGLPMax || 0;
+          const colorFilter = getTruckColorFilter(currentGLP, maxGLP);
           
           const currentDest = currentDestinations.get(truckId);
           if (currentDest) {
@@ -791,7 +812,12 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
                 onClick={(e) => handleMarkerClick(e, { type: 'truck', id: truckId })}
                 onContextMenu={(e) => handleTruckRightClick(e, truckId)}
               >
-                <img src={getTruckIcon(truckId)} alt="Truck" className="marker-icon" />
+                <img 
+                  src={getTruckIcon(truckId)} 
+                  alt="Truck" 
+                  className="marker-icon" 
+                  style={{ filter: colorFilter }}
+                />
                 <div className={`direction-arrow direction-${direction}`}></div>
                 <span className="marker-label">T{truckId}</span>
               </div>
@@ -878,7 +904,14 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
                   }}
                   onClick={(e) => handleMarkerClick(e, { type: 'pedido', id: pedido.id })}
                 >
-                  <img src={pedidoIcon} alt="Pedido" className="marker-icon" />
+                  <img 
+                    src={pedidoIcon} 
+                    alt="Pedido" 
+                    className="marker-icon" 
+                    style={{ 
+                      filter: 'brightness(0) saturate(100%) invert(25%) sepia(45%) saturate(2000%) hue-rotate(210deg) brightness(90%) contrast(110%)'
+                    }}
+                  />
                   <span className="marker-label">P{pedido.id}</span>
                 </div>
               </CustomTooltip>
@@ -975,7 +1008,15 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <img src={pedidoIcon} alt="Pedido" style={{ width: '16px', height: '16px' }} />
+                <img 
+                  src={pedidoIcon} 
+                  alt="Pedido" 
+                  style={{ 
+                    width: '16px', 
+                    height: '16px',
+                    filter: 'brightness(0) saturate(100%) invert(25%) sepia(45%) saturate(2000%) hue-rotate(210deg) brightness(90%) contrast(110%)'
+                  }} 
+                />
               </div>
               <span style={{ fontSize: '12px', color: '#333' }}>Pedido</span>
             </div>
@@ -984,7 +1025,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
                 <div style={{ 
                   width: '16px', 
                   height: '2px', 
-                  background: 'linear-gradient(90deg, #4CAF50, #2196F3)', 
+                  background: '#333333', 
                   borderRadius: '1px',
                   position: 'relative'
                 }}>
@@ -1029,6 +1070,30 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
                 </div>
               </div>
               <span style={{ fontSize: '12px', color: '#333' }}>Bloqueo</span>
+            </div>
+            
+            {/* Separador para colores de GLP */}
+            <hr style={{ margin: '8px 0', border: 'none', borderTop: '1px solid #ddd' }} />
+            <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '4px', color: '#666' }}>
+              Nivel de GLP en Camiones:
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src={truckIconUp} alt="Camión Verde" style={{ width: '16px', height: '16px', filter: 'brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%) hue-rotate(120deg)' }} />
+              </div>
+              <span style={{ fontSize: '11px', color: '#333' }}>Alto (70-100%)</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src={truckIconUp} alt="Camión Amarillo" style={{ width: '16px', height: '16px', filter: 'brightness(0) saturate(100%) invert(85%) sepia(100%) saturate(1000%) hue-rotate(0deg) brightness(100%) contrast(100%)' }} />
+              </div>
+              <span style={{ fontSize: '11px', color: '#333' }}>Medio (30-69%)</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src={truckIconUp} alt="Camión Rojo" style={{ width: '16px', height: '16px', filter: 'brightness(0) saturate(100%) invert(17%) sepia(95%) saturate(7498%) hue-rotate(356deg) brightness(100%) contrast(118%)' }} />
+              </div>
+              <span style={{ fontSize: '11px', color: '#333' }}>Bajo (0-29%)</span>
             </div>
           </div>
         </div>
