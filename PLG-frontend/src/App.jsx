@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/navbar/Navbar";
 import Simulacion from "./pages/Simulacion";
 import Pedidos from "./pages/Pedidos";
@@ -13,10 +13,15 @@ import Home from "./pages/Home";
 import BatchRefreshMonitor from "./components/BatchRefreshMonitor";
 
 export default function App() {
+  const location = useLocation();
+  
+  // Hide navbar for simulator page
+  const hideNavbar = location.pathname === '/visualizador';
+
   return (
     <>
       <BatchRefreshMonitor />
-      <Navbar />
+      {!hideNavbar && <Navbar />}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/simulacion" element={<Simulacion />} />

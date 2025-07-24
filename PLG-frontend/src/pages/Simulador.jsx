@@ -19,6 +19,8 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import StopIcon from '@mui/icons-material/Stop';
 import MapVisualization from "../components/MapVisualization";
 import ItemListPanel from "../components/ItemListPanel/ItemListPanel";
 import ItemDetailsPanel from "../components/ItemDetailsPanel/ItemDetailsPanel";
@@ -60,7 +62,6 @@ export default function Simulador() {
     const [realTimeElapsed, setRealTimeElapsed] = useState(0);
     
     // UI states
-    const [navbarHeight, setNavbarHeight] = useState(65);
     const [activePanelTab, setActivePanelTab] = useState(0);
     const [isPanelVisible, setIsPanelVisible] = useState(true);
     
@@ -349,26 +350,13 @@ export default function Simulador() {
 
     const handleItemSelect = (item) => {
         setSelectedItem(item);
-        // Switch to details tab when an item is selected (tab 2, not 1)
-        setActivePanelTab(2);
+        // Switch to details tab when an item is selected (tab 1, not 2 since we removed Control tab)
+        setActivePanelTab(1);
         // Show panel if it's hidden when an item is selected
         if (!isPanelVisible) {
             setIsPanelVisible(true);
         }
     };
-
-    // Navbar height detection
-    useEffect(() => {
-        const calc = () => {
-            const navbar = document.querySelector('nav') || document.querySelector('[role="navigation"]') || document.querySelector('.navbar');
-            const actualNavHeight = navbar ? navbar.offsetHeight : 65;
-            setNavbarHeight(actualNavHeight);
-        };
-        
-        calc();
-        window.addEventListener("resize", calc);
-        return () => window.removeEventListener("resize", calc);
-    }, []);
 
     // Professional loading component
     const LoadingComponent = () => (
@@ -378,7 +366,7 @@ export default function Simulador() {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                height: `calc(100vh - ${navbarHeight}px)`,
+                height: '100vh',
                 backgroundColor: '#f8f9fa',
                 padding: 3
             }}
@@ -436,265 +424,352 @@ export default function Simulador() {
     }
 
     return (
-        <Box sx={{ display: 'flex', height: `calc(100vh - ${navbarHeight}px)` }}>
-            {/* Main content area with MapVisualization */}
-            <Box sx={{ 
-                flexGrow: 1, 
-                position: 'relative',
-                width: isPanelVisible ? 'calc(100vw - 350px)' : '100vw',
-                height: '100%',
-                overflow: "hidden",
-                backgroundColor: "#fafafa",
-                transition: 'width 0.3s ease-in-out'
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+            {/* Top simulation control bar */}
+            <Box sx={{
+                backgroundColor: '#1f2937', // Same color as navbar
+                color: 'white',
+                borderBottom: '1px solid #374151',
+                px: 3,
+                py: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                zIndex: 1000
             }}>
-                {/* Panel toggle button */}
-                <Button
-                    onClick={() => setIsPanelVisible(!isPanelVisible)}
-                    sx={{
-                        position: 'absolute',
-                        top: 16,
-                        right: 16,
-                        zIndex: 1000,
-                        minWidth: 'auto',
-                        width: 48,
-                        height: 48,
-                        borderRadius: '50%',
-                        backgroundColor: 'white',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                        border: '1px solid #e0e0e0',
-                        color: '#1976d2',
-                        '&:hover': {
-                            backgroundColor: '#f5f5f5',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
-                        }
-                    }}
-                    aria-label={isPanelVisible ? "Ocultar panel" : "Mostrar panel"}
-                >
-                    {isPanelVisible ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-                </Button>
+                {/* Left side - Back button and title */}
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    <Button
+                        onClick={() => window.history.back()}
+                        sx={{ 
+                            minWidth: 'auto',
+                            width: 45,
+                            height: 45,
+                            borderRadius: '50%',
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                            border: '2px solid rgba(255, 255, 255, 0.3)',
+                            color: 'white',
+                            '&:hover': {
+                                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                                borderColor: 'rgba(255, 255, 255, 0.5)',
+                                transform: 'scale(1.05)'
+                            },
+                            transition: 'all 0.2s ease'
+                        }}
+                        aria-label="Volver"
+                    >
+                        <ArrowBackIcon sx={{ fontSize: 20 }} />
+                    </Button>
+                    
+                    <Typography variant="h6" fontWeight="bold" sx={{ color: 'white' }}>
+                        Simulación PLG
+                    </Typography>
+                </Box>
 
-                {/* MapVisualization component */}
-                <Box sx={{
-                    width: '100%',
-                    height: '100%',
-                    '& .map-container': {
-                        height: '100%',
-                        width: '100%',
-                        backgroundColor: '#ffffff !important'
-                    },
-                    '& .map-visualization': {
-                        margin: '0 !important',
-                        border: 'none !important',
-                        padding: '0 !important',
-                        height: '100%',
-                        width: '100% !important',
-                        backgroundColor: '#ffffff !important',
-                        backgroundImage: 'none !important',
-                        backgroundSize: 'auto !important'
-                    }
-                }}>
-                    <MapVisualization 
-                        currentTime={currentTime} 
-                        onPauseSimulation={handlePauseSimulation}
-                        onItemSelect={handleItemSelect}
-                        selectedItem={selectedItem}
-                    />
+                {/* Center - Control buttons */}
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    <Button
+                        onClick={() => {
+                            if (!colapsoInfo || !colapsoInfo.colapso) setIsPlaying(!isPlaying);
+                        }}
+                        disabled={colapsoInfo && colapsoInfo.colapso}
+                        sx={{ 
+                            minWidth: 'auto',
+                            width: 50,
+                            height: 50,
+                            borderRadius: '50%',
+                            backgroundColor: isPlaying ? '#4caf50' : 'rgba(255, 255, 255, 0.1)',
+                            border: '2px solid',
+                            borderColor: isPlaying ? '#4caf50' : 'rgba(255, 255, 255, 0.3)',
+                            color: 'white',
+                            fontSize: '20px',
+                            '&:hover': {
+                                backgroundColor: isPlaying ? '#45a049' : 'rgba(255, 255, 255, 0.2)',
+                                borderColor: isPlaying ? '#45a049' : 'rgba(255, 255, 255, 0.5)',
+                                transform: 'scale(1.05)'
+                            },
+                            '&:disabled': {
+                                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                borderColor: 'rgba(255, 255, 255, 0.1)',
+                                color: 'rgba(255, 255, 255, 0.3)'
+                            },
+                            transition: 'all 0.2s ease'
+                        }}
+                        aria-label={isPlaying ? 'Pausar' : 'Reproducir'}
+                    >
+                        {isPlaying ? <PauseIcon sx={{ fontSize: 24 }} /> : <PlayArrowIcon sx={{ fontSize: 24 }} />}
+                    </Button>
+
+                    <Button
+                        onClick={() => {
+                            setIsPlaying(false);
+                            window.history.back();
+                        }}
+                        sx={{ 
+                            minWidth: 'auto',
+                            width: 45,
+                            height: 45,
+                            borderRadius: '50%',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            border: '2px solid rgba(239, 68, 68, 0.5)',
+                            color: '#ef4444',
+                            '&:hover': {
+                                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                                borderColor: '#ef4444',
+                                transform: 'scale(1.05)'
+                            },
+                            transition: 'all 0.2s ease'
+                        }}
+                        aria-label="Cancelar simulación"
+                    >
+                        <StopIcon sx={{ fontSize: 20 }} />
+                    </Button>
+                </Box>
+
+                {/* Right side - Simulation info and panel toggle */}
+                <Box sx={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                        <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }} fontWeight="bold">
+                                Tiempo Real
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold" sx={{ color: 'white' }}>
+                                {new Date().toLocaleString()}
+                            </Typography>
+                        </Box>
+
+                        <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }} fontWeight="bold">
+                                Tiempo Simulado
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold" sx={{ color: '#60a5fa' }}>
+                                {(currentTime !== null ? currentTime : new Date()).toLocaleString()}
+                            </Typography>
+                        </Box>
+
+                        <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }} fontWeight="bold">
+                                Tiempo Simulado Transcurrido
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold" sx={{ color: '#34d399' }}>
+                                {simulationStartTime && currentTime 
+                                    ? Math.floor((currentTime - simulationStartTime) / (1000 * 60 * 60)) + 'h ' +
+                                      Math.floor(((currentTime - simulationStartTime) % (1000 * 60 * 60)) / (1000 * 60)) + 'm'
+                                    : '0h 0m'
+                                }
+                            </Typography>
+                        </Box>
+
+                        <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }} fontWeight="bold">
+                                Tiempo Real Transcurrido
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold" sx={{ color: '#fbbf24' }}>
+                                {Math.floor(realTimeElapsed / 60)}m {realTimeElapsed % 60}s
+                            </Typography>
+                        </Box>
+                        
+                        <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }} fontWeight="bold">
+                                Estado
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold" sx={{ 
+                                color: isPlaying ? '#4ade80' : '#fbbf24' 
+                            }}>
+                                {isPlaying ? 'Ejecutándose' : 'Pausado'}
+                            </Typography>
+                        </Box>
+
+                        {/* Progress bar */}
+                        {simulationStartTime && fechaHoraFinEntregas && (
+                            <Box sx={{ width: 180 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }} fontWeight="bold">
+                                        Progreso
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: '#60a5fa' }} fontWeight="bold">
+                                        {Math.round(((currentTime - simulationStartTime) / (fechaHoraFinEntregas - simulationStartTime)) * 100)}%
+                                    </Typography>
+                                </Box>
+                                <LinearProgress 
+                                    variant="determinate" 
+                                    value={Math.min(100, Math.max(0, ((currentTime - simulationStartTime) / (fechaHoraFinEntregas - simulationStartTime)) * 100))}
+                                    sx={{ 
+                                        height: 10, 
+                                        borderRadius: 5,
+                                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                                        '& .MuiLinearProgress-bar': {
+                                            borderRadius: 5,
+                                            background: isPlaying 
+                                                ? 'linear-gradient(90deg, #60a5fa 0%, #3b82f6 100%)'
+                                                : 'linear-gradient(90deg, #9ca3af 0%, #6b7280 100%)'
+                                        }
+                                    }} 
+                                />
+                            </Box>
+                        )}
+                    </Box>
+
+                    <Button
+                        onClick={() => setIsPanelVisible(!isPanelVisible)}
+                        sx={{
+                            minWidth: 'auto',
+                            width: 45,
+                            height: 45,
+                            borderRadius: '50%',
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                            border: '2px solid rgba(255, 255, 255, 0.3)',
+                            color: 'white',
+                            '&:hover': {
+                                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                                borderColor: 'rgba(255, 255, 255, 0.5)',
+                                transform: 'scale(1.05)'
+                            },
+                            transition: 'all 0.2s ease'
+                        }}
+                        aria-label={isPanelVisible ? "Ocultar panel" : "Mostrar panel"}
+                    >
+                        {isPanelVisible ? <ChevronRightIcon sx={{ fontSize: 20 }} /> : <ChevronLeftIcon sx={{ fontSize: 20 }} />}
+                    </Button>
                 </Box>
             </Box>
 
-            {/* Right fixed panel - collapsible */}
-            {isPanelVisible && (
-                <Box
-                    sx={{
-                        width: 350,
-                        height: '100%',
-                        backgroundColor: 'white',
-                        borderLeft: '1px solid #e0e0e0',
-                        overflowY: 'auto',
-                        flexShrink: 0,
-                        position: 'relative',
-                        transition: 'all 0.3s ease-in-out'
-                    }}
-                >
-                    <Box sx={{ 
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column'
-                    }}>
-                        {/* Header */}
-                        <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
-                            <Typography variant="h5" fontWeight="bold" gutterBottom>
-                                Simulación PLG
-                            </Typography>
-                            
-                            {/* Main Tabs */}
-                            <Tabs 
-                                value={activePanelTab} 
-                                onChange={(e, newValue) => setActivePanelTab(newValue)}
-                                variant="fullWidth"
-                                sx={{ mb: 2 }}
-                            >
-                                <Tab label="Control" />
-                                <Tab label="Elementos" />
-                                <Tab label="Detalles" disabled={!selectedItem} />
-                            </Tabs>
-
-                            {colapsoInfo && colapsoInfo.colapso && (
-                                <Alert severity="error" sx={{ mb: 2 }}>
-                                    <Typography variant="subtitle1" fontWeight="bold">¡Colapso logístico detectado!</Typography>
-                                    <Typography variant="body2">Fecha y hora del primer colapso: <b>{new Date(colapsoInfo.fechaHoraPrimerColapso).toLocaleString()}</b></Typography>
-                                    <Typography variant="body2">Pedido causante: <b>{colapsoInfo.pedidoCausanteId}</b></Typography>
-                                    <Typography variant="body2">Límite de entrega: <b>{new Date(colapsoInfo.limiteEntrega).toLocaleString()}</b></Typography>
-                                    <Typography variant="body2">Hora simulada de entrega: <b>{new Date(colapsoInfo.horaSimuladaEntrega).toLocaleString()}</b></Typography>
-                                    <Typography variant="body2">Entrega a cargo del camión: <b>{colapsoInfo.camionEntrega}</b></Typography>
-                                    <Typography variant="body2" color="error" fontWeight="bold">La simulación ha sido pausada.</Typography>
-                                </Alert>
-                            )}
-                            {showAutoPlayNotification && (
-                                <Alert severity="info" sx={{ mb: 2 }}>
-                                    <Typography variant="subtitle1" fontWeight="bold">Simulación reiniciada automáticamente</Typography>
-                                    <Typography variant="body2">La simulación se ha reiniciado después del procesamiento del nuevo batch y comenzará a reproducirse automáticamente.</Typography>
-                                </Alert>
-                            )}
-                        </Box>
-
-                        {/* Tab Content */}
-                        <Box sx={{ flex: 1, overflow: 'hidden' }}>
-                            {/* Control Tab */}
-                            {activePanelTab === 0 && (
-                                <Box sx={{ p: 2, height: '100%', overflowY: 'auto' }}>
-                                    {/* Botones de Control Principal */}
-                                    <Box sx={{ mb: 3, display: 'flex', gap: 1 }}>
-                                        <Button
-                                            variant={isPlaying ? "contained" : "outlined"}
-                                            startIcon={isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-                                            onClick={() => {
-                                                if (!colapsoInfo || !colapsoInfo.colapso) setIsPlaying(!isPlaying);
-                                            }}
-                                            color={isPlaying ? "success" : "primary"}
-                                            disabled={colapsoInfo && colapsoInfo.colapso}
-                                            sx={{ 
-                                                textTransform: 'none',
-                                                flex: 1,
-                                                fontWeight: 'bold',
-                                                py: 1.5
-                                            }}
-                                        >
-                                            {isPlaying ? 'PAUSAR' : 'REPRODUCIR'}
-                                        </Button>
-                                        
-                                        <Button
-                                            variant="outlined"
-                                            color="error"
-                                            sx={{ 
-                                                textTransform: 'none',
-                                                flex: 1,
-                                                py: 1.5
-                                            }}
-                                            onClick={() => window.history.back()}
-                                        >
-                                            Cancelar
-                                        </Button>
-                                    </Box>
-
-                                    {/* Estado de la Simulación */}
-                                    <Box sx={{ mb: 3, p: 2, backgroundColor: '#f5f5f5', borderRadius: 2 }}>
-                                        <Typography variant="body2" fontWeight="bold" gutterBottom sx={{ color: '#1976d2' }}>
-                                            Estado de la Simulación
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                            Tiempo simulado: {(currentTime !== null ? currentTime : new Date()).toLocaleString()}
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                            Tiempo real actual: {new Date().toLocaleString()}
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                            Tiempo real transcurrido: {Math.floor(realTimeElapsed / 60)}m {realTimeElapsed % 60}s
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                            Velocidad: 1x
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                            Estado: <strong style={{ color: isPlaying ? '#4caf50' : '#ff9800' }}>
-                                                {isPlaying ? 'Ejecutándose' : 'Pausado'}
-                                            </strong>
-                                        </Typography>
-
-                                        {/* Barra de progreso */}
-                                        {simulationStartTime && fechaHoraFinEntregas && (
-                                            <Box>
-                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                                    <Typography variant="caption" color="text.secondary" fontWeight="bold">
-                                                        Progreso de Simulación
-                                                    </Typography>
-                                                    <Typography variant="caption" color="primary" fontWeight="bold">
-                                                        {Math.round(((currentTime - simulationStartTime) / (fechaHoraFinEntregas - simulationStartTime)) * 100)}%
-                                                    </Typography>
-                                                </Box>
-                                                <LinearProgress 
-                                                    variant="determinate" 
-                                                    value={Math.min(100, Math.max(0, ((currentTime - simulationStartTime) / (fechaHoraFinEntregas - simulationStartTime)) * 100))}
-                                                    sx={{ 
-                                                        height: 10, 
-                                                        borderRadius: 5,
-                                                        backgroundColor: '#e3f2fd',
-                                                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)',
-                                                        '& .MuiLinearProgress-bar': {
-                                                            borderRadius: 5,
-                                                            background: isPlaying 
-                                                                ? 'linear-gradient(90deg, #1976d2 0%, #42a5f5 100%)'
-                                                                : 'linear-gradient(90deg, #9e9e9e 0%, #bdbdbd 100%)',
-                                                            boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                                                        }
-                                                    }} 
-                                                />
-                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        Inicio: {simulationStartTime.toLocaleTimeString()}
-                                                    </Typography>
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        Fin: {fechaHoraFinEntregas.toLocaleTimeString()}
-                                                    </Typography>
-                                                </Box>
-                                            </Box>
-                                        )}
-                                    </Box>
-                                </Box>
-                            )}
-
-                            {/* Elements Tab */}
-                            {activePanelTab === 1 && (
-                                <Box sx={{ height: '100%' }}>
-                                    <ItemListPanel
-                                        system={system}
-                                        onItemSelect={handleItemSelect}
-                                        selectedItem={selectedItem}
-                                        truckFuels={truckFuels}
-                                        truckGLPs={truckGLPs}
-                                        cisternaGLPs={cisternaGLPs}
-                                        currentTime={currentTime} // pass currentTime here
-                                    />
-                                </Box>
-                            )}
-
-                            {/* Details Tab */}
-                            {activePanelTab === 2 && (
-                                <Box sx={{ height: '100%', p: 2 }}>
-                                    <ItemDetailsPanel
-                                        selectedItem={selectedItem}
-                                        system={system}
-                                        truckFuels={truckFuels}
-                                        truckGLPs={truckGLPs}
-                                        cisternaGLPs={cisternaGLPs}
-                                        currentDestinations={currentDestinations}
-                                        currentTime={currentTime}
-                                    />
-                                </Box>
-                            )}
-                        </Box>
-                    </Box>
+            {/* Alerts section */}
+            {(colapsoInfo?.colapso || showAutoPlayNotification) && (
+                <Box sx={{ px: 3, py: 1 }}>
+                    {colapsoInfo && colapsoInfo.colapso && (
+                        <Alert severity="error" sx={{ mb: 1 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">¡Colapso logístico detectado!</Typography>
+                            <Typography variant="body2">Fecha y hora del primer colapso: <b>{new Date(colapsoInfo.fechaHoraPrimerColapso).toLocaleString()}</b></Typography>
+                            <Typography variant="body2">Pedido causante: <b>{colapsoInfo.pedidoCausanteId}</b></Typography>
+                            <Typography variant="body2">Límite de entrega: <b>{new Date(colapsoInfo.limiteEntrega).toLocaleString()}</b></Typography>
+                            <Typography variant="body2">Hora simulada de entrega: <b>{new Date(colapsoInfo.horaSimuladaEntrega).toLocaleString()}</b></Typography>
+                            <Typography variant="body2">Entrega a cargo del camión: <b>{colapsoInfo.camionEntrega}</b></Typography>
+                            <Typography variant="body2" color="error" fontWeight="bold">La simulación ha sido pausada.</Typography>
+                        </Alert>
+                    )}
+                    {showAutoPlayNotification && (
+                        <Alert severity="info" sx={{ mb: 1 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">Simulación reiniciada automáticamente</Typography>
+                            <Typography variant="body2">La simulación se ha reiniciado después del procesamiento del nuevo batch y comenzará a reproducirse automáticamente.</Typography>
+                        </Alert>
+                    )}
                 </Box>
             )}
+
+            {/* Main content area */}
+            <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+                {/* Map visualization */}
+                <Box sx={{ 
+                    flexGrow: 1, 
+                    position: 'relative',
+                    width: isPanelVisible ? 'calc(100vw - 350px)' : '100vw',
+                    height: '100%',
+                    overflow: "hidden",
+                    backgroundColor: "#fafafa",
+                    transition: 'width 0.3s ease-in-out'
+                }}>
+                    <Box sx={{
+                        width: '100%',
+                        height: '100%',
+                        '& .map-container': {
+                            height: '100%',
+                            width: '100%',
+                            backgroundColor: '#ffffff !important'
+                        },
+                        '& .map-visualization': {
+                            margin: '0 !important',
+                            border: 'none !important',
+                            padding: '0 !important',
+                            height: '100%',
+                            width: '100% !important',
+                            backgroundColor: '#ffffff !important',
+                            backgroundImage: 'none !important',
+                            backgroundSize: 'auto !important'
+                        }
+                    }}>
+                        <MapVisualization 
+                            currentTime={currentTime} 
+                            onPauseSimulation={handlePauseSimulation}
+                            onItemSelect={handleItemSelect}
+                            selectedItem={selectedItem}
+                        />
+                    </Box>
+                </Box>
+
+                {/* Right panel */}
+                {isPanelVisible && (
+                    <Box
+                        sx={{
+                            width: 350,
+                            height: '100%',
+                            backgroundColor: 'white',
+                            borderLeft: '1px solid #e0e0e0',
+                            overflowY: 'auto',
+                            flexShrink: 0,
+                            position: 'relative',
+                            transition: 'all 0.3s ease-in-out'
+                        }}
+                    >
+                        <Box sx={{ 
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column'
+                        }}>
+                            {/* Panel Header */}
+                            <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
+                                <Typography variant="h6" fontWeight="bold" gutterBottom>
+                                    Panel de Control
+                                </Typography>
+                                
+                                {/* Tabs */}
+                                <Tabs 
+                                    value={activePanelTab} 
+                                    onChange={(e, newValue) => setActivePanelTab(newValue)}
+                                    variant="fullWidth"
+                                >
+                                    <Tab label="Elementos" />
+                                    <Tab label="Detalles" disabled={!selectedItem} />
+                                </Tabs>
+                            </Box>
+
+                            {/* Tab Content */}
+                            <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                                {/* Elements Tab */}
+                                {activePanelTab === 0 && (
+                                    <Box sx={{ height: '100%' }}>
+                                        <ItemListPanel
+                                            system={system}
+                                            onItemSelect={handleItemSelect}
+                                            selectedItem={selectedItem}
+                                            truckFuels={truckFuels}
+                                            truckGLPs={truckGLPs}
+                                            cisternaGLPs={cisternaGLPs}
+                                            currentTime={currentTime}
+                                        />
+                                    </Box>
+                                )}
+
+                                {/* Details Tab */}
+                                {activePanelTab === 1 && (
+                                    <Box sx={{ height: '100%', p: 2 }}>
+                                        <ItemDetailsPanel
+                                            selectedItem={selectedItem}
+                                            system={system}
+                                            truckFuels={truckFuels}
+                                            truckGLPs={truckGLPs}
+                                            cisternaGLPs={cisternaGLPs}
+                                            currentDestinations={currentDestinations}
+                                            currentTime={currentTime}
+                                        />
+                                    </Box>
+                                )}
+                            </Box>
+                        </Box>
+                    </Box>
+                )}
+            </Box>
         </Box>
     );
 }
