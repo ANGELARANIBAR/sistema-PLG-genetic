@@ -853,13 +853,21 @@ public class PlanificacionPlgApplication {
                     else origenReplan.setSaldoGLPCamion(0.0);
                     origenReplan.setSaldoCombustibleCamion(nuevoCamion.getCombustibleActual());
                     List<Destino>destinos = mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos();
+
+                    Camion camTemp = new Camion(mejorSolucion.getSistemaPLG().getFlota().get(i));
+                    for(Destino d : destinos){
+                        Destino nuevoDest = d.copiar();
+                        if(d instanceof EntregaPedido){
+                            Pedido p = new Pedido(d.getPedido());
+                            pedidosEnCurso.add(p);
+                            nuevoDest.setPedido(p);
+                        }
+                        camTemp.getDestinos().add(nuevoDest);
+                    }
+                    camionesEnRuta.add(camTemp);
+                    destinos = camTemp.getDestinos();
                     nuevoCamion.getDestinos().add(destinos.get(destinos.size()-2).copiar()); // ya no retornar al inicio
                     nuevoCamion.getDestinos().getFirst().setFechaHoraLlegada(inicioReplan); //no imoporta
-
-                    camionesEnRuta.add(mejorSolucion.getSistemaPLG().getFlota().get(i));
-                    for(Pedido p : mejorSolucion.getSistemaPLG().getFlota().get(i).getPedidosAsignados()){
-                        pedidosEnCurso.add(new Pedido(p));
-                    }
                     System.out.println("camion en ruta> "+nuevoCamion.getId());
                     System.out.println("camion en ruta> "+nuevoCamion.getUbicacionActual());
                 }
