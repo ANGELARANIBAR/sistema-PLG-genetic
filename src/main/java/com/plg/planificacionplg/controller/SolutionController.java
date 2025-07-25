@@ -681,7 +681,7 @@ public class SolutionController {
             }
             replanificado.setPedidos(pedidosReprogramados);
             int tamPoblacion = 10;
-            int generaciones = 1;
+            int generaciones = 0;
             double probCruce = 0.1;
             double probMutacion = 0.1;
             double porcentajeElite = 0.1;

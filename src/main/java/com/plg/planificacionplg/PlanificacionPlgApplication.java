@@ -608,6 +608,7 @@ public class PlanificacionPlgApplication {
 
                 System.out.println("actualizando system al front");
                 PlanificacionPlgApplication.setSigListo(false);
+                conservarAveriados(inicio);
                 PlanificacionPlgApplication.setMejorSolucion(mejorSolucionSiguiente);
                 PlanificacionPlgApplication.setBatchRefreshNeeded(false);//true);
                 mejorSolucion = mejorSolucionSiguiente;
@@ -624,7 +625,42 @@ public class PlanificacionPlgApplication {
             e.printStackTrace();
         }
     }
-    
+    private static void conservarAveriados(LocalDateTime inicioReplan) {
+        SistemaPLG sistema = getMejorSolucion().getSistemaPLG();
+        Boolean encontrado = false;
+        for(Camion c : sistema.getFlota()){
+            List<Destino>destinos = c.getDestinos();
+            if(destinos.getFirst().getEstadoCamion() == EstadoCamion.AVERIADO && destinos.getFirst().getFechaHoraSalida().isAfter(inicioReplan)){
+                //AVERIA ACTIVA
+                List<Destino>destActuales = new ArrayList<>();
+                for(Destino d : destinos){
+                    if(d instanceof EntregaPedido){
+                        Destino nuevaEntrega = d.copiar();
+                        System.out.println("Entrega pedido en destino averia: "  + d.getPedido().getNumeroPedido());
+                        encontrado = false;
+                        for(Pedido p : mejorSolucionSiguiente.getSistemaPLG().getPedidos()){
+                            //System.out.println("Entrega pedido en replanificacion: "  + p.getNumeroPedido());
+                            if(p.getNumeroPedido()==d.getPedido().getNumeroPedido()){
+                                nuevaEntrega.setPedido(p);
+                                destActuales.add(nuevaEntrega);
+                                encontrado = true;
+                                break;
+                            }
+                        }
+                        if(!encontrado){
+                            Pedido perdido = new Pedido(d.getPedido());
+                            mejorSolucionSiguiente.getSistemaPLG().getPedidos().add(perdido);
+                            perdido.setId(mejorSolucionSiguiente.getSistemaPLG().getPedidos().size());
+                            nuevaEntrega.setPedido(perdido);
+                            destActuales.add(nuevaEntrega);
+                        }
+                    }
+                    else destActuales.add(d);
+                }
+                mejorSolucionSiguiente.getSistemaPLG().getFlota().get(c.getId()-1).setDestinos(destActuales);
+            }
+        }
+    }
     public static void replanificar2(Individuo mejorSolucion, LocalDateTime inicioReplan, ArrayList<Pedido>pedidosnuevos){
         SistemaPLG replanificado = mejorSolucion.getSistemaPLG();
         mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
@@ -810,8 +846,39 @@ public class PlanificacionPlgApplication {
             List<Pedido>pedidosEnCurso = new ArrayList<>();
             for (int i = 0; i < mejorSolucion.getSistemaPLG().getFlota().size(); i++) {
                 //si el camion no tiene registro de atenciones en la planificaicon
+                if(mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().getFirst().getEstadoCamion() == EstadoCamion.AVERIADO &&
+                        mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().getFirst().getFechaHoraSalida().isAfter(inicioReplan)){
+                    //averiaActiva en replanificacion
+                    Camion nuevoCamion = mejorSolucion.getSistemaPLG().getCamionEnInstante(i + 1, inicioReplan);
+                    nuevoCamion.setCargasGLP(new ArrayList<>());
+                    nuevoCamion.setDestinos(new ArrayList<>());
+                    List<Destino>destinos = mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos();
 
+                    Camion camTemp = new Camion(mejorSolucion.getSistemaPLG().getFlota().get(i));
+                    for(Destino d : destinos){
+                        if(d.getFechaHoraSalida()!=null && d.getFechaHoraSalida().isBefore(inicioReplan))continue; //solo utilizara los destins a partir de aca
+                        Destino nuevoDest = d.copiar();
+                        if(d instanceof EntregaPedido){
+                            Pedido p = new Pedido(d.getPedido());
+                            pedidosEnCurso.add(p);
+                            nuevoDest.setPedido(p);
+                        }
+                        camTemp.getDestinos().add(nuevoDest);
+                    }
+                    camionesEnRuta.add(camTemp);
+                    destinos = camTemp.getDestinos();
+
+                    nuevoCamion.getDestinos().add(destinos.getLast().copiar()); // ya no retornar al inicio
+
+                    nuevoCamion.getDestinos().getFirst().setFechaHoraLlegada(inicioReplan); //no imoporta
+                    replanificado.getFlota().add(nuevoCamion);
+                    System.out.println("camion averiado activo> "+nuevoCamion.getId());
+                    System.out.println("camion averiado activo> "+nuevoCamion.getUbicacionActual());
+
+                    continue;
+                }
                 if (mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().size() < 3) {
+
                     //dar origen en cisterna principal
                     Camion nuevoCamion = new Camion(mejorSolucion.getSistemaPLG().getFlota().get(i));
                     Reabastecimiento origen = new Reabastecimiento();
@@ -871,6 +938,7 @@ public class PlanificacionPlgApplication {
 
                     Camion camTemp = new Camion(mejorSolucion.getSistemaPLG().getFlota().get(i));
                     for(Destino d : destinos){
+                        if(d.getFechaHoraSalida()!=null && d.getFechaHoraSalida().isBefore(inicioReplan))continue; //solo utilizara los destins a partir de aca
                         Destino nuevoDest = d.copiar();
                         if(d instanceof EntregaPedido){
                             Pedido p = new Pedido(d.getPedido());
@@ -881,7 +949,14 @@ public class PlanificacionPlgApplication {
                     }
                     camionesEnRuta.add(camTemp);
                     destinos = camTemp.getDestinos();
-                    nuevoCamion.getDestinos().add(destinos.get(destinos.size()-2).copiar()); // ya no retornar al inicio
+                    if(destinos.size()>1){
+                        nuevoCamion.getDestinos().add(destinos.get(destinos.size()-2).copiar()); // ya no retornar al inicio
+                    }
+                    else {
+                        if(destinos.isEmpty())nuevoCamion.getDestinos().add(mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().getLast().copiar());
+                        else nuevoCamion.getDestinos().add(destinos.getFirst().copiar()); // ya no retornar al inicio
+                    }
+
                     nuevoCamion.getDestinos().getFirst().setFechaHoraLlegada(inicioReplan); //no imoporta
                     System.out.println("camion en ruta> "+nuevoCamion.getId());
                     System.out.println("camion en ruta> "+nuevoCamion.getUbicacionActual());
@@ -904,7 +979,9 @@ public class PlanificacionPlgApplication {
             }
             for(Camion c : camionesEnRuta) {
                 List<Destino>destinos = new ArrayList<>(c.getDestinos());
-                destinos.removeLast(); // remover retorno a base
+                if(!destinos.isEmpty()){
+                    destinos.removeLast(); // remover retorno a base
+                }
                 mejorSolucion.getSistemaPLG().getFlota().get(c.getId()-1).getDestinos().removeFirst(); //eliminar primer destino
                 mejorSolucion.getSistemaPLG().getFlota().get(c.getId()-1).getDestinos().addAll(0, destinos); ///ver casos de repeticion de destinos tho
             }

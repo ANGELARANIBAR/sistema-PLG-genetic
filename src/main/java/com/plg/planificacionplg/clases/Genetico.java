@@ -62,7 +62,7 @@ public class Genetico {
         poblacion.add(perfecto);
         primerSolucionValida = perfecto;
         System.out.println("Al menos una solucion hallada");
-        if (PlanificacionPlgApplication.isCancelarReplanificacion()) {
+        if (PlanificacionPlgApplication.isCancelarReplanificacion() || generaciones == 0) {
             System.out.println("Replanificación cancelada.");
             return perfecto; // salir anticipadamente
         }
