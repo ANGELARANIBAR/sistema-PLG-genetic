@@ -114,7 +114,12 @@ public class SistemaPLG {
             if(c.getDestinos().isEmpty())continue;
 
             Destino anterior = c.getDestinos().get(0), d;
-            if(anterior.getFechaHoraSalida()==null || (c.getDestinos().get(1)!=null && c.getDestinos().get(1).getFechaHoraLlegada()==null))continue;
+            List<Destino> destinos = c.getDestinos();
+            boolean faltaLlegada = destinos.size() > 1 && destinos.get(1) != null && destinos.get(1).getFechaHoraLlegada() == null;
+
+            if (anterior.getFechaHoraSalida() == null || faltaLlegada) {
+                continue;
+            }
 
             if(anterior.getFechaHoraSalida().isAfter(fecha))continue;
 
