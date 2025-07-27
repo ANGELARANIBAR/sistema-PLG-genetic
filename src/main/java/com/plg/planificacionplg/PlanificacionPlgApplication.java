@@ -34,6 +34,9 @@ public class PlanificacionPlgApplication {
     private static List<Pedido>listaPedidosTotal;
 
     @Setter @Getter
+    private static int pedidosAtendidos;
+
+    @Setter @Getter
     private static int inicioBatchActual;
 
     @Setter @Getter
@@ -251,7 +254,7 @@ public class PlanificacionPlgApplication {
         int finBatch1 = (listaPedidosTotal.size() > inicioBatchActual) ? inicioBatchActual : listaPedidosTotal.size();
         List<Pedido> primerBatch = listaPedidosTotal.subList(0, finBatch1);
         sistemaPLG.setPedidos(new ArrayList<>(primerBatch));
-
+        pedidosAtendidos = primerBatch.size();
         System.out.println("Iniciando Planificación");
         System.out.println("Procesando batch Nro: " + 1);
         System.out.println("Cantidad pedidos: " + sistemaPLG.getPedidos().size());
@@ -319,7 +322,8 @@ public class PlanificacionPlgApplication {
                 mejorSolucion.getSistemaPLG().setReplanning(true);
                 mejorSolucion.getSistemaPLG().setAveriaStartTime(inicioAveria);
 
-                a.determinarFechaFin(mejorSolucion.getSistemaPLG());
+                a.determinarFechaFin();
+                //a.determinarFechaFin(mejorSolucion.getSistemaPLG());
                 //cam.setEstado(EstadoCamion.AVERIADO);
 
                 try{
@@ -348,7 +352,8 @@ public class PlanificacionPlgApplication {
                     mejorSolucion.getSistemaPLG().setReplanning(true);
                     mejorSolucion.getSistemaPLG().setAveriaStartTime(inicioAveria);
 
-                    a.determinarFechaFin(mejorSolucion.getSistemaPLG());
+                    a.determinarFechaFin();
+//                    a.determinarFechaFin(mejorSolucion.getSistemaPLG());
 
                     // Replanification process
                     mejorSolucion.getSistemaPLG().estadoDePedidosALas(inicioAveria);
@@ -523,12 +528,12 @@ public class PlanificacionPlgApplication {
                 System.out.println("primer max: "+ listaPedidosTotal.get(inicioBatch).getFechaHoraMaxEntrega());
                 System.out.println("ultimo max: "+ listaPedidosTotal.get(finBatch-1).getFechaHoraMaxEntrega());
                 System.out.println("primer max corregido: "+ listaPedidosTotal.get(inicioBatch).getFechaHoraMaxEntrega());
-
                 if (inicioBatch >= finBatch || inicioBatch >= listaPedidosTotal.size()) {
                     break;
                 }
 
                 List<Pedido> batch = listaPedidosTotal.subList(inicioBatch, finBatch);
+                pedidosAtendidos += batch.size();
                 ArrayList<Pedido> pedidosNuevos = new ArrayList<>(batch);
                 
                 // Reasignar IDs para el batch
@@ -906,25 +911,25 @@ public class PlanificacionPlgApplication {
                 Camion nuevoCamion = mejorSolucion.getSistemaPLG().getCamionEnInstante(i + 1, inicioReplan);
                 nuevoCamion.setCargasGLP(new ArrayList<>());
                 nuevoCamion.setDestinos(new ArrayList<>());
-                Destino destinoActual = nuevoCamion.getDestinoEnCurso();
-                if (destinoActual == null) {
-                    //caso de los camiones que terminaron su ruta antes de la averia
-                    destinoActual = mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().getLast().copiar();
-                    nuevoCamion.getDestinos().add(destinoActual);
-                    if(nuevoCamion.getDestinos().get(0).getFechaHoraSalida().isBefore(replanificado.getFechaHoraInicio())) {
-                        // si el camion esta disponible antes del inicio de la averia, entoncs espera a que la averia ocurra
-                        nuevoCamion.getDestinos().get(0).setFechaHoraSalida(replanificado.getFechaHoraInicio());
-                    }
-                    replanificado.getFlota().add(nuevoCamion);
-                    System.out.println("camion en reposo> "+nuevoCamion.getId());
-                    continue;
-                }
+//                Destino destinoActual = nuevoCamion.getDestinoEnCurso();
+//                if (destinoActual == null) {
+//                    //caso de los camiones que terminaron su ruta antes de la averia
+//                    destinoActual = mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().getLast().copiar();
+//                    nuevoCamion.getDestinos().add(destinoActual);
+//                    if(nuevoCamion.getDestinos().get(0).getFechaHoraSalida().isBefore(replanificado.getFechaHoraInicio())) {
+//                        // si el camion esta disponible antes del inicio de la averia, entoncs espera a que la averia ocurra
+//                        nuevoCamion.getDestinos().get(0).setFechaHoraSalida(replanificado.getFechaHoraInicio());
+//                    }
+//                    replanificado.getFlota().add(nuevoCamion);
+//                    System.out.println("camion en reposo> "+nuevoCamion.getId());
+//                    continue;
+//                }
 
                 if (false && (nuevoCamion.getEstado() != EstadoCamion.EN_RUTA && nuevoCamion.getEstado() != EstadoCamion.EN_RETORNO)) {//despachando o recargando
-                    nuevoCamion.getDestinos().add(destinoActual); //inicio, no es modificable en la construccion de rutas
-                    System.out.println(nuevoCamion.getEstado());
-                    System.out.println("camion que no esta en ruta> "+nuevoCamion.getId());
-                    System.out.println("camion que no esta en ruta> "+nuevoCamion.getUbicacionActual());
+//                    nuevoCamion.getDestinos().add(destinoActual); //inicio, no es modificable en la construccion de rutas
+//                    System.out.println(nuevoCamion.getEstado());
+//                    System.out.println("camion que no esta en ruta> "+nuevoCamion.getId());
+//                    System.out.println("camion que no esta en ruta> "+nuevoCamion.getUbicacionActual());
                 } else {
                     Destino origenReplan = new Replanficacion();
                     origenReplan.setUbicacion(mejorSolucion.getSistemaPLG().getFlota().get(i).calcularUbicacion(inicioReplan));
@@ -955,17 +960,20 @@ public class PlanificacionPlgApplication {
                         nuevoCamion.getDestinos().add(destinos.get(destinos.size()-2).copiar()); // ya no retornar al inicio
                     }
                     else {
+                        Reabastecimiento origen = new Reabastecimiento();
+                        origen.setCisterna(mejorSolucion.getSistemaPLG().getCisternas().get(0));
+                        origen.setUbicacion(mejorSolucion.getSistemaPLG().getCisternas().get(0).getUbicacion());
+                        origen.setFechaHoraSalida(inicioReplan); //primera solucion a evaluar
+
+                        origen.setSaldoGLPCamion(0.0);
+                        origen.setSaldoCombustibleCamion(nuevoCamion.getCombustibleActual());
+
+
                         if(destinos.isEmpty()){
-                            //termino de entregar pedidos
-                            Reabastecimiento origen = new Reabastecimiento();
-                            origen.setCisterna(mejorSolucion.getSistemaPLG().getCisternas().get(0));
-                            origen.setUbicacion(mejorSolucion.getSistemaPLG().getCisternas().get(0).getUbicacion());
-                            origen.setFechaHoraSalida(inicioReplan); //primera solucion a evaluar
                             nuevoCamion.setCargaGLPActual(0.0);
                             nuevoCamion.setCombustibleActual(nuevoCamion.getTipo().getCapCombustibleMax());
                             nuevoCamion.getDestinos().add(0, origen);
-                            origen.setSaldoGLPCamion(0.0);
-                            origen.setSaldoCombustibleCamion(nuevoCamion.getCombustibleActual());
+                            //termino de entregar pedidos
                             nuevoCamion.setEstado(EstadoCamion.DISPONIBLE);
                             //nuevoCamion.getDestinos().add(origen);
                             nuevoCamion.setUbicacionActual(origen.getUbicacion());
@@ -973,9 +981,22 @@ public class PlanificacionPlgApplication {
                             System.out.println("camion que salió y termino ruta> "+nuevoCamion.getUbicacionActual());
                         }
                         else{
-                            //camion en medio del retorno
-
-                            nuevoCamion.getDestinos().add(origenReplan); // ya no retornar al inicio
+                            //camion que lleog al retorno
+                            if(destinos.getFirst().getFechaHoraLlegada().isBefore(inicioReplan)){
+                                nuevoCamion.setCargaGLPActual(0.0);
+                                nuevoCamion.setCombustibleActual(nuevoCamion.getTipo().getCapCombustibleMax());
+                                nuevoCamion.getDestinos().add(0, origen);
+                                //termino de entregar pedidos
+                                nuevoCamion.setEstado(EstadoCamion.DISPONIBLE);
+                                //nuevoCamion.getDestinos().add(origen);
+                                nuevoCamion.setUbicacionActual(origen.getUbicacion());
+                                System.out.println("camion que salió y termino ruta> "+nuevoCamion.getId());
+                                System.out.println("camion que salió y termino ruta> "+nuevoCamion.getUbicacionActual());
+                            }
+                            else{
+                                //camion en medio del retorno
+                                nuevoCamion.getDestinos().add(origenReplan); // ya no retornar al inicio
+                            }
                         }
                     }
 

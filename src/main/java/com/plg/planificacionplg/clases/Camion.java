@@ -221,7 +221,51 @@ public class Camion {
         if(destinos.isEmpty())return new Nodo(12, 8);
         Destino anterior = destinos.get(0);
         if(anterior.getFechaHoraSalida()==null || destinos.getLast().getFechaHoraLlegada()==null)return new Nodo(12, 8);
-        if(fechahora.isBefore(anterior.getFechaHoraSalida()))return anterior.getUbicacion();
+
+        if(fechahora.isBefore(anterior.getFechaHoraSalida())){
+            if(anterior.getFechaHoraLlegada()==null || anterior.getRuta().getNodos().isEmpty())
+                return anterior.getUbicacion();
+            else{
+                //hay ruta hacia primer destino
+                //calcular con ruta usando segundos para mayor precisión
+                double velocidadNodosPorSegundo = tipo.getVelocidadPromedio() / 60.0; // Convertir de nodos/minuto a nodos/segundo
+                long tiempoEnRutaSegundos = (long)((anterior.getRuta().getNodos().size()-1)/velocidadNodosPorSegundo) - Duration.between(fechahora, anterior.getFechaHoraLlegada()).toSeconds();
+                double posicionEnRuta = tiempoEnRutaSegundos * velocidadNodosPorSegundo;
+
+                // Interpolación entre nodos para movimiento más suave
+                ubicacionActual = anterior.getUbicacion();
+                if (anterior.getFechaHoraLlegada().isAfter(fechahora) && anterior.getRuta() != null && anterior.getRuta().getNodos() != null && !anterior.getRuta().getNodos().isEmpty()) {
+                    List<Nodo> nodos = anterior.getRuta().getNodos();
+                    int nodoIndex = (int) posicionEnRuta;
+
+                    if (nodoIndex >= nodos.size()) {
+                        // Si estamos más allá del último nodo, usar el último nodo
+                        ubicacionActual = nodos.get(nodos.size() - 1);
+                    } else if (nodoIndex < 0) {
+                        // Si estamos antes del primer nodo, usar el primer nodo
+                        ubicacionActual = nodos.get(0);
+                    } else {
+                        // Interpolación entre nodos
+                        double fraccion = posicionEnRuta - nodoIndex;
+
+                        if (nodoIndex == nodos.size() - 1) {
+                            // Estamos en el último nodo
+                            ubicacionActual = nodos.get(nodoIndex);
+                        } else {
+                            // Interpolación entre nodo actual y siguiente
+                            Nodo nodoActual = nodos.get(nodoIndex);
+                            Nodo nodoSiguiente = nodos.get(nodoIndex + 1);
+
+                            double xInterpolado = nodoActual.getPosX() + (nodoSiguiente.getPosX() - nodoActual.getPosX()) * fraccion;
+                            double yInterpolado = nodoActual.getPosY() + (nodoSiguiente.getPosY() - nodoActual.getPosY()) * fraccion;
+
+                            ubicacionActual = new Nodo(xInterpolado, yInterpolado);
+                        }
+                    }
+                }
+                return ubicacionActual;
+            }
+        }
         if(anterior.getFechaHoraSalida().equals(fechahora)) {return anterior.getUbicacion();}
         ubicacionActual = anterior.getUbicacion();
         for(int i=1; i<destinos.size(); i++) {
@@ -320,7 +364,7 @@ public class Camion {
             if(destinoFinal instanceof EntregaPedido &&
                     destinoFinal.getFechaHoraLlegada()
                             .isAfter(destinoFinal.getPedido().getFechaHoraMaxEntrega())){
-                if(code != 3)return -1; //pedido con retraso
+                //if(code != 3)return -1; //pedido con retraso
                 if(sistemaPLG.getFechaHoraPrimerColapso() == null
                         || sistemaPLG.getFechaHoraPrimerColapso().isAfter(destinoFinal.getPedido().getFechaHoraMaxEntrega())){
                     sistemaPLG.setFechaHoraPrimerColapso(destinoFinal.getPedido().getFechaHoraMaxEntrega());

@@ -327,7 +327,8 @@ public class SolutionController {
             mejorSolucion.getSistemaPLG().setReplanning(false);
             mejorSolucion.getSistemaPLG().setAveriaStartTime(inicioAveria);
 
-            a.determinarFechaFin(mejorSolucion.getSistemaPLG());
+            a.determinarFechaFin();
+//            a.determinarTiempoSalidaTaller(mejorSolucion.getSistemaPLG());
             //cam.setEstado(EstadoCamion.AVERIADO);
 
             // Replanification process
@@ -533,7 +534,9 @@ public class SolutionController {
             mejorSolucion.getSistemaPLG().setReplanning(false);
             mejorSolucion.getSistemaPLG().setAveriaStartTime(inicioAveria);
 
-            a.determinarFechaFin(mejorSolucion.getSistemaPLG());
+            a.determinarFechaFin();
+
+
             //cam.setEstado(EstadoCamion.AVERIADO);
 
             // Replanification process
@@ -628,8 +631,8 @@ public class SolutionController {
             }
             replanificado.setFlota(camionesDisponibles);
             replanificado.setPedidos(new ArrayList<>());
-
             Camion camAveriado  = mejorSolucion.getSistemaPLG().getFlota().get(idcam-1);
+            int idCamAveriado = camAveriado.getId();
             if(camAveriado.getAverias()==null)camAveriado.setAverias(new ArrayList<>());
             camAveriado.getAverias().add(a);
             if (camAveriado.getAverias().getLast().getTipo().getId() == 1) {
@@ -710,6 +713,9 @@ public class SolutionController {
                     mejorSolucion.getSistemaPLG().setFechaHoraFinEntregas(fechaFinPlan);
                 }
             }
+            Destino destManteniemiento = mejorSolucion.getSistemaPLG().getFlota().get(idCamAveriado-1).getDestinos().getLast();
+            destManteniemiento.setFechaHoraSalida(a.determinarTiempoSalidaTaller(mejorSolucion.getSistemaPLG(), destManteniemiento.getFechaHoraLlegada()));
+
 //            if(mejorSolucionTemp.getSistemaPLG().getCamionCausanteReplan()!=null){
 //                mejorSolucion.getSistemaPLG().getFlota().get(idcam-1).setDestinos(mejorSolucionTemp.getSistemaPLG().getCamionCausanteReplan().getDestinos());
 //            }

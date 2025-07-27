@@ -425,12 +425,15 @@ public class Individuo {
         double totalDistancia = 0;
         double totalCombustible = 0;
         double totalTiempo = 0;
-
+        int camionesActivos = 0;
         for (Camion c : flota) {
             if(c.getDestinos().size()<3){
                 c.setEstado(EstadoCamion.DISPONIBLE);
             }
-            else if(c.getEstado()!=EstadoCamion.AVERIADO) c.setEstado(EstadoCamion.EN_RUTA);
+            else if(c.getEstado()!=EstadoCamion.AVERIADO){
+                c.setEstado(EstadoCamion.EN_RUTA);
+            }
+            if(!c.getPedidosAsignados().isEmpty())camionesActivos++;
             if (!c.getDestinos().isEmpty()) {
                 totalDistancia += c.getDistanciaTotal();
                 totalCombustible += c.getCombustibleEmpleado();
@@ -445,8 +448,11 @@ public class Individuo {
             //funcion sigmoide
             k = 1.0 / (1.0 + Math.exp(-sistemaPLG.getFechaHoraPrimerColapso().toInstant(ZoneOffset.UTC).toEpochMilli()));
         }
+        double wCamiones = 10.0; // peso ajustable
+        double factorCamiones = 1.0 + wCamiones * (camionesActivos / (double) flota.size());
 
-        fitness = k / (0.4 * totalCombustible + 0.1 * totalTiempo + entregasTardias * 500 + 1e-5);
+        fitness = factorCamiones * k / (0.4 * totalCombustible + 0.1 * totalTiempo + entregasTardias * 500 + 1e-5);
+
 
     }
 
