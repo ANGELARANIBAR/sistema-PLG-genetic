@@ -44,10 +44,11 @@ public class Averia {
     
     @Column(name = "turno_ocurrencia")
     private int turnoOcurrencia;
-    public void determinarFechaFin(SistemaPLG sistemaPLG){
+    public LocalDateTime determinarTiempoSalidaTaller(SistemaPLG sistemaPLG, LocalDateTime fechaHoraInicio){
         // no se considera el tiempo inmobilizado en el calculo de la fecha de disponibilidad
-        fechaHoraFin = fechaHoraInicio.plusMinutes((long)tipo.getTiempoInmovilizado()*60);
+
         if(tipo.getId()==1){
+            return fechaHoraInicio;
         }
         else{
             int turno = 0;
@@ -57,7 +58,7 @@ public class Averia {
                     turno = i+1;break;
                 }
             }
-            if(turno == 0)return;
+            if(turno == 0)return fechaHoraInicio;
             int turnoInicio = turno - 2;
             if(turnoInicio < 0){turnoInicio = 0;}//para el caso del turno 1
 
@@ -66,14 +67,20 @@ public class Averia {
                 if(diasExtraDisponible > sistemaPLG.getTurnosFin().size()){
                     diasExtraDisponible -= sistemaPLG.getTurnosFin().size();
                 }
-                fechaHoraFin = fechaHoraInicio.toLocalDate().plusDays(diasExtraDisponible)
+                return fechaHoraInicio.toLocalDate().plusDays(diasExtraDisponible)
                         .atTime(sistemaPLG.getTurnosFin().get(turnoInicio));
             }
-            else{//tipo 3
-                fechaHoraFin = fechaHoraInicio.toLocalDate().plusDays(3)
+            else {//tipo 3
+                return fechaHoraInicio.toLocalDate().plusDays(3)
                         .atTime(sistemaPLG.getTurnosFin().get(turnoInicio));
+            }
+        }
+    }
 
-            }        }
+    public void determinarFechaFin(){
+        fechaHoraFin = fechaHoraInicio.plusMinutes((long)tipo.getTiempoInmovilizado()*60);
+        System.out.println("@@@@@@@@@@@@@@@@@@@@Tiempo inmovilizado" + tipo.getTiempoInmovilizado());
+        System.out.println("@@@@@@@@@@@@@@@@@@@@FechaFin" + fechaHoraFin);
     }
     
     // Métodos personalizados para mantener compatibilidad
