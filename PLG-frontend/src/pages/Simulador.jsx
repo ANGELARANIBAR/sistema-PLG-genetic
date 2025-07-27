@@ -112,7 +112,8 @@ export default function Simulador() {
                 const startTime = new Date(startTimeString);
                 //console.log("Parsed startTime:", startTime);
                 if (fechaStartSimulationAbsolute.current === null && startTime) {
-                    fechaStartSimulationAbsolute.current = startTime;
+                    fechaStartSimulationAbsolute.current = startTime; //unica vez
+                    console.log("unica vez fecha inicio absoluta " + fechaStartSimulationAbsolute)
                     setFechaFinSimulation(new Date(startTime.getTime() + simulatedIntervalHours * 60 * 60 * 1000));
                 }
                 setCurrentTime(startTime);
@@ -267,7 +268,7 @@ export default function Simulador() {
                 setCurrentTime(prevTime => {
                     if (!prevTime) return new Date();
                     // Use seconds instead of minutes for smoother movement
-                    return new Date(prevTime.getTime() + 205000 * playbackSpeed);
+                    return new Date(prevTime.getTime() + 65000 * playbackSpeed);
                 });
             }, 1000);
         }
@@ -328,7 +329,7 @@ export default function Simulador() {
     // Add the effect to call the API at each interval
     useEffect(() => {
         if (!currentTime || !fechaFinSimulation) return;
-
+        //console.log(fechaFinSimulation)
         if (currentTime >= fechaFinSimulation) {
             setIsContinuing(true);
             setLastProcessedFechaHoraFin(fechaHoraFinEntregas);
