@@ -66,27 +66,35 @@
 }
 
 .direction-arrow.direction-up {
-  bottom: -8px;
-  border-bottom: none;
-  border-top: 6px solid #1a237e;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-bottom: 6px solid #1a237e;
+  border-top: none;
 }
 
 .direction-arrow.direction-down {
-  top: -8px;
-  border-top: none;
-  border-bottom: 6px solid #1a237e;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-top: 6px solid #1a237e;
+  border-bottom: none;
 }
 
 .direction-arrow.direction-left {
-  right: -8px;
-  border-right: none;
-  border-left: 6px solid #1a237e;
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-right: 6px solid #1a237e;
+  border-left: none;
 }
 
 .direction-arrow.direction-right {
-  left: -8px;
-  border-left: none;
-  border-right: 6px solid #1a237e;
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left: 6px solid #1a237e;
+  border-right: none;
 }
 
 .marker-icon {
