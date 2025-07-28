@@ -9,7 +9,7 @@ import java.util.*;
 @Data
 public class Individuo {
     private static int nIndividuo = 0;
-    private Map<Integer, List<Integer>> asignacion; // camión -> lista ordenada de pedidos
+    private Map<Integer, Map<Integer, Double>> asignacion; // camión -> { pedido -> volumenAsignado }
     private Map<Integer, List<Integer>> pedidosXcargasGLP; // camión -> buscar carga de GLP deacuerdo a atencion de pedidos
 
     private double fitness;
@@ -22,7 +22,7 @@ public class Individuo {
         asignacion = new HashMap<>();
         pedidosXcargasGLP = new HashMap<>();
         for (int i = 1; i < numCamiones; i++) {
-            asignacion.put(i, new ArrayList<>());
+            asignacion.put(i, new HashMap<>());
         }
         // Asignar pedidos aleatoriamente a camiones (no necesariamente todos los camiones activos)
         List<Integer> pedidos = new ArrayList<>();
@@ -30,10 +30,10 @@ public class Individuo {
             if(sistema.getPedidos().get(i-1).getEstado()==EstadoPedido.PENDIENTE) pedidos.add(sistema.getPedidos().get(i-1).getId());
         }
         //Collections.shuffle(pedidos);
-        int nIntentos=0;Boolean sePuedoAsociarPedido = false;
+        int nIntentos=0;
+        Boolean sePuedoAsociarPedido = false;
         if(nIndividuo<15){
             asignarEquitativamente(numCamiones, pedidos, sistema);
-
         }
         else{
             Random rand = new Random(System.nanoTime() + nIndividuo * 997);
@@ -53,7 +53,9 @@ public class Individuo {
                     camion = 1+rand.nextInt(numCamiones-1);
                 }
                 if(sePuedoAsociarPedido){
-                    asignacion.get(camion).add(pedido);
+                    asignacion
+                    .computeIfAbsent(camion, k -> new LinkedHashMap<>())
+                    .put(pedido, sistema.getPedidos().get(pedido - 1).getVolumenGLP());
                 }
             }
         }
@@ -65,7 +67,9 @@ public class Individuo {
                             .getLast().getTipo().getId()==1 ){
                         for(Pedido ped : c.getPedidosAsignados()){
                             if(ped.getEstado()==EstadoPedido.ASIGNADO){
-                                asignacion.get(c.getId()).add(ped.getId());
+                                asignacion
+                                .computeIfAbsent(c.getId(), k -> new LinkedHashMap<>())
+                                .merge(ped.getId(), ped.getVolumenGLP(), Double::sum);
                             }
                         }
                     }
@@ -79,7 +83,8 @@ public class Individuo {
             int ini=0;
             List<Integer> cargasGLP = new ArrayList<>();
             Random randCargaGLP = new Random(System.nanoTime() + nIndividuo * 9973);
-            int cantPedRestantes = asignacion.get(i).size(), acc = 0;
+            List<Integer> pedIds = new ArrayList<>(asignacion.get(i).keySet());
+            int cantPedRestantes = pedIds.size(), acc = 0;
             while(cantPedRestantes > 0){
                 nIntentos = 0;
                 int cantPedObjetivos = 1+randCargaGLP.nextInt(cantPedRestantes); //minimo 1
@@ -102,7 +107,7 @@ public class Individuo {
         nIndividuo++;
     }
 
-    private Boolean esCamionAveriadoTipo(SistemaPLG sistema, int idxCamion, int tipoAveria){
+    private static Boolean esCamionAveriadoTipo(SistemaPLG sistema, int idxCamion, int tipoAveria){
         for(Camion c : sistema.getCamionesAveriados()){
             if((c.getId()==idxCamion && c.getAverias().getLast().getTipo().getId()==tipoAveria) ||
                     (c.getId()==idxCamion && 0==tipoAveria)
@@ -177,14 +182,18 @@ public class Individuo {
         List<Pedido> pedidos = sistemaPLG.getPedidos();
         List<Cisterna> cisternas = sistemaPLG.getCisternas();
         camion.setEstado(EstadoCamion.EN_RUTA);
-        for (int pedidoIdx : asignacion.get(camion.getId())) {
-            EntregaPedido entrega = new EntregaPedido();
-            entrega.setId(pedidoIdx);
-            entrega.setVolumenGLPEntregado(0.0);
-            entrega.setPedido(pedidos.get(pedidoIdx - 1));
-            entrega.setUbicacion(pedidos.get(pedidoIdx - 1).getUbicacion());
-            camion.getPedidosAsignados().add(pedidos.get(pedidoIdx - 1));
-            camion.getDestinos().add(entrega);
+        Map<Integer, Double> pedMap = asignacion.get(camion.getId());
+        List<Integer> idsOrdenados  = new ArrayList<>(pedMap.keySet()); // LinkedHashMap mantiene orden de inserción
+
+        for (int pedidoId : idsOrdenados) {
+            EntregaPedido ent = new EntregaPedido();
+            ent.setId(pedidoId);
+            ent.setVolumenGLPEntregado(0.0);          // aún no se entrega
+            ent.setPedido(pedidos.get(pedidoId - 1));
+            ent.setUbicacion(pedidos.get(pedidoId - 1).getUbicacion());
+
+            camion.getPedidosAsignados().add(pedidos.get(pedidoId - 1));
+            camion.getDestinos().add(ent);
         }
 
         Reabastecimiento retorno = new Reabastecimiento();
@@ -193,21 +202,27 @@ public class Individuo {
         retorno.setGLPOperacion(0.0);
         camion.getDestinos().add(retorno); // para los camiones averiados inclusive
 
-        camion.setCargasGLP(pedidosXcargasGLP.get(camion.getId()));
-        List<Destino> destinos = sistema.getFlota().get(camion.getId() - 1).getDestinos();
+        /* Calcular GLP inicial ***usando el volumen ASIGNADO***       */
+        camion.setCargasGLP(pedidosXcargasGLP.get(camion.getId()));       // cortes
         double GLPInicial = 0.0;
+        List<Integer> cortes = pedidosXcargasGLP.get(camion.getId());
 
-        camion.setIndicePedidoActual(0); // se pudo recargar GLP en el origen
-        if (!pedidosXcargasGLP.get(camion.getId()).isEmpty()) {
-            for (int i = 0; i < pedidosXcargasGLP.get(camion.getId()).get(0); i++) {
-                GLPInicial += camion.getPedidosAsignados().get(i).getVolumenGLP();
+        if (!cortes.isEmpty()) {
+            int limite = cortes.get(0);                // nº pedidos del primer viaje
+            for (int i = 0; i < limite && i < idsOrdenados.size(); i++) {
+                int idPed = idsOrdenados.get(i);
+                GLPInicial += pedMap.get(idPed);       // SOLO el volumen asignado
             }
             if (camion.getTipo().getCargaGLPMax() < GLPInicial) {
                 fitness = 0.0;
                 return;
             }
-            //GLPInicial -= camion.getCargaGLPActual();
         }
+
+        List<Destino> destinos = sistema.getFlota().get(camion.getId() - 1).getDestinos();
+
+        camion.setIndicePedidoActual(0); // se pudo recargar GLP en el origen
+        
         if (destinos != null) {
             if (camion.getTipo().getCargaGLPMax() < GLPInicial) {
                 fitness = 0.0;
@@ -237,6 +252,7 @@ public class Individuo {
         camion.getDestinos().getFirst().setSaldoGLPCamion(camion.getCargaGLPActual());
         camion.getDestinos().getFirst().setSaldoCombustibleCamion(camion.getCombustibleActual());
     }
+
     public void evaluar(int code, SistemaPLG sistema) {
         fitness = 0.0;
         inicializarSistemaPLG(code, sistema);
@@ -248,11 +264,10 @@ public class Individuo {
                 setEstadoInicialAveriado(camAveriado, sistema);
         }
         int entregasTardias = 0;
-        for (Map.Entry<Integer, List<Integer>> entry : asignacion.entrySet()) {
+        for (Map.Entry<Integer, Map<Integer,Double>> entry : asignacion.entrySet()) {
             int camionIdx = entry.getKey();
-            List<Integer> pedidosAsignados = entry.getValue();
-
-            //if (pedidosAsignados.isEmpty()) continue;
+            Map<Integer, Double> pedidosAsignados = entry.getValue();
+            if (pedidosAsignados.isEmpty()) continue;
 
             Camion camion = flota.get(camionIdx - 1);
             if((sistemaPLG.getCamionCausanteReplan()!=null && sistema.getCamionCausanteReplan().getId()==camionIdx
@@ -261,10 +276,13 @@ public class Individuo {
             }
 
             camion.setEstado(EstadoCamion.EN_RUTA);
-            for (int pedidoIdx : pedidosAsignados) {
+
+            List<Integer> idPedidosOrden = new ArrayList<>(pedidosAsignados.keySet());
+            for (int pedidoIdx : idPedidosOrden) {
+                double volumenAsignado = pedidosAsignados.get(pedidoIdx);
                 EntregaPedido entrega = new EntregaPedido();
                 entrega.setId(pedidoIdx);
-                entrega.setVolumenGLPEntregado(0.0);
+                entrega.setVolumenGLPEntregado(volumenAsignado); // aún no se entrega
                 entrega.setPedido(pedidos.get(pedidoIdx - 1));
                 entrega.setUbicacion(pedidos.get(pedidoIdx - 1).getUbicacion());
                 camion.getPedidosAsignados().add(pedidos.get(pedidoIdx - 1));
@@ -284,12 +302,9 @@ public class Individuo {
             }
             camion.setIndicePedidoActual(0); // se pudo recargar GLP en el origen
             if (!pedidosXcargasGLP.get(camionIdx).isEmpty()) {
-                for (int i = 0; i < pedidosXcargasGLP.get(camionIdx).get(0); i++) {
-                    GLPInicial += camion.getPedidosAsignados().get(i).getVolumenGLP();
-                }
+                GLPInicial = camion.getTipo().getCargaGLPMax();
                 if (camion.getTipo().getCargaGLPMax() < GLPInicial) {
-                    fitness = 0.0;
-                    return;
+                    fitness = 0.0;  return;
                 }
             }
 
@@ -452,15 +467,13 @@ public class Individuo {
         double factorCamiones = 1.0 + wCamiones * (camionesActivos / (double) flota.size());
 
         fitness = factorCamiones * k / (0.4 * totalCombustible + 0.1 * totalTiempo + entregasTardias * 500 + 1e-5);
-
-
     }
 
     public Individuo clonar(int code) {
         Individuo copia = new Individuo(0, 0, this.sistemaPLG, code);
-        Map<Integer, List<Integer>> nuevaAsignacion = new HashMap<>();
-        for (Map.Entry<Integer, List<Integer>> entry : asignacion.entrySet()) {
-            nuevaAsignacion.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+        Map<Integer, Map<Integer, Double>> nuevaAsignacion = new HashMap<>();
+        for (Map.Entry<Integer, Map<Integer, Double>> entry : asignacion.entrySet()) {
+            nuevaAsignacion.put(entry.getKey(), new HashMap<>(entry.getValue()));
         }
         Map<Integer, List<Integer>> nuevacargaGLP = new HashMap<>();
         for (Map.Entry<Integer, List<Integer>> entry : pedidosXcargasGLP.entrySet()) {
@@ -475,7 +488,7 @@ public class Individuo {
     }
 
     public void imprimirAsignacion() {
-        for (Map.Entry<Integer, List<Integer>> entry : asignacion.entrySet()) {
+        for (Map.Entry<Integer, Map<Integer, Double>> entry : asignacion.entrySet()) {
             if (!entry.getValue().isEmpty()) {
                 System.out.println("Camión " + entry.getKey() + ": " + entry.getValue());
             }
@@ -487,71 +500,106 @@ public class Individuo {
         List<Camion> camionesOrdenados = new ArrayList<>(sistema.getFlota());
         Collections.shuffle(camionesOrdenados);
 
-        List<Integer> pedidosOrdenados = new ArrayList<>(pedidos);
-        Collections.shuffle(pedidosOrdenados);
+        pedidos.forEach(id -> {
+            Pedido p = sistema.getPedidos().get(id - 1);
+            if (Double.isNaN(p.getCostoAlgoritmoPedido())) {
+                sistema.calcularCostoPedido(p);
+            }
+        });
+
+        List<Pedido> pedidosOrdenados = pedidos.stream()
+            .map(id -> sistema.getPedidos().get(id - 1))
+            .filter(p -> p.getEstado() == EstadoPedido.PENDIENTE)
+            .sorted(Comparator
+                .comparingDouble((Pedido p) ->
+                    Double.isNaN(p.getCostoAlgoritmoPedido()) ? Double.MAX_VALUE : p.getCostoAlgoritmoPedido())     // evita null
+                .thenComparing(p -> {
+                    LocalDateTime f = p.getFechaHoraMaxEntrega();
+                    return f != null ? f : LocalDateTime.MAX;                  // evita null
+                }))
+            .toList();
 
         Map<Integer, Double> capacidadRestante = new HashMap<>();
 
         // Inicializar asignación y capacidades
         for (Camion camion : camionesOrdenados) {
             int id = camion.getId();
-            asignacion.put(id, new ArrayList<>());
-            capacidadRestante.put(id, camion.getTipo().getCargaGLPMax());
+            asignacion.put(id, new HashMap<>());
+            capacidadRestante.put(id, camion.getCargaGLPActual());
         }
 
-        for (int pedidoId : pedidosOrdenados) {
-            if (sistema.getPedidos().get(pedidoId - 1).getEstado() != EstadoPedido.PENDIENTE) continue;
-            double volumen = sistema.getPedidos().get(pedidoId - 1).getVolumenGLP();
+        /* === 2. FASE *SEMILLA*: cada camión recibe 1 pedido ================= */
+        Iterator<Pedido> iter = pedidosOrdenados.iterator();
+        for (Camion c : camionesOrdenados) {
+            if (esInutil(c, sistema)) continue;
+            if (!iter.hasNext()) break;                   // más camiones que pedidos (raro)
+            Pedido p = iter.next();
+            double asignar = Math.min(p.getVolumenGLP(),   // lo que quepa
+                                    Math.max(capacidadRestante.get(c.getId()), 0.0));
 
-            // Verificar si existe al menos un camión capaz de transportar el pedido
-            boolean pedidoInvalido = true;
-            for (Camion camion : camionesOrdenados) {
-                if (camion.getTipo().getCargaGLPMax() >= volumen) {
-                    pedidoInvalido = false;
-                    break;
-                }
-            }
-            if (pedidoInvalido) {
-                //System.out.println("Pedido " + pedidoId + " es demasiado grande para cualquier camión. Se omite.");
-                continue; // No se puede asignar este pedido
+            if (asignar < 1e-6) {                        
+                capacidadRestante.put(c.getId(), c.getTipo().getCargaGLPMax());
+                asignar = Math.min(p.getVolumenGLP(), capacidadRestante.get(c.getId()));
             }
 
-            // Intentar asignar al azar considerando capacidad disponible
-            List<Camion> copiaCamiones = new ArrayList<>(camionesOrdenados);
-            Collections.shuffle(copiaCamiones);
+            insertar(asignacion, c.getId(), p.getId(), asignar);
+            capacidadRestante.put(c.getId(), capacidadRestante.get(c.getId()) - asignar);
 
-            boolean asignado = false;
-            for (Camion camion : copiaCamiones) {
-                int idCamion = camion.getId();
+            p.setVolumenGLP(p.getVolumenGLP() - asignar); // queda pendiente (puede ser 0)
+        }
 
-                if ((sistema.getCamionCausanteReplan() != null &&
-                        sistema.getCamionCausanteReplan().getId() == idCamion) ||
-                        esCamionAveriadoTipo(sistema, idCamion, 0)) continue;
+        /* === 3. Resto de pedidos (incluyendo pendientes de la semilla) ===== */
+        for (Pedido p : pedidosOrdenados) {
+            double[] rest = { p.getVolumenGLP() };
+            if (rest[0] <= 1e-6) continue;
 
-                if (capacidadRestante.get(idCamion) >= volumen) {
-                    asignacion.get(idCamion).add(pedidoId);
-                    capacidadRestante.put(idCamion, capacidadRestante.get(idCamion) - volumen);
-                    asignado = true;
-                    break;
-                }
+            /* 3A. huecos actuales (balance) */
+            camionesOrdenados.stream()
+                .sorted(Comparator.comparing(
+                        (Camion c) -> capacidadRestante.getOrDefault(c.getId(), 0.0)
+                    ).reversed())
+                .forEach(c -> {
+                    if (rest[0] <= 1e-6) return;
+                    if (esInutil(c, sistema))   return;
+
+                    double cupo  = capacidadRestante.getOrDefault(c.getId(), 0.0);
+                    double carga = Math.min(cupo, rest[0]);
+                    if (carga <= 1e-6) return;
+
+                    insertar(asignacion, c.getId(), p.getId(), carga);
+                    capacidadRestante.put(c.getId(), cupo - carga);
+                    rest[0] -= carga;
+                });
+
+            /* 3B. viajes extra */
+            int idx = 0;
+            while (rest[0] > 1e-6 && idx < camionesOrdenados.size() * 3) {
+                Camion c = camionesOrdenados.get(idx % camionesOrdenados.size());
+                idx++;
+                if (esInutil(c, sistema)) continue;
+
+                capacidadRestante.put(c.getId(), c.getTipo().getCargaGLPMax());           // recarga
+                double carga = Math.min(capacidadRestante.get(c.getId()), rest[0]);
+                insertar(asignacion, c.getId(), p.getId(), carga);
+                capacidadRestante.put(c.getId(), capacidadRestante.get(c.getId()) - carga);
+                rest[0] -= carga;
             }
-
-            // Si no fue posible por capacidad restante, forzar en uno que sí tenga capacidad total suficiente
-            if (!asignado) {
-                for (Camion camion : camionesOrdenados) {
-                    int idCamion = camion.getId();
-                    double capacidadTotal = camion.getTipo().getCargaGLPMax();
-
-                    if (volumen <= capacidadTotal) {
-                        asignacion.get(idCamion).add(pedidoId);
-                        capacidadRestante.put(idCamion, capacidadRestante.get(idCamion) - volumen);
-                        break;
-                    }
-                }
-            }
+            if (rest[0] > 1e-6) System.err.printf("⚠ Pedido %d sin asignar %.2f m³%n",
+                                            p.getId(), rest[0]);
         }
     }
 
+    /* ===== helpers ======================================================= */
+    private static boolean esInutil(Camion c, SistemaPLG sis) {
+        return (sis.getCamionCausanteReplan() != null &&
+                sis.getCamionCausanteReplan().getId() == c.getId()) ||
+                esCamionAveriadoTipo(sis, c.getId(), 0);
+    }
+
+    private static void insertar(Map<Integer, Map<Integer, Double>> m,
+                                int idCam, int idPed, double vol) {
+        m.get(idCam).merge(idPed, vol, Double::sum);
+    }
 
 
 

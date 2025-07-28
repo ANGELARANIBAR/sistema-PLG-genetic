@@ -389,163 +389,210 @@ public class Camion {
     }
 
     //verificando si existe una cisterna que te de el GLP qeu quieres
-    private int insertarNodosIntermediosCargaGLP(Destino start, Destino end, SistemaPLG sistemaPLG) {
-        if (start.getUbicacion().sonIguales(end.getUbicacion())) {
-            return -1;
-        }
-        if (end instanceof EntregaPedido && end.getGLPOperacion() > cargaGLPActual && Math.abs(end.getGLPOperacion() - cargaGLPActual) > 0.001) {
-            int mejorCisterna = -1;
-            double mejorDistancia = Double.MAX_VALUE;
-            double faltanteGLP = end.getGLPOperacion() - cargaGLPActual;
-            Destino mejorEnd=null, elegido=null;
-            faltanteGLP = -cargaGLPActual;
-            if(indicePedidoActual == 0){
-                for(int j=0; j<cargasGLP.get(0); j++){
-                    faltanteGLP += getPedidosAsignados().get(j).getVolumenGLP();
-                }
-            }
-            else{
-                for(int j=cargasGLP.get(indicePedidoActual-1); j<cargasGLP.get(indicePedidoActual); j++){
-                    faltanteGLP += getPedidosAsignados().get(j).getVolumenGLP();
-                }
-            }
-            indicePedidoActual++;
+    private int insertarNodosIntermediosCargaGLP(Destino start,
+                                             Destino end,
+                                             SistemaPLG sistemaPLG) {
 
-            if(tipo.getCargaGLPMax()<faltanteGLP){
-                return -1;}
+        if (start.getUbicacion().sonIguales(end.getUbicacion())) return -1;
+
+        /* ------------------------------------------------------------------
+        ¿Aplica recarga de GLP para el destino 'end'?
+        ------------------------------------------------------------------ */
+        if (end instanceof EntregaPedido
+            && end.getGLPOperacion() > cargaGLPActual
+            && Math.abs(end.getGLPOperacion() - cargaGLPActual) > 0.001) {
+
+            /* 1️⃣  Calcular cuánto falta realmente */
+            int inicio, fin;
+            if (cargasGLP.isEmpty()) return -1;                    // seguridad
+
+            if (indicePedidoActual == 0) {                         // primer viaje
+                inicio = 0;
+                fin    = cargasGLP.get(0);                         // sentinela
+            } else if (indicePedidoActual < cargasGLP.size()) {
+                inicio = cargasGLP.get(indicePedidoActual - 1);
+                fin    = cargasGLP.get(indicePedidoActual);
+            } else {                                               // sin más viajes
+                return -1;
+            }
+
+            double faltanteGLP = 0.0;                              // volumen total
+            for (int j = inicio; j < fin; j++) {
+                faltanteGLP += getPedidosAsignados().get(j).getVolumenGLP();
+            }
+            faltanteGLP -= cargaGLPActual;                         // resta lo que llevo
+
+            /* 2️⃣  Si no falta (o es despreciable), continuar sin cisterna */
+            if (faltanteGLP <= 1e-3) {
+                indicePedidoActual++;                              // siguiente viaje
+                return 1;                                          // sin recarga
+            }
+
+            /* 3️⃣  Buscar la mejor cisterna o trasvase para cubrir 'faltanteGLP' */
+            int   mejorCisterna   = -1;
+            int   idxCamPrueba    = 0;
+            double mejorDistancia = Double.MAX_VALUE;
             double combustibleEmpleadoMejorDist = 0.0;
-            List<List<Destino>> canditatos = new ArrayList<>();
-            List<Camion> camionesPrueba = new ArrayList<>();
+            Destino mejorEnd = null;
+            Destino elegido  = null;
+
+            List<List<Destino>> canditatos   = new ArrayList<>();
+            List<Camion>        camionesTest = new ArrayList<>();
+
+            /* 3.a Cisternas fijas ------------------------------------------------*/
             for (int i = 0; i < sistemaPLG.getCisternas().size(); i++) {
                 Cisterna cisterna = sistemaPLG.getCisternas().get(i);
-                Reabastecimiento reabastecimiento = new Reabastecimiento();
-                reabastecimiento.setCisterna(cisterna);
-                reabastecimiento.setUbicacion(cisterna.getUbicacion());
-                reabastecimiento.setGLPOperacion(faltanteGLP);
-                // si no se puede retirarGLP de la cisterna
-                canditatos.add(new ArrayList<>());//start a cisterna
-                canditatos.add(new ArrayList<>());//cisterna a end
-                camionesPrueba.add(new Camion(this));
-                camionesPrueba.get(i).setDistanciaTotal(0.0);
-                int resultadoNodosIntermedios;
-                resultadoNodosIntermedios = buscarDestinosIntermediosCargaCombustible(canditatos.get(i * 2), start, reabastecimiento, sistemaPLG, camionesPrueba.get(i));//start a cisterna
-                if (resultadoNodosIntermedios == -1) continue;
-                if (!cisterna.puedeRetirarGLP(start.getFechaHoraSalida()
-                        .plusMinutes((long) (camionesPrueba.get(i).distanciaTotal / tipo.getVelocidadPromedio())), faltanteGLP))
-                    continue;
-                resultadoNodosIntermedios = buscarDestinosIntermediosCargaCombustible(canditatos.get(i * 2 + 1), reabastecimiento, end, sistemaPLG, camionesPrueba.get(i));//cisterna a end
+                Reabastecimiento reab = new Reabastecimiento();
+                reab.setCisterna(cisterna);
+                reab.setUbicacion(cisterna.getUbicacion());
+                reab.setGLPOperacion(faltanteGLP);
 
-                if (resultadoNodosIntermedios == -1) continue;
-                if (mejorDistancia > camionesPrueba.get(i).distanciaTotal) {
-                    mejorDistancia = camionesPrueba.get(i).distanciaTotal;
-                    mejorCisterna = i;
-                    combustibleEmpleadoMejorDist = camionesPrueba.get(i).combustibleEmpleado;
-                    if(end instanceof Reabastecimiento){
-                        mejorEnd = new Reabastecimiento((Reabastecimiento)end);
-                    }
-                    else if (end instanceof EntregaPedido){
-                        mejorEnd = new EntregaPedido((EntregaPedido)end);
-                    }else{
-                        mejorEnd = new Trasvase((Trasvase)end);
-                    }
-                    elegido = reabastecimiento;
+                // preparativos para pruebas de ruta
+                canditatos.add(new ArrayList<>());                  // start → cis
+                canditatos.add(new ArrayList<>());                  // cis → end
+                camionesTest.add(new Camion(this));                 // clon ligero
+                camionesTest.get(i).setDistanciaTotal(0.0);
+
+                /*  prueba start → cisterna  */
+                if (buscarDestinosIntermediosCargaCombustible(
+                        canditatos.get(i * 2),
+                        start, reab, sistemaPLG, camionesTest.get(i)) == -1)
+                    continue;
+
+                if (!cisterna.puedeRetirarGLP(
+                        start.getFechaHoraSalida()
+                            .plusMinutes((long) (camionesTest.get(i).distanciaTotal
+                                                / tipo.getVelocidadPromedio())),
+                        faltanteGLP))
+                    continue;
+
+                /*  prueba cisterna → destino  */
+                if (buscarDestinosIntermediosCargaCombustible(
+                        canditatos.get(i * 2 + 1),
+                        reab, end, sistemaPLG, camionesTest.get(i)) == -1)
+                    continue;
+
+                if (camionesTest.get(i).distanciaTotal < mejorDistancia) {
+                    mejorDistancia   = camionesTest.get(i).distanciaTotal;
+                    mejorCisterna    = i;
+                    combustibleEmpleadoMejorDist = camionesTest.get(i).combustibleEmpleado;
+                    mejorEnd = (end instanceof Reabastecimiento) ? new Reabastecimiento((Reabastecimiento) end)
+                            : (end instanceof EntregaPedido)    ? new EntregaPedido((EntregaPedido) end)
+                            : new Trasvase((Trasvase) end);
+                    elegido = reab;
                 }
             }
-            int tope = 0;
-            if(mejorCisterna*2==canditatos.size()){
-                tope = canditatos.size();
-            }
-            int idxCamPrueba = canditatos.size()/2;
-            if(canditatos.size()%2!=0)System.out.println("############################################Cantidad erronea############################################");
-            for(int j=0; j<sistemaPLG.getCamionesAveriados().size(); j++){
-                Trasvase trasvase = new Trasvase();
-                int resultadoNodosIntermedios;
-                Camion camionAveriado = sistemaPLG.getCamionesAveriados().get(j);
-                if(faltanteGLP>camionAveriado.getCargaGLPActual() || !(camionAveriado.getDestinos().getFirst() instanceof Replanficacion)){continue;}
-                trasvase.setCamionTrasvase(camionAveriado);
-                trasvase.setUbicacion(camionAveriado.getUbicacionActual());
-                trasvase.setGLPOperacion(faltanteGLP);
-                canditatos.add(idxCamPrueba*2, new ArrayList<>());//start a trasvase
-                canditatos.add(idxCamPrueba*2+1, new ArrayList<>());//trasvase a end
-                camionesPrueba.add(idxCamPrueba, new Camion(this));
-                camionesPrueba.get(idxCamPrueba).setDistanciaTotal(0.0);
-                resultadoNodosIntermedios = buscarDestinosIntermediosCargaCombustible(
-                        canditatos.get(idxCamPrueba * 2), start, trasvase, sistemaPLG, camionesPrueba.get(idxCamPrueba));//start a cisterna
-                if (resultadoNodosIntermedios == -1) continue;
-                trasvase.setFechaHoraTrasvase(start.getFechaHoraSalida()
-                        .plusMinutes((long) (camionesPrueba.get(idxCamPrueba).distanciaTotal / tipo.getVelocidadPromedio())));
-                if(!camionAveriado.disponibleParaTrasvase(trasvase.getFechaHoraTrasvase(), faltanteGLP))continue;
-                resultadoNodosIntermedios = buscarDestinosIntermediosCargaCombustible(
-                        canditatos.get(idxCamPrueba * 2 + 1), trasvase, end, sistemaPLG, camionesPrueba.get(idxCamPrueba));//cisterna a end
 
-                if (resultadoNodosIntermedios == -1) continue;
-                if (mejorDistancia > camionesPrueba.get(idxCamPrueba).distanciaTotal) {
-                    mejorDistancia = camionesPrueba.get(idxCamPrueba).distanciaTotal;
-                    mejorCisterna = idxCamPrueba;
-                    combustibleEmpleadoMejorDist = camionesPrueba.get(idxCamPrueba).combustibleEmpleado;
-                    if(end instanceof Reabastecimiento){
-                        mejorEnd = new Reabastecimiento((Reabastecimiento)end);
-                    }
-                    else if (end instanceof EntregaPedido){
-                        mejorEnd = new EntregaPedido((EntregaPedido)end);
-                    }else{
-                        mejorEnd = new Trasvase((Trasvase)end);
-                    }
-                    elegido = trasvase;
+            /* 3.b Trasvase desde camión averiado --------------------------------*/
+            idxCamPrueba = canditatos.size() / 2;                   // posición actual
+            for (Camion camAveriado : sistemaPLG.getCamionesAveriados()) {
+
+                if (faltanteGLP > camAveriado.getCargaGLPActual()
+                    || !(camAveriado.getDestinos().getFirst() instanceof Replanficacion))
+                    continue;
+
+                Trasvase trasv = new Trasvase();
+                trasv.setCamionTrasvase(camAveriado);
+                trasv.setUbicacion(camAveriado.getUbicacionActual());
+                trasv.setGLPOperacion(faltanteGLP);
+
+                canditatos.add(idxCamPrueba * 2,     new ArrayList<>());
+                canditatos.add(idxCamPrueba * 2 + 1, new ArrayList<>());
+                camionesTest.add(idxCamPrueba, new Camion(this));
+                camionesTest.get(idxCamPrueba).setDistanciaTotal(0.0);
+
+                /* start → camión averiado */
+                if (buscarDestinosIntermediosCargaCombustible(
+                        canditatos.get(idxCamPrueba * 2),
+                        start, trasv, sistemaPLG, camionesTest.get(idxCamPrueba)) == -1)
+                    { idxCamPrueba++; continue; }
+
+                /* comprobar disponibilidad del averiado */
+                trasv.setFechaHoraTrasvase(
+                        start.getFechaHoraSalida()
+                            .plusMinutes((long) (camionesTest.get(idxCamPrueba).distanciaTotal
+                                                / tipo.getVelocidadPromedio())));
+
+                if (!camAveriado.disponibleParaTrasvase(
+                        trasv.getFechaHoraTrasvase(), faltanteGLP))
+                    { idxCamPrueba++; continue; }
+
+                /* camión averiado → destino */
+                if (buscarDestinosIntermediosCargaCombustible(
+                        canditatos.get(idxCamPrueba * 2 + 1),
+                        trasv, end, sistemaPLG, camionesTest.get(idxCamPrueba)) == -1)
+                    { idxCamPrueba++; continue; }
+
+                if (camionesTest.get(idxCamPrueba).distanciaTotal < mejorDistancia) {
+                    mejorDistancia   = camionesTest.get(idxCamPrueba).distanciaTotal;
+                    mejorCisterna    = idxCamPrueba;            // marcamos índice
+                    combustibleEmpleadoMejorDist = camionesTest.get(idxCamPrueba).combustibleEmpleado;
+                    mejorEnd = (end instanceof Reabastecimiento) ? new Reabastecimiento((Reabastecimiento) end)
+                            : (end instanceof EntregaPedido)    ? new EntregaPedido((EntregaPedido) end)
+                            : new Trasvase((Trasvase) end);
+                    elegido = trasv;
                 }
                 idxCamPrueba++;
+            }
 
-            }
-            if (mejorCisterna == -1) return -1; // no hay cisterna que abastesca solucion
-            end.setFechaHoraLlegada(start.getFechaHoraSalida().plusMinutes((long) (mejorDistancia / tipo.getVelocidadPromedio())));
-            end.setFechaHoraSalida(end.getFechaHoraLlegada().plusMinutes((long)end.getTiempoOperacion()));
-            //combustibleEmpleado += camionesPrueba.get(mejorCisterna).combustibleEmpleado;
+            /* 4️⃣  Si no hallamos forma de obtener GLP, abortar */
+            if (mejorCisterna == -1) return -1;
+
+            /* 5️⃣  Insertar los destinos elegidos en la ruta real */
             int indexEnd = destinos.indexOf(end);
-            if (indexEnd == -1) {
-                indexEnd = 0;
-            }
-            destinos.addAll(indexEnd, canditatos.get(mejorCisterna * 2));
+            if (indexEnd == -1) indexEnd = 0;
+            destinos.addAll(indexEnd, canditatos.get(mejorCisterna * 2));       // antes de cisterna/trasvase
             indexEnd = destinos.indexOf(end);
             destinos.remove(indexEnd);
-            destinos.addAll(indexEnd, canditatos.get(mejorCisterna * 2 + 1));
+            destinos.addAll(indexEnd, canditatos.get(mejorCisterna * 2 + 1));   // después de cisterna/trasvase
             indexEnd = destinos.indexOf(end);
             destinos.remove(indexEnd);
-            destinos.add(indexEnd, mejorEnd);
-            distanciaTotal += mejorDistancia;
+            destinos.add(indexEnd, mejorEnd);                                   // reemplaza 'end'
+
+            /* 6️⃣  Actualizar métricas y saldos */
+            distanciaTotal     += mejorDistancia;
             combustibleEmpleado += combustibleEmpleadoMejorDist;
-            combustibleActual = canditatos.get(mejorCisterna * 2 + 1).get(canditatos.get(mejorCisterna * 2 + 1).size()-1).getSaldoCombustibleCamion();
-            cargaGLPActual = camionesPrueba.get(mejorCisterna).getCargaGLPActual(); // gastado
-            if(elegido instanceof Reabastecimiento){
-                sistemaPLG.getCisternas().get(mejorCisterna).registrarRetiroGLP(elegido.getFechaHoraLlegada(),
-                        faltanteGLP, this);
+            combustibleActual   = canditatos
+                                    .get(mejorCisterna * 2 + 1)
+                                    .get(canditatos.get(mejorCisterna * 2 + 1).size() - 1)
+                                    .getSaldoCombustibleCamion();
+            cargaGLPActual      = camionesTest.get(mejorCisterna).getCargaGLPActual();
+
+            if (elegido instanceof Reabastecimiento) {
+                sistemaPLG.getCisternas().get(mejorCisterna)
+                        .registrarRetiroGLP(elegido.getFechaHoraLlegada(),
+                                            faltanteGLP, this);
                 elegido.setEstadoCamion(EstadoCamion.EN_RECARGA_GLP);
-            }else{
-                Camion camEnSistema = sistemaPLG.getFlota().get(((Trasvase)elegido).getCamionTrasvase().getId()-1);
-                //encontrar el destino y actualzar le saldo GLP en destino
-                Destino anterior = camEnSistema.getDestinoAnteriorAFechaHora(((Trasvase) elegido).getFechaHoraTrasvase());
-                if(anterior==null)return 1;
-                camEnSistema.setCargaGLPActual(camEnSistema.getDestinos().getFirst().getSaldoGLPCamion() - faltanteGLP);
-                anterior.setSaldoGLPCamion(camEnSistema.getCargaGLPActual());
+            } else {   // Trasvase
+                Camion camSistema = sistemaPLG.getFlota()
+                                            .get(((Trasvase) elegido).getCamionTrasvase().getId() - 1);
+                Destino ant = camSistema.getDestinoAnteriorAFechaHora(
+                                ((Trasvase) elegido).getFechaHoraTrasvase());
+                if (ant == null) return 1;
+
+                camSistema.setCargaGLPActual(
+                    camSistema.getDestinos().getFirst().getSaldoGLPCamion() - faltanteGLP);
+                ant.setSaldoGLPCamion(camSistema.getCargaGLPActual());
                 elegido.setEstadoCamion(EstadoCamion.EN_RECARGA_GLP);
-                if(camEnSistema.getDestinos().getFirst() instanceof Replanficacion){
+
+                if (camSistema.getDestinos().getFirst() instanceof Replanficacion rep) {
                     OperacionesGLPCisterna op = new OperacionesGLPCisterna();
                     op.setCantSalidaGLP(elegido.operacionCargaGLP());
                     op.setFechaHoraOperacion(((Trasvase) elegido).getFechaHoraTrasvase());
                     op.setCamion(this);
-                    op.setSaldoGLP(camEnSistema.getCargaGLPActual());
-                    if(((Replanficacion) camEnSistema.getDestinos().getFirst()).getOperaciones()==null){
-                        ((Replanficacion) camEnSistema.getDestinos().getFirst()).setOperaciones(new ArrayList<>());
-                    }
-                    ((Replanficacion) camEnSistema.getDestinos().getFirst()).getOperaciones().add(op);
+                    op.setSaldoGLP(camSistema.getCargaGLPActual());
+                    if (rep.getOperaciones() == null) rep.setOperaciones(new ArrayList<>());
+                    rep.getOperaciones().add(op);
                 }
             }
+
             end.setSaldoGLPCamion(cargaGLPActual);
             end.setSaldoCombustibleCamion(combustibleActual);
-
-            return 0; //ok si hay una cisterna en la capacidad de suministrar el faltante
-        } else{
-            return 1;
+            return 0;                                          // todo OK
         }
+
+        /* 7️⃣  Si no se requiere GLP extra */
+        return 1;
     }
 
     private Boolean disponibleParaTrasvase(LocalDateTime fechaHora, double cantidadSolicitada){

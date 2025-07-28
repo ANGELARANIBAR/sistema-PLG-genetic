@@ -415,7 +415,7 @@ public class SistemaPLG {
             System.out.println("Error al leer el archivo: " + e.getMessage());
         }
     }
-    private void calcularCostoPedido(Pedido pedidoNuevo) {
+    public void calcularCostoPedido(Pedido pedidoNuevo) {
         long tiempoRestante = Duration.between(fechaHoraInicio, pedidoNuevo.getFechaHoraMaxEntrega()).getSeconds();
         double distancia = Ruta.heuristica(cisternas.getFirst().getUbicacion(), pedidoNuevo.getUbicacion());
 
@@ -555,17 +555,22 @@ public class SistemaPLG {
         }
     }
 
-    public Boolean puedeCargar(int idxcamion, Map<Integer, List<Integer>> asignacion, int ini, int fin){
-        double cargaPorPedidos = 0.0;
-        for(int i=ini; i<fin; i++){
-            int idped = asignacion.get(idxcamion+1).get(i);
-            if(pedidos.isEmpty())
-                System.out.println("no hay pedidos.");
-            cargaPorPedidos += pedidos.get(idped-1).getVolumenGLP();
+    public Boolean puedeCargar(int idxcamion, Map<Integer, Map<Integer, Double>> asignacion, int ini, int fin){
+        Map<Integer,Double> pedMap = asignacion.get(idxcamion + 1);
+        if (pedMap == null || pedMap.isEmpty()) return true;
+
+        List<Integer> ids = new ArrayList<>(pedMap.keySet());   // orden de inserción
+
+        double carga = 0.0;
+        for (int i = ini; i < fin && i < ids.size(); i++) {
+            int idPed = ids.get(i);
+            carga += pedMap.get(idPed);      // usamos VOLUMEN asignado
         }
-        return cargaPorPedidos < flota.get(idxcamion).getTipo().getCargaGLPMax() ||
-                Math.abs(cargaPorPedidos - flota.get(idxcamion).getTipo().getCargaGLPMax()) < 0.001;
+
+        double capacidad = flota.get(idxcamion).getTipo().getCargaGLPMax();
+        return carga < capacidad || Math.abs(carga - capacidad) < 1e-3;
     }
+
     public void imprimirPlanificacion(){
         for(Camion camion1 : getFlota()){
 

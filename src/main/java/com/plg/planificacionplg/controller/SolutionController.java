@@ -638,8 +638,8 @@ public class SolutionController {
             if (camAveriado.getAverias().getLast().getTipo().getId() == 1) {
                 List<Pedido>pedidosPendientes = new ArrayList<>();
                 for (Pedido p : mejorSolucion.getSistemaPLG().getFlota().get(camAveriado.getId()-1).getPedidosAsignados()) {
-                    if (p.getEstado() == EstadoPedido.PENDIENTE) {
-                        //p.setEstado(EstadoPedido.ASIGNADO);//no pasan a replanificaion
+                    if (p.getEstado() != EstadoPedido.ENTREGADO) {
+                        p.setEstado(EstadoPedido.PENDIENTE);
                         pedidosPendientes.add(p);
                         Pedido pedRep = new Pedido(p);
                         idxPedidosAnterior.add(p.getId());

@@ -162,7 +162,7 @@ public class PlanificacionPlgApplication {
             camion.setPlaca("ABC-00" + String.valueOf(camion.getId()));
             camion.setEstado(EstadoCamion.DISPONIBLE);
             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
-            //camion.setCargaGLPActual(camion.getTipo().getCargaGLPMax());
+            camion.setCargaGLPActual(camion.getTipo().getCargaGLPMax());
             sistemaPLG.getFlota().add(camion);
         }
         cantCamionesInicial = sistemaPLG.getFlota().size();
@@ -175,6 +175,7 @@ public class PlanificacionPlgApplication {
             camion.setPlaca("ABC-00" + String.valueOf(camion.getId()));
             camion.setEstado(EstadoCamion.DISPONIBLE);
             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
+            camion.setCargaGLPActual(camion.getTipo().getCargaGLPMax());
             sistemaPLG.getFlota().add(camion);
         }
         cantCamionesInicial = sistemaPLG.getFlota().size();
@@ -187,6 +188,7 @@ public class PlanificacionPlgApplication {
             camion.setPlaca("ABC-00" + String.valueOf(camion.getId()));
             camion.setEstado(EstadoCamion.DISPONIBLE);
             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
+            camion.setCargaGLPActual(camion.getTipo().getCargaGLPMax());
             sistemaPLG.getFlota().add(camion);
         }
         cantCamionesInicial = sistemaPLG.getFlota().size();
@@ -199,6 +201,7 @@ public class PlanificacionPlgApplication {
             camion.setPlaca("ABC-00" + String.valueOf(camion.getId()));
             camion.setEstado(EstadoCamion.DISPONIBLE);
             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
+            camion.setCargaGLPActual(camion.getTipo().getCargaGLPMax());
             sistemaPLG.getFlota().add(camion);
         }
 
@@ -615,7 +618,7 @@ public class PlanificacionPlgApplication {
                 PlanificacionPlgApplication.setSigListo(false);
                 conservarAveriados(inicio);
                 PlanificacionPlgApplication.setMejorSolucion(mejorSolucionSiguiente);
-                PlanificacionPlgApplication.setBatchRefreshNeeded(false);//true);
+                PlanificacionPlgApplication.setBatchRefreshNeeded(true);//true);
                 mejorSolucion = mejorSolucionSiguiente;
                 System.out.println("Continuing with remaining batches...");
 
@@ -855,6 +858,7 @@ public class PlanificacionPlgApplication {
             List<Pedido>pedidosEnCurso = new ArrayList<>();
             for (int i = 0; i < mejorSolucion.getSistemaPLG().getFlota().size(); i++) {
                 //si el camion no tiene registro de atenciones en la planificaicon
+                if (mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().isEmpty()) return;
                 if(mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().getFirst().getEstadoCamion() == EstadoCamion.AVERIADO &&
                         mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos().getFirst().getFechaHoraSalida().isAfter(inicioReplan)){
                     //averiaActiva en replanificacion

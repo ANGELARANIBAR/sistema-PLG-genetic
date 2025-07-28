@@ -56,8 +56,9 @@ public class Pedido{
 
     @Getter
     @Setter
-    private double costoAlgoritmoPedido;
+    private double costoAlgoritmoPedido = Double.NaN;
 
+    @EqualsAndHashCode.Exclude
     @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
     @JoinTable(
         name = "pedido_camiones",

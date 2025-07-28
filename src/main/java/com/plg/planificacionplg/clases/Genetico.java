@@ -168,27 +168,27 @@ public class Genetico {
     private Individuo cruzar(Individuo padre1, Individuo padre2, int numCamiones, int code) {
         numCamiones+=1;
         Random rand = new Random();
-        Map<Integer, List<Integer>> asignacionHijo = new HashMap<>();
+        Map<Integer, Map<Integer, Double>> asignacionHijo = new HashMap<>();
 
         Set<Integer> asignados = new HashSet<>();
         Camion camAveriado = padre1.getSistemaPLG().getCamionCausanteReplan();
         for (int i = 1; i < numCamiones; i++) {
             if(camAveriado!=null && camAveriado.getId()==i)continue;
-            List<Integer> pedidos1 = padre1.getAsignacion().getOrDefault(i, new ArrayList<>());
-            List<Integer> pedidos2 = padre2.getAsignacion().getOrDefault(i, new ArrayList<>());
+            Map<Integer, Double> pedidos1 = padre1.getAsignacion().getOrDefault(i, new HashMap<>());
+            Map<Integer, Double> pedidos2 = padre2.getAsignacion().getOrDefault(i, new HashMap<>());
 
-            List<Integer> hijoPedidos = new ArrayList<>();
-            for (Integer pedido : pedidos1) {
+            Map<Integer, Double> hijoPedidos = new HashMap<>();
+            for (Integer pedido : pedidos1.keySet()) {
                 if (!asignados.contains(pedido) && rand.nextBoolean()
                         && padre1.getSistemaPLG().getPedidos().get(pedido-1).getEstado()==EstadoPedido.PENDIENTE) {
-                    hijoPedidos.add(pedido);
+                    hijoPedidos.put(pedido, pedidos1.get(pedido));
                     asignados.add(pedido);
                 }
             }
-            for (Integer pedido : pedidos2) {
+            for (Integer pedido : pedidos2.keySet()) {
                 if (!asignados.contains(pedido)
                         && padre1.getSistemaPLG().getPedidos().get(pedido-1).getEstado()==EstadoPedido.PENDIENTE) {
-                    hijoPedidos.add(pedido);
+                    hijoPedidos.put(pedido, pedidos2.get(pedido));
                     asignados.add(pedido);
                 }
             }
@@ -196,18 +196,18 @@ public class Genetico {
             asignacionHijo.put(i, hijoPedidos);
         }
         if(camAveriado!=null){
-            List<Integer>pedidosCamAveriado = new ArrayList<>();
+            Map<Integer, Double> pedidosCamAveriado = new HashMap<>();
             for(Pedido p : camAveriado.getPedidosAsignados())
-                if(p.getEstado()==EstadoPedido.ASIGNADO)pedidosCamAveriado.add(p.getId());
+                if(p.getEstado()==EstadoPedido.ASIGNADO)pedidosCamAveriado.put(p.getId(), p.getVolumenGLP());
             asignacionHijo.put(camAveriado.getId(), pedidosCamAveriado);
         }
         // Reparar pedidos faltantes
         List<Integer> todosPedidos = new ArrayList<>();
-        for (List<Integer> pedidos : padre1.getAsignacion().values()) {
-            todosPedidos.addAll(pedidos);
+        for (Map<Integer, Double> pedidos : padre1.getAsignacion().values()) {
+            todosPedidos.addAll(pedidos.keySet());
         }
-        for (List<Integer> pedidos : padre2.getAsignacion().values()) {
-            todosPedidos.addAll(pedidos);
+        for (Map<Integer, Double> pedidos : padre2.getAsignacion().values()) {
+            todosPedidos.addAll(pedidos.keySet());
         }
 
 
@@ -216,7 +216,7 @@ public class Genetico {
                     && padre1.getSistemaPLG().getPedidos().get(faltante-1).getEstado()==EstadoPedido.PENDIENTE) {
                 int randomCamion = 1 + rand.nextInt(numCamiones-1);
                 while(camAveriado!=null && camAveriado.getId()==randomCamion)randomCamion = 1 + rand.nextInt(numCamiones-1);
-                asignacionHijo.computeIfAbsent(randomCamion, k -> new ArrayList<>()).add(faltante);
+                asignacionHijo.computeIfAbsent(randomCamion, k -> new HashMap<>()).put(faltante, padre1.getSistemaPLG().getPedidos().get(faltante-1).getVolumenGLP());
             }
         }
 
@@ -225,7 +225,7 @@ public class Genetico {
         for (int i = 1; i < numCamiones; i++) {
             List<Integer> cargas = new ArrayList<>();
             Random randCarga = new Random();
-            int cantPedRestantes = asignacionHijo.getOrDefault(i, new ArrayList<>()).size();
+            int cantPedRestantes = asignacionHijo.getOrDefault(i, new HashMap<>()).size();
             int acc = 0;
 
             while (cantPedRestantes > 0) {
@@ -253,11 +253,11 @@ public class Genetico {
     private void mutar(Individuo ind, int numCamiones) {
         numCamiones+=1;
         Random rand = new Random();
-        Map<Integer, List<Integer>> asignacion = ind.getAsignacion();
+        Map<Integer, Map<Integer, Double>> asignacion = ind.getAsignacion();
 
         // Seleccionar pedido aleatorio
         List<Integer> todosPedidos = new ArrayList<>();
-        for (List<Integer> pedidos : asignacion.values()) todosPedidos.addAll(pedidos);
+        for (Map<Integer, Double> pedidos : asignacion.values()) todosPedidos.addAll(pedidos.keySet());
         if (todosPedidos.isEmpty()) return;
 
         int pedido = todosPedidos.get(rand.nextInt(todosPedidos.size()));
@@ -265,8 +265,8 @@ public class Genetico {
             pedido = todosPedidos.get(rand.nextInt(todosPedidos.size()));
         }
         // Remover de su camión actual
-        for (List<Integer> pedidos : asignacion.values()) {
-            pedidos.remove((Integer) pedido);
+        for (Map<Integer, Double> pedidos : asignacion.values()) {
+            pedidos.remove(pedido);
         }
         Camion camAveriado = ind.getSistemaPLG().getCamionCausanteReplan();
         // Reasignar aleatoriamente
@@ -274,12 +274,12 @@ public class Genetico {
         while(camAveriado != null && nuevoCamion==camAveriado.getId()){
             nuevoCamion = 1 + rand.nextInt(numCamiones-1);
         }
-        asignacion.computeIfAbsent(nuevoCamion, k -> new ArrayList<>()).add(pedido);
+        asignacion.computeIfAbsent(nuevoCamion, k -> new HashMap<>()).put(pedido, ind.getSistemaPLG().getPedidos().get(pedido-1).getVolumenGLP());
 
         if(camAveriado!=null){
-            List<Integer>pedidosCamAveriado = new ArrayList<>();
+            Map<Integer, Double> pedidosCamAveriado = new HashMap<>();
             for(Pedido p : camAveriado.getPedidosAsignados())
-                if(p.getEstado()==EstadoPedido.ASIGNADO)pedidosCamAveriado.add(p.getId());
+                if(p.getEstado()==EstadoPedido.ASIGNADO)pedidosCamAveriado.put(p.getId(), p.getVolumenGLP());
             asignacion.put(camAveriado.getId(), pedidosCamAveriado);
         }
 
@@ -288,7 +288,7 @@ public class Genetico {
         for (int i = 1; i < numCamiones; i++) {
             List<Integer> cargas = new ArrayList<>();
             Random randCarga = new Random();
-            int cantPedRestantes = asignacion.getOrDefault(i, new ArrayList<>()).size();
+            int cantPedRestantes = asignacion.getOrDefault(i, new HashMap<>()).size();
             int acc = 0;
 
             while (cantPedRestantes > 0) {
