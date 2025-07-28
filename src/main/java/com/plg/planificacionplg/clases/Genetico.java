@@ -43,9 +43,9 @@ public class Genetico {
 
             Individuo ind = new Individuo(numPedidos, numCamiones, sistema, code);
 
-//            System.out.println(ind.getAsignacion());
-//            System.out.println(ind.getPedidosXcargasGLP());
-//            System.out.println("***************************************************************************************");
+            System.out.println(ind.getAsignacion());
+            System.out.println(ind.getPedidosXcargasGLP());
+            System.out.println("***************************************************************************************");
 
             ind.evaluar(code, sistema);
             poblacion.add(ind);
@@ -102,6 +102,10 @@ public class Genetico {
 
                     while (generados < numIndividuosExploratorios && intentos < maxIntentos && nuevaGeneracion.size() < tamPoblacion) {
                         Individuo nuevo = new Individuo(numPedidos, numCamiones, sistema, code);
+                        System.out.println(nuevo.getAsignacion());
+                        System.out.println(nuevo.getPedidosXcargasGLP());
+                        System.out.println("***************************************************************************************");
+
                         if (PlanificacionPlgApplication.isCancelarReplanificacion()) {
                             System.out.println("Replanificación cancelada.");
                             return perfecto; // salir anticipadamente

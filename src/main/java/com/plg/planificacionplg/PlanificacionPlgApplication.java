@@ -865,6 +865,7 @@ public class PlanificacionPlgApplication {
                     List<Destino>destinos = mejorSolucion.getSistemaPLG().getFlota().get(i).getDestinos();
 
                     Camion camTemp = new Camion(mejorSolucion.getSistemaPLG().getFlota().get(i));
+
                     for(Destino d : destinos){
                         if(d.getFechaHoraSalida()!=null && d.getFechaHoraSalida().isBefore(inicioReplan))continue; //solo utilizara los destins a partir de aca
                         Destino nuevoDest = d.copiar();
@@ -875,6 +876,10 @@ public class PlanificacionPlgApplication {
                         }
                         camTemp.getDestinos().add(nuevoDest);
                     }
+                    camTemp.getDestinos().getFirst().setSaldoGLPCamion(mejorSolucion.getSistemaPLG().getFlota().get(i).calcularGLPActual(inicioReplan));
+//                    if(!camTemp.getDestinos().isEmpty() && !(camTemp.getDestinos().getFirst() instanceof Reabastecimiento))
+//                        camTemp.setCargaGLPActual(camTemp.getDestinos().getFirst().getSaldoGLPCamion());
+
                     camionesEnRuta.add(camTemp);
                     destinos = camTemp.getDestinos();
 
