@@ -865,13 +865,74 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
               <div
                 className={`cisterna-marker ${cisterna.principal ? 'principal' : 'secundaria'} ${selectedItem?.type === 'cisterna' && selectedItem.id === index ? 'selected' : ''}`}
                 style={{
-                  left: pos.x - 12,
-                  top: pos.y - 12
+                  left: pos.x - 18,
+                  top: pos.y - 18
                 }}
                 onClick={(e) => handleMarkerClick(e, { type: 'cisterna', id: index })}
               >
-                <img src={cisternaIcon} alt="Cisterna" className="marker-icon" />
-                <span className="marker-label">C{index + 1}</span>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  backgroundColor: cisterna.principal ? '#1565C0' : '#FF7043',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '3px solid #fff',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                  position: 'relative'
+                }}>
+                  <div style={{
+                    width: '24px',
+                    height: '16px',
+                    backgroundColor: '#fff',
+                    borderRadius: '4px',
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <div style={{
+                      width: '18px',
+                      height: '10px',
+                      backgroundColor: cisterna.principal ? '#1565C0' : '#FF7043',
+                      borderRadius: '2px',
+                      position: 'relative'
+                    }}>
+                      <div style={{
+                        position: 'absolute',
+                        top: '2px',
+                        left: '2px',
+                        right: '2px',
+                        height: '2px',
+                        backgroundColor: '#fff',
+                        borderRadius: '1px'
+                      }}></div>
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '2px',
+                        left: '2px',
+                        right: '2px',
+                        height: '2px',
+                        backgroundColor: '#fff',
+                        borderRadius: '1px'
+                      }}></div>
+                    </div>
+                  </div>
+                </div>
+                <span className="marker-label" style={{
+                  position: 'absolute',
+                  bottom: '-20px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                  color: '#333',
+                  backgroundColor: 'rgba(255,255,255,0.9)',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  border: '1px solid #ddd'
+                }}>C{index + 1}</span>
               </div>
             </CustomTooltip>
           );
@@ -1012,7 +1073,35 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <img src={cisternaIcon} alt="Cisterna" style={{ width: '16px', height: '16px' }} />
+                <div style={{
+                  width: '18px',
+                  height: '18px',
+                  backgroundColor: '#1565C0',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid #fff',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.3)'
+                }}>
+                  <div style={{
+                    width: '10px',
+                    height: '6px',
+                    backgroundColor: '#fff',
+                    borderRadius: '2px',
+                    position: 'relative'
+                  }}>
+                    <div style={{
+                      width: '8px',
+                      height: '4px',
+                      backgroundColor: '#1565C0',
+                      borderRadius: '1px',
+                      position: 'absolute',
+                      top: '1px',
+                      left: '1px'
+                    }}></div>
+                  </div>
+                </div>
               </div>
               <span style={{ fontSize: '12px', color: '#333' }}>Cisterna</span>
             </div>

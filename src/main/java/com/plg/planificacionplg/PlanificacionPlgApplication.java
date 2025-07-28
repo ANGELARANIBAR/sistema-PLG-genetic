@@ -641,12 +641,15 @@ public class PlanificacionPlgApplication {
                 for(Destino d : destinos){
                     if(d instanceof EntregaPedido){
                         Destino nuevaEntrega = d.copiar();
+                        Pedido p = new Pedido(d.getPedido());
+                        p.setEstado(EstadoPedido.PENDIENTE);   // o el enum que uses para “no entregado”
+                        p.setFechaHoraEntrega(null);
                         System.out.println("Entrega pedido en destino averia: "  + d.getPedido().getNumeroPedido());
                         encontrado = false;
-                        for(Pedido p : mejorSolucionSiguiente.getSistemaPLG().getPedidos()){
+                        for(Pedido p1 : mejorSolucionSiguiente.getSistemaPLG().getPedidos()){
                             //System.out.println("Entrega pedido en replanificacion: "  + p.getNumeroPedido());
-                            if(p.getNumeroPedido()==d.getPedido().getNumeroPedido()){
-                                nuevaEntrega.setPedido(p);
+                            if(p1.getNumeroPedido()==d.getPedido().getNumeroPedido()){
+                                nuevaEntrega.setPedido(p1);
                                 destActuales.add(nuevaEntrega);
                                 encontrado = true;
                                 break;
