@@ -5,6 +5,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
+import java.util.function.BiPredicate;
 
 @Data
 public class Individuo {
@@ -30,30 +31,59 @@ public class Individuo {
             if(sistema.getPedidos().get(i-1).getEstado()==EstadoPedido.PENDIENTE) pedidos.add(sistema.getPedidos().get(i-1).getId());
         }
         //Collections.shuffle(pedidos);
-        int nIntentos=0;Boolean sePuedoAsociarPedido = false;
+        int numIntentos=0;Boolean sePuedoAsociarPedido = false;
         if(nIndividuo<15){
             asignarEquitativamente(numCamiones, pedidos, sistema);
 
         }
         else{
             Random rand = new Random(System.nanoTime() + nIndividuo * 997);
+            
+            List<Integer> pendientes = new ArrayList<>(pedidos);
+            Collections.shuffle(pendientes, rand);
 
-            for (int pedido : pedidos) {
-                int camion=1+rand.nextInt(numCamiones-1);
-                nIntentos=0;
-                sePuedoAsociarPedido = true;
-                while((sistema.getCamionCausanteReplan()!=null && sistema.getCamionCausanteReplan().getId()==(camion)) ||
-                        (sistema.getFlota().get(camion-1).getTipo().getCargaGLPMax()<sistema.getPedidos().get(pedido-1).getVolumenGLP()) ||
-                        esCamionAveriadoTipo(sistema, camion, 0)){
-                    nIntentos++;
-                    if(pedidos.size()*2<nIntentos){
-                        sePuedoAsociarPedido = false;
-                        break;
-                    }
-                    camion = 1+rand.nextInt(numCamiones-1);
+            // Función auxiliar: ¿puede el camión recibir ese pedido?
+            BiPredicate<Integer,Integer> apto = (camion, pedido) -> {
+                if (sistema.getCamionCausanteReplan() != null &&
+                    sistema.getCamionCausanteReplan().getId() == camion) {
+                    return false;
                 }
-                if(sePuedoAsociarPedido){
-                    asignacion.get(camion).add(pedido);
+                if (esCamionAveriadoTipo(sistema, camion, 0)) {
+                    return false;
+                }
+                double vol = sistema.getPedidos().get(pedido - 1).getVolumenGLP();
+                double cap = sistema.getFlota().get(camion - 1).getTipo().getCargaGLPMax();
+                return cap >= vol;
+            };
+            
+            // 1. Primera ronda: 1 pedido por camión
+            for (int camion = 1; camion < numCamiones && !pendientes.isEmpty(); camion++) {
+
+                // buscar el primer pedido que cumpla las restricciones
+                Iterator<Integer> it = pendientes.iterator();
+                while (it.hasNext()) {
+                    int pedido = it.next();
+                    if (apto.test(camion, pedido)) {
+                        asignacion.get(camion).add(pedido);
+                        it.remove();          // lo sacamos de “pendientes”
+                        break;                // pasamos al siguiente camión
+                    }
+                }
+            }
+            
+            // 2. Resto de pedidos: reparto aleatorio-controlado
+            while (!pendientes.isEmpty()) {
+                int pedido = pendientes.remove(pendientes.size() - 1);   // pop()
+
+                int nIntentos = 0;
+                boolean asignado = false;
+                while (nIntentos < pendientes.size() * 2 && !asignado) {
+                    int camion = 1 + rand.nextInt(numCamiones - 1);
+                    if (apto.test(camion, pedido)) {
+                        asignacion.get(camion).add(pedido);
+                        asignado = true;
+                    }
+                    nIntentos++;
                 }
             }
         }
@@ -75,19 +105,20 @@ public class Individuo {
                 }
             }
         }
+
         for (int i = 1; i < numCamiones; i++) {
             int ini=0;
             List<Integer> cargasGLP = new ArrayList<>();
             Random randCargaGLP = new Random(System.nanoTime() + nIndividuo * 9973);
             int cantPedRestantes = asignacion.get(i).size(), acc = 0;
             while(cantPedRestantes > 0){
-                nIntentos = 0;
+                numIntentos = 0;
                 int cantPedObjetivos = 1+randCargaGLP.nextInt(cantPedRestantes); //minimo 1
                 if(cargasGLP.isEmpty())ini=0;
                 else ini = cargasGLP.size()-1;
                 while(!sistema.puedeCargar(i-1, asignacion, ini, acc+cantPedObjetivos)){
-                    nIntentos++;
-                    if(nIntentos>cantPedRestantes*2){
+                    numIntentos++;
+                    if(numIntentos>cantPedRestantes*2){
                         cantPedObjetivos = 1;
                         break;
                     }
