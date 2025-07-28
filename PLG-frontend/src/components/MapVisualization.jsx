@@ -34,11 +34,17 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
   const [pedidoEstadoLoading, setPedidoEstadoLoading] = useState(false);
   const [pedidosEstados, setPedidosEstados] = useState({});
   const [planificationPercentage, setPlanificationPercentage] = useState(null);
+  const [selectedAveriaType, setSelectedAveriaType] = useState(null); // Track selected avería type
   const mapContainerRef = useRef(null);
   const [legendVisible, setLegendVisible] = useState(false);
 
   // Use external selectedItem if provided, otherwise use internal state
   const selectedItem = externalSelectedItem || internalSelectedItem;
+  
+  // Reset selected avería type when selected item changes
+  useEffect(() => {
+    setSelectedAveriaType(null);
+  }, [selectedItem]);
 
   // Toggle legend visibility
   const handleLegendToggle = () => {
@@ -469,6 +475,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
     try {
       //onPauseSimulation();
       await mapService.registrarAveria(truckId, tipoAveria, currentTime);
+      setSelectedAveriaType(tipoAveria); // Store the selected avería type
     } catch (error) {
       console.error('Error registering averia:', error);
     }
@@ -611,15 +618,14 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
     return new Date(dateTime).toLocaleString();
   };
 
-  const getDestinationTypeLabel = (type) => {
+  const getDestinationTypeLabel = (type, averiaType = null) => {
     const labels = {
       'REABASTECIMIENTO': 'Reabastecimiento',
       'ENTREGA PEDIDO': 'Entrega de Pedido',
       'EN_RECARGA_GLP': 'Recarga de GLP',
       'EN_RECARGA_COMBUSTIBLE': 'Recarga de Combustible',
       'EN_MANTENIMIENTO': 'En Mantenimiento',
-      'AVERIADO': 'Averiado'
-
+      'AVERIADO': averiaType ? `Averiado Tipo ${averiaType}` : 'Averiado'
     };
     return labels[type] || type;
   };
@@ -794,7 +800,11 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
             glpActual: currentGLP.toFixed(2),
             glpMax: truck.tipoCamion?.cargaGLPMax?.toFixed(2) || 'N/A',
             velocidad: truck.tipoCamion?.velocidadPromedio?.toFixed(2) || 'N/A',
-            estadoActual: currentDest ? getDestinationTypeLabel(currentDest.destinationType) : null
+                            estadoActual: currentDest ? 
+                  (currentDest.destinationType === 'AVERIADO' && selectedAveriaType 
+                    ? `Averiado Tipo ${selectedAveriaType}`
+                    : getDestinationTypeLabel(currentDest.destinationType, currentDest.averiaType)
+                  ) : null
           };
 
           return (

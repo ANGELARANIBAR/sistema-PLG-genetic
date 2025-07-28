@@ -479,8 +479,8 @@ public class Individuo {
             //funcion sigmoide
             k = 1.0 / (1.0 + Math.exp(-sistemaPLG.getFechaHoraPrimerColapso().toInstant(ZoneOffset.UTC).toEpochMilli()));
         }
-        double wCamiones = 10.0; // peso ajustable
-        double factorCamiones = 1.0 + wCamiones * (camionesActivos / (double) flota.size());
+        double wCamiones = 100.0; // peso ajustable
+        double factorCamiones = wCamiones * (camionesActivos / (double) flota.size());
 
         fitness = factorCamiones * k / (0.4 * totalCombustible + 0.1 * totalTiempo + entregasTardias * 500 + 1e-5);
 

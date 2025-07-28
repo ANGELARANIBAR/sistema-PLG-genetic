@@ -32,7 +32,8 @@ export const Destination = {
   ubicacion: Node,
   route: Array,
   destinationType: String,
-  saldoGLPCamion: Number
+  saldoGLPCamion: Number,
+  averiaType: Number // Type of avería (1, 2, or 3) if destination is "AVERIADO"
 };
 
 export const Node = {

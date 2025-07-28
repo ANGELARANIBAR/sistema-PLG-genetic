@@ -22,6 +22,7 @@ const MapVisualization: React.FC<MapVisualizationProps> = ({ currentTime, onPaus
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; truckId: number } | null>(null);
   const [lastSystemUpdate, setLastSystemUpdate] = useState<Date>(new Date());
   const [truckStates, setTruckStates] = useState<Map<number, string>>(new Map());
+  const [selectedAveriaType, setSelectedAveriaType] = useState<number | null>(null); // Track selected avería type
 
   const getCurrentDestination = useCallback(async (truck: TruckRoute) => {
     if (!currentTime) return null;
@@ -222,6 +223,7 @@ const MapVisualization: React.FC<MapVisualizationProps> = ({ currentTime, onPaus
     try {
       onPauseSimulation();
       await registrarAveria(truckId, tipoAveria, currentTime);
+      setSelectedAveriaType(tipoAveria); // Store the selected avería type
     } catch (error) {
       console.error('Error registering averia:', error);
     }
@@ -237,6 +239,16 @@ const MapVisualization: React.FC<MapVisualizationProps> = ({ currentTime, onPaus
         console.error('Error updating order state:', error);
       }
     }
+  };
+
+  const getDestinationTypeLabel = (type: string, averiaType?: number): string => {
+    const labels: { [key: string]: string } = {
+      'REABASTECIMIENTO': 'Refueling',
+      'ENTREGA_PEDIDO': 'Order Delivery',
+      'REPLANIFICACION': 'Replanning',
+      'AVERIADO': averiaType ? `Breakdown Type ${averiaType}` : 'Breakdown'
+    };
+    return labels[type] || type;
   };
 
   return (
@@ -442,7 +454,10 @@ const MapVisualization: React.FC<MapVisualizationProps> = ({ currentTime, onPaus
 Combustible: ${currentFuel.toFixed(2)}
 GLP: ${currentGLP.toFixed(2)}
 Combustible final: ${Number(truck.fuelConsumed || 0).toFixed(2)}
-${currentDest ? `\nEn: ${currentDest.destinationType}` : ''}`}
+${currentDest ? `\nEn: ${currentDest.destinationType === 'AVERIADO' && selectedAveriaType 
+  ? `Breakdown Type ${selectedAveriaType}`
+  : getDestinationTypeLabel(currentDest.destinationType, currentDest.averiaType)
+}` : ''}`}
             >
               T{truckId}
             </div>
