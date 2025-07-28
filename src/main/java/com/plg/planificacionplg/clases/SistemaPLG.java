@@ -160,6 +160,11 @@ public class SistemaPLG {
         Camion c = flota.get(idCamion-1);
         if(c.getDestinos().isEmpty())return 0.0;
         Destino anterior = c.getDestinos().get(0), d;
+        if(anterior.getFechaHoraLlegada() != null && anterior.getFechaHoraLlegada().isAfter(fecha)){
+            //en trayecto al primer destino
+            return flota.get(idCamion-1).getCargaGLPActual();
+
+        }
         if(anterior.getFechaHoraSalida()==null || c.getDestinos().size() == 1
                 || (c.getDestinos().get(1)!=null && c.getDestinos().get(1).getFechaHoraLlegada()==null))return anterior.getSaldoGLPCamion();
         if(anterior instanceof Replanficacion &&

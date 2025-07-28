@@ -319,6 +319,7 @@ public class Individuo {
                     camion.setCargaGLPActual(sistema.getFlota().get(camion.getId() - 1).getCargaGLPActual());
                     camion.setCombustibleActual(sistema.getFlota().get(camion.getId() - 1).getCombustibleActual());
                     camion.setIndicePedidoActual(0);
+                    camion.setCargaGLPActual(destinos.getFirst().getSaldoGLPCamion());
                     if(GLPInicial < camion.getCargaGLPActual() || Math.abs(GLPInicial - camion.getCargaGLPActual()) < 0.001){ // no es necesario recarga GLP
                         camion.setIndicePedidoActual(1); // se pudo recargar GLP en el origen
                     }else if(destinos.get(0) instanceof Reabastecimiento && GLPInicial > 0.0){
@@ -328,6 +329,7 @@ public class Individuo {
                             camion.setCargaGLPActual(GLPInicial);
                             camion.setIndicePedidoActual(1); // se pudo recargar GLP en el origen
                             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());
+                            camion.getDestinos().getFirst().setSaldoGLPCamion(GLPInicial);
                         }
                     }
                     else{
@@ -336,7 +338,7 @@ public class Individuo {
                 } else {
                     System.out.println("No hay destinos");
                 }
-                camion.getDestinos().getFirst().setSaldoGLPCamion(camion.getCargaGLPActual());
+                //camion.getDestinos().getFirst().setSaldoGLPCamion(camion.getCargaGLPActual());
                 camion.getDestinos().getFirst().setSaldoCombustibleCamion(camion.getCombustibleActual());
             }
             entregasTardias = 0;

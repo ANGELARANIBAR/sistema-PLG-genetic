@@ -910,6 +910,7 @@ public class PlanificacionPlgApplication {
                     nuevoCamion.setEstado(EstadoCamion.DISPONIBLE);
                     //nuevoCamion.getDestinos().add(origen);
                     nuevoCamion.setUbicacionActual(origen.getUbicacion());
+                    nuevoCamion.setCargaGLPActual(PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG().calcularGLPActual(i+1, inicioReplan));
                     replanificado.getFlota().add(nuevoCamion);
                     System.out.println("camion que no salio> "+nuevoCamion.getId());
                     System.out.println("camion que no salio> "+nuevoCamion.getUbicacionActual());
@@ -962,12 +963,14 @@ public class PlanificacionPlgApplication {
                         }
                         camTemp.getDestinos().add(nuevoDest);
                     }
-                    camionesEnRuta.add(camTemp);
                     destinos = camTemp.getDestinos();
                     if(destinos.size()>1){
                         nuevoCamion.getDestinos().add(destinos.get(destinos.size()-2).copiar()); // ya no retornar al inicio
+                        destinos.removeLast(); //eliminar retorno
+                        camionesEnRuta.add(camTemp);
                     }
                     else {
+
                         Reabastecimiento origen = new Reabastecimiento();
                         origen.setCisterna(mejorSolucion.getSistemaPLG().getCisternas().get(0));
                         origen.setUbicacion(mejorSolucion.getSistemaPLG().getCisternas().get(0).getUbicacion());
@@ -978,6 +981,7 @@ public class PlanificacionPlgApplication {
 
 
                         if(destinos.isEmpty()){
+                            //reposo: idle camion
                             nuevoCamion.setCargaGLPActual(0.0);
                             nuevoCamion.setCombustibleActual(nuevoCamion.getTipo().getCapCombustibleMax());
                             nuevoCamion.getDestinos().add(0, origen);
@@ -989,8 +993,9 @@ public class PlanificacionPlgApplication {
                             System.out.println("camion que salió y termino ruta> "+nuevoCamion.getUbicacionActual());
                         }
                         else{
-                            //camion que lleog al retorno
+
                             if(destinos.getFirst().getFechaHoraLlegada().isBefore(inicioReplan)){
+                                //en mantenimiento
                                 nuevoCamion.setCargaGLPActual(0.0);
                                 nuevoCamion.setCombustibleActual(nuevoCamion.getTipo().getCapCombustibleMax());
                                 nuevoCamion.getDestinos().add(0, origen);
@@ -1012,6 +1017,7 @@ public class PlanificacionPlgApplication {
                     System.out.println("camion en ruta> "+nuevoCamion.getId());
                     System.out.println("camion en ruta> "+nuevoCamion.getUbicacionActual());
                 }
+
                 replanificado.getFlota().add(nuevoCamion);
             }
             int tamPoblacion = 20;
@@ -1030,12 +1036,23 @@ public class PlanificacionPlgApplication {
             }
             for(Camion c : camionesEnRuta) {
                 List<Destino>destinos = new ArrayList<>(c.getDestinos());
-                if(!destinos.isEmpty()){
-                    destinos.removeLast(); // remover retorno a base
-                }
+//                if(!destinos.isEmpty()){
+//                    destinos.removeLast(); // remover retorno a base
+//                }
                 mejorSolucion.getSistemaPLG().getFlota().get(c.getId()-1).getDestinos().removeFirst(); //eliminar primer destino
                 mejorSolucion.getSistemaPLG().getFlota().get(c.getId()-1).getDestinos().addAll(0, destinos); ///ver casos de repeticion de destinos tho
+                mejorSolucion.getSistemaPLG().getFlota().get(c.getId()-1).setCargaGLPActual(
+                        PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG().calcularGLPActual(c.getId(), inicioReplan));
             }
+//            for(Camion cam : mejorSolucion.getSistemaPLG().getFlota()){
+//                double GLPinit = 0.0;
+//                for(Destino d : cam.getDestinos()){
+//                    if(d instanceof EntregaPedido)
+//                        GLPinit += d.getGLPOperacion();
+//                    else break;
+//                }
+//                cam.setCargaGLPActual(GLPinit);
+//            }
             mejorSolucion.getSistemaPLG().setReplanning(false);
             mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
             PlanificacionPlgApplication.setMejorSolucionSiguiente(mejorSolucion);
