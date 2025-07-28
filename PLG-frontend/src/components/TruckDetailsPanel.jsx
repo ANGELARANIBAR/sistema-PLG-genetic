@@ -4,6 +4,7 @@ import { mapService } from '../services/mapService';
 const TruckDetailsPanel = ({ truckId, system, truckFuels, truckGLPs, currentTime, onClose, onPauseSimulation }) => {
   const [activeTab, setActiveTab] = useState('info');
   const [destinations, setDestinations] = useState([]);
+  const [selectedAveriaType, setSelectedAveriaType] = useState(null); // Track selected avería type
 
   const truck = system?.flota.find(t => t.truckId === truckId);
   const currentFuel = Number(truckFuels.get(truckId) || 0);
@@ -60,6 +61,7 @@ const TruckDetailsPanel = ({ truckId, system, truckFuels, truckGLPs, currentTime
         onPauseSimulation();
       }
       await mapService.registrarAveria(truckId, tipoAveria, currentTime);
+      setSelectedAveriaType(tipoAveria); // Store the selected avería type
     } catch (error) {
       console.error('Error registering averia:', error);
     }
@@ -82,12 +84,12 @@ const TruckDetailsPanel = ({ truckId, system, truckFuels, truckGLPs, currentTime
     return new Date(dateTime).toLocaleString();
   };
 
-  const getDestinationTypeLabel = (type) => {
+  const getDestinationTypeLabel = (type, averiaType = null) => {
     const labels = {
       'REABASTECIMIENTO': 'Refueling',
       'ENTREGA_PEDIDO': 'Order Delivery',
       'REPLANIFICACION': 'Replanning',
-      'AVERIADO': 'Breakdown',
+      'AVERIADO': averiaType ? `Breakdown Type ${averiaType}` : 'Breakdown',
       'REABASTECIMIENTO': 'Refueling',
       'ENTREGAPEDIDO': 'Order Delivery',
       'REPLANIFICACION': 'Replanning'
@@ -224,7 +226,10 @@ const TruckDetailsPanel = ({ truckId, system, truckFuels, truckGLPs, currentTime
                       >
                         <div className="destination-header">
                           <span className="destination-type">
-                            {getDestinationTypeLabel(dest.destinationType)}
+                            {dest.destinationType === 'AVERIADO' && selectedAveriaType 
+                              ? `Breakdown Type ${selectedAveriaType}`
+                              : getDestinationTypeLabel(dest.destinationType, dest.averiaType)
+                            }
                             {isCurrentDestination && (
                               <span style={{ 
                                 marginLeft: '8px', 

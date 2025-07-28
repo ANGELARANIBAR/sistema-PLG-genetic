@@ -18,6 +18,7 @@ export interface Destination {
   route: Node[] | null;
   destinationType: string;
   saldoGLPCamion: number;
+  averiaType?: number; // Type of avería (1, 2, or 3) if destination is "AVERIADO"
 }
 
 export interface Node {

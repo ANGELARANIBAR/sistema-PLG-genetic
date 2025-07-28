@@ -660,7 +660,9 @@ public class SolutionController {
                 camionesDisponibles = new ArrayList<>();
                 camionesDisponibles.add(nuevoCamion);
             } else{
-                for (Pedido p : mejorSolucion.getSistemaPLG().getFlota().get(idcam-1).getPedidosAsignados()) {
+                //System.out.println("Pedidos del camion QUE PASAN A REPLAN");
+                for (Pedido p : mejorSolucion.getSistemaPLG().getFlota().get(camAveriado.getId()-1).getPedidosAsignados()) {
+                    //System.out.println("ped " + p.getId() + p.getNumeroPedido() +" " + p.getEstado() );
                     if (p.getEstado() == EstadoPedido.PENDIENTE) {
                         //pasan a replanificacion
                         Pedido pedRep = new Pedido(p);
@@ -679,7 +681,9 @@ public class SolutionController {
             }
 
             int i = 1;
+            //System.out.println("Pedidos al sistema");
             for(Pedido p : pedidosReprogramados){
+                System.out.println(p.getNumeroPedido() +" "+p.getId()+" "+p.getEstado());
                 p.setId(i++);//momentaneamentge
             }
             replanificado.setPedidos(pedidosReprogramados);
@@ -690,8 +694,8 @@ public class SolutionController {
             double porcentajeElite = 0.1;
             Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
             Individuo mejorSolucionTemp = ga2.ejecutar(2, replanificado);
-            System.out.println("%%%%%%%%%%%%%%%%%mejorSolucionTemp%%%%%%%%%%%%%%%%%");
-            //mejorSolucionTemp.getSistemaPLG().imprimirPlanificacion();
+            System.out.println("%%%%%%%%%%%%%%%%%Solucion Averia%%%%%%%%%%%%%%%%%");
+            mejorSolucionTemp.getSistemaPLG().imprimirPlanificacion();
             for(int j=0; j<idxPedidosAnterior.size(); j++){
                 Integer idx = idxPedidosAnterior.get(j);
                 pedidosReprogramados.get(j).setId(idx);
@@ -969,6 +973,19 @@ public class SolutionController {
         
         if (destino.getEstadoCamion() != null) {
             dto.setDestinationType(destino.getEstadoCamion().toString());
+            
+            // If the destination type is "AVERIADO", get the avería type from the truck
+            if (destino.getEstadoCamion().toString().equals("AVERIADO")) {
+                // Get the truck from the destination
+                Camion camion = destino.getCamion();
+                if (camion != null && camion.getAverias() != null && !camion.getAverias().isEmpty()) {
+                    // Get the latest avería (the most recent one)
+                    Averia latestAveria = camion.getAverias().get(camion.getAverias().size() - 1);
+                    if (latestAveria != null && latestAveria.getTipo() != null) {
+                        dto.setAveriaType(latestAveria.getTipo().getId());
+                    }
+                }
+            }
         }
         
         if (destino.getRuta() != null && destino.getRuta().getNodos() != null) {

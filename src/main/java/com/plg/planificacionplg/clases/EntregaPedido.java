@@ -72,6 +72,7 @@ public class EntregaPedido extends Destino{
     public void imprimir(){
         System.out.println("Entrega de pedido en: " + getUbicacion());
         System.out.println("ID de pedido: " + getPedido().getId());
+        System.out.println("Nro de pedido: " + getPedido().getNumeroPedido());
         System.out.println("Cantidad de GLP solicitada: " + getPedido().getVolumenGLP());
         System.out.println("Cantidad GLP actual en CAMION: " + getSaldoGLPCamion());
         System.out.println("Cantidad combustible actual en CAMION: " + getSaldoCombustibleCamion());

@@ -37,6 +37,7 @@ const ItemDetailsPanel = ({
     const [activeTruckTab, setActiveTruckTab] = useState(0);
     const [latestTruck, setLatestTruck] = useState(null);
     const [localSystem, setLocalSystem] = useState(system);
+    const [selectedAveriaType, setSelectedAveriaType] = useState(null); // Track selected avería type
 
     useEffect(() => {
         
@@ -51,6 +52,9 @@ const ItemDetailsPanel = ({
             }
         };
         fetchLatestTruck();
+        
+        // Reset selected avería type when truck changes
+        setSelectedAveriaType(null);
     }, [selectedItem]);
 
     useEffect(() => {
@@ -82,14 +86,14 @@ const ItemDetailsPanel = ({
         }));
     };
 
-    const getDestinationTypeLabel = (type) => {
+    const getDestinationTypeLabel = (type, averiaType = null) => {
         const labels = {
             'REABASTECIMIENTO': 'Reabastecimiento',
             'ENTREGA PEDIDO': 'Entrega de Pedido',
             'EN_RECARGA_GLP': 'Recarga de GLP',
             'EN_RECARGA_COMBUSTIBLE': 'Recarga de Combustible',
             'EN_MANTENIMIENTO': 'En Mantenimiento',
-            'AVERIADO': 'Averiado',
+            'AVERIADO': averiaType ? `Averiado Tipo ${averiaType}` : 'Averiado',
             'CIS': 'Cisterna',
             'CLIENTE': 'Cliente', 
             'GRI': 'Grifo'
@@ -120,13 +124,8 @@ const ItemDetailsPanel = ({
         if (!selectedItem || selectedItem.type !== 'truck' || !currentTime) return;
         
         try {
-            const averiaData = {
-                truckId: selectedItem.id,
-                tipoAveria: tipoAveria,
-                fechaHoraAveria: currentTime.toISOString()
-            };
-            
-            await registrarAveria(averiaData);
+            await mapService.registrarAveria(selectedItem.id, tipoAveria, currentTime);
+            setSelectedAveriaType(tipoAveria); // Store the selected avería type
             alert(`Avería tipo ${tipoAveria} registrada exitosamente para el camión ${selectedItem.id}`);
         } catch (error) {
             console.error('Error registering breakdown:', error);
@@ -212,7 +211,10 @@ const ItemDetailsPanel = ({
                                             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                                                 <TimerIcon sx={{ mr: 1, color: 'info.main' }} />
                                                 <Typography variant="body1">
-                                                    {getDestinationTypeLabel(currentDest.destinationType)}
+                                                    {currentDest.destinationType === 'AVERIADO' && selectedAveriaType 
+                                                        ? `Averiado Tipo ${selectedAveriaType}`
+                                                        : getDestinationTypeLabel(currentDest.destinationType, currentDest.averiaType)
+                                                    }
                                                 </Typography>
                                             </Box>
                                             {currentDest.ubicacion && (
@@ -322,7 +324,7 @@ const ItemDetailsPanel = ({
                                             <CardContent sx={{ pb: '12px !important' }}>
                                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                                                     <Typography variant="body1" fontWeight="bold">
-                                                        {getDestinationTypeLabel(dest.destinationType)}
+                                                        {getDestinationTypeLabel(dest.destinationType, dest.averiaType)}
                                                         {isCurrentDestination && (
                                                             <Chip 
                                                                 label="ACTUAL" 

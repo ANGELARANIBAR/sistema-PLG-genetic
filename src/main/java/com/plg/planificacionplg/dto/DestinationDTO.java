@@ -15,6 +15,15 @@ public class DestinationDTO {
     private double saldoGLPCamion;
     private double operacionGLP;
     private NodeDTO ubicacion;
+    private Integer averiaType; // Type of avería (1, 2, or 3) if destination is "AVERIADO"
+
+    public Integer getAveriaType() {
+        return averiaType;
+    }
+
+    public void setAveriaType(Integer averiaType) {
+        this.averiaType = averiaType;
+    }
 
     public NodeDTO getUbicacion() {
         return ubicacion;
