@@ -674,6 +674,24 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
     }
   };
 
+  // Get cisterna color based on GLP capacity percentage
+  const getCisternaColor = (currentGLP, maxGLP) => {
+    if (!maxGLP || maxGLP === 0) return '#9E9E9E'; // Gris si no hay datos
+    
+    const percentage = (currentGLP / maxGLP) * 100;
+    
+    if (percentage >= 70) {
+      // Verde (70-100%)
+      return '#4CAF50';
+    } else if (percentage >= 30) {
+      // Amarillo (30-69%)
+      return '#FF9800';
+    } else {
+      // Rojo (0-29%)
+      return '#F44336';
+    }
+  };
+
   // Function to calculate the remaining route based on truck position
   const calculateRemainingRoute = (truckId, currentDest, truckPosition) => {
     if (!currentDest || !currentDest.route || !truckPosition || !truckPosition.x || !truckPosition.y) {
@@ -1002,6 +1020,9 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
           const currentGLP = cisternaGLPs.get(cisterna.id) ?? cisterna.cargaGLPActual;
           const porcentajeGLP = ((currentGLP / cisterna.capacidadTotal) * 100).toFixed(1);
           
+          // Obtener color basado en la capacidad de GLP
+          const cisternaColor = getCisternaColor(currentGLP, cisterna.capacidadTotal);
+          
           // Preparar datos para el tooltip
           const tooltipData = {
             tipo: cisterna.principal ? 'Cisterna Principal' : 'Cisterna Secundaria',
@@ -1034,14 +1055,15 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
                 <div style={{
                   width: '36px',
                   height: '36px',
-                  backgroundColor: cisterna.principal ? '#1565C0' : '#FF7043',
+                  backgroundColor: cisternaColor,
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   border: '3px solid #fff',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                  position: 'relative'
+                  position: 'relative',
+                  transition: 'background-color 0.3s ease'
                 }}>
                   <div style={{
                     width: '24px',
@@ -1056,9 +1078,10 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
                     <div style={{
                       width: '18px',
                       height: '10px',
-                      backgroundColor: cisterna.principal ? '#1565C0' : '#FF7043',
+                      backgroundColor: cisternaColor,
                       borderRadius: '2px',
-                      position: 'relative'
+                      position: 'relative',
+                      transition: 'background-color 0.3s ease'
                     }}>
                       <div style={{
                         position: 'absolute',
@@ -1352,6 +1375,114 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <img src={truckIconUp} alt="Camión Rojo" style={{ width: '16px', height: '16px', filter: 'brightness(0) saturate(100%) invert(17%) sepia(95%) saturate(7498%) hue-rotate(356deg) brightness(100%) contrast(118%)' }} />
+              </div>
+              <span style={{ fontSize: '11px', color: '#333' }}>Bajo (0-29%)</span>
+            </div>
+            
+            {/* Separador para colores de cisternas */}
+            <hr style={{ margin: '8px 0', border: 'none', borderTop: '1px solid #ddd' }} />
+            <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '4px', color: '#666' }}>
+              Nivel de GLP en Cisternas:
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{
+                  width: '18px',
+                  height: '18px',
+                  backgroundColor: '#4CAF50',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid #fff',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.3)'
+                }}>
+                  <div style={{
+                    width: '10px',
+                    height: '6px',
+                    backgroundColor: '#fff',
+                    borderRadius: '2px',
+                    position: 'relative'
+                  }}>
+                    <div style={{
+                      width: '8px',
+                      height: '4px',
+                      backgroundColor: '#4CAF50',
+                      borderRadius: '1px',
+                      position: 'absolute',
+                      top: '1px',
+                      left: '1px'
+                    }}></div>
+                  </div>
+                </div>
+              </div>
+              <span style={{ fontSize: '11px', color: '#333' }}>Alto (70-100%)</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{
+                  width: '18px',
+                  height: '18px',
+                  backgroundColor: '#FF9800',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid #fff',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.3)'
+                }}>
+                  <div style={{
+                    width: '10px',
+                    height: '6px',
+                    backgroundColor: '#fff',
+                    borderRadius: '2px',
+                    position: 'relative'
+                  }}>
+                    <div style={{
+                      width: '8px',
+                      height: '4px',
+                      backgroundColor: '#FF9800',
+                      borderRadius: '1px',
+                      position: 'absolute',
+                      top: '1px',
+                      left: '1px'
+                    }}></div>
+                  </div>
+                </div>
+              </div>
+              <span style={{ fontSize: '11px', color: '#333' }}>Medio (30-69%)</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{
+                  width: '18px',
+                  height: '18px',
+                  backgroundColor: '#F44336',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid #fff',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.3)'
+                }}>
+                  <div style={{
+                    width: '10px',
+                    height: '6px',
+                    backgroundColor: '#fff',
+                    borderRadius: '2px',
+                    position: 'relative'
+                  }}>
+                    <div style={{
+                      width: '8px',
+                      height: '4px',
+                      backgroundColor: '#F44336',
+                      borderRadius: '1px',
+                      position: 'absolute',
+                      top: '1px',
+                      left: '1px'
+                    }}></div>
+                  </div>
+                </div>
               </div>
               <span style={{ fontSize: '11px', color: '#333' }}>Bajo (0-29%)</span>
             </div>
