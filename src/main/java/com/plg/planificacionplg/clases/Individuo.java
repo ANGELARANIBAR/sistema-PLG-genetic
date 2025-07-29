@@ -112,6 +112,30 @@ public class Individuo {
         return false;
     }
 
+    private Boolean esCamionAveriadoActivo(SistemaPLG sistema, int idxCamion){
+        for(Camion c : sistema.getCamionesAveriados()){
+            if(c.getId() == idxCamion && c.getAverias() != null && !c.getAverias().isEmpty()){
+                Averia ultimaAveria = c.getAverias().get(c.getAverias().size() - 1);
+                
+                // Avería tipo 1 siempre está activa
+                if(ultimaAveria.getTipo().getId() == 1){
+                    return true;
+                }
+                
+                // Para averías tipo 2 y 3, verificar si aún están en el período de inmovilización
+                if(ultimaAveria.getTipo().getId() == 2 || ultimaAveria.getTipo().getId() == 3){
+                    LocalDateTime ahora = sistema.getFechaHoraInicio();
+                    if(ultimaAveria.getFechaHoraFin() != null && 
+                       ahora.isBefore(ultimaAveria.getFechaHoraFin())){
+                        // Aún está en período de inmovilización
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     public void inicializarSistemaPLG(int code, SistemaPLG sistema) {
         List<Camion> flota = new ArrayList<>();
         List<Pedido> pedidos = new ArrayList<>();
@@ -504,9 +528,10 @@ public class Individuo {
             int idCamion = camion.getId();
             double capacidad = capacidadRestante.get(idCamion);
 
+            // Solo excluir camiones con averías activas (tipo 1 o averías tipo 2/3 que aún están en curso)
             if ((sistema.getCamionCausanteReplan() != null &&
                     sistema.getCamionCausanteReplan().getId() == idCamion) ||
-                    esCamionAveriadoTipo(sistema, idCamion, 0)) {
+                    esCamionAveriadoActivo(sistema, idCamion)) {
                 continue;
             }
 
@@ -539,15 +564,17 @@ public class Individuo {
 
             for (Camion camion : camionesOrdenados) {
                 int idCamion = camion.getId();
+                // Solo excluir camiones con averías activas
                 if ((sistema.getCamionCausanteReplan() != null &&
                         sistema.getCamionCausanteReplan().getId() == idCamion) ||
-                        esCamionAveriadoTipo(sistema, idCamion, 0)) continue;
+                        esCamionAveriadoActivo(sistema, idCamion)) continue;
 
                 if (capacidadRestante.get(idCamion) >= volumen) {
                     this.asignacion.get(idCamion).add(pedidoId);
                     capacidadRestante.put(idCamion, capacidadRestante.get(idCamion) - volumen);
                     cargaAsignada.put(idCamion, cargaAsignada.get(idCamion) + volumen);
                     asignado = true;
+                    System.out.println("Pedido " + pedido.getNumeroPedido() + " asignado al camión " + idCamion);
                     break;
                 }
             }
@@ -558,12 +585,20 @@ public class Individuo {
                     double capacidadTotal = camion.getTipo().getCargaGLPMax();
                     if (volumen <= capacidadTotal) {
                         int idCamion = camion.getId();
-                        this.asignacion.get(idCamion).add(pedidoId);
-                        capacidadRestante.put(idCamion, capacidadRestante.get(idCamion) - volumen);
-                        cargaAsignada.put(idCamion, cargaAsignada.get(idCamion) + volumen);
-                        break;
+                        // Verificar que no esté averiado activo
+                        if (!esCamionAveriadoActivo(sistema, idCamion)) {
+                            this.asignacion.get(idCamion).add(pedidoId);
+                            capacidadRestante.put(idCamion, capacidadRestante.get(idCamion) - volumen);
+                            cargaAsignada.put(idCamion, cargaAsignada.get(idCamion) + volumen);
+                            System.out.println("Pedido " + pedido.getNumeroPedido() + " forzado al camión " + idCamion);
+                            break;
+                        }
                     }
                 }
+            }
+            
+            if (!asignado) {
+                System.out.println("ADVERTENCIA: Pedido " + pedido.getNumeroPedido() + " no pudo ser asignado a ningún camión");
             }
         }
     }

@@ -145,8 +145,8 @@ public class SolutionController {
         if(sistema.getFlota()==null)return 0;
         for(Camion c : sistema.getFlota()){
             if(c.getDestinos().size()>2){
-                if(c.getEstado()==EstadoCamion.AVERIADO ||
-                        c.getDestinos().getFirst().getEstadoCamion()==EstadoCamion.AVERIADO)continue;
+                            if(c.getEstado()==EstadoCamion.AVERIADO ||
+                    ListUtils.getFirst(c.getDestinos()).getEstadoCamion()==EstadoCamion.AVERIADO)continue;
                 cont++;
 
             }
@@ -333,6 +333,24 @@ public class SolutionController {
 
             // Replanification process
             mejorSolucion.getSistemaPLG().estadoDePedidosALas(inicioAveria);
+            
+            // Para averías tipo 2 y 3, asegurar que los pedidos en curso se marquen como PENDIENTE
+            if (a.getTipo().getId() == 2 || a.getTipo().getId() == 3) {
+                Camion camionAveriado = mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion());
+                if (camionAveriado != null && !camionAveriado.getDestinos().isEmpty()) {
+                    // Marcar todos los pedidos pendientes y en curso como PENDIENTE para reasignación
+                    for (Destino destino : camionAveriado.getDestinos()) {
+                        if (destino instanceof EntregaPedido) {
+                            Pedido pedido = ((EntregaPedido) destino).getPedido();
+                            if (pedido.getEstado() == EstadoPedido.DESPACHANDO || 
+                                pedido.getEstado() == EstadoPedido.PENDIENTE) {
+                                pedido.setEstado(EstadoPedido.PENDIENTE);
+                            }
+                        }
+                    }
+                }
+            }
+            
             replanificado.setFechaHoraInicio(inicioAveria);
             replanificado.setFlota(new ArrayList<>());
             replanificado.setPedidos(new ArrayList<>(mejorSolucion.getSistemaPLG().getPedidos()));
@@ -541,6 +559,24 @@ public class SolutionController {
 
             // Replanification process
             mejorSolucion.getSistemaPLG().estadoDePedidosALas(inicioAveria);
+            
+            // Para averías tipo 2 y 3, asegurar que los pedidos en curso se marquen como PENDIENTE
+            if (a.getTipo().getId() == 2 || a.getTipo().getId() == 3) {
+                Camion camionAveriado = mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion());
+                if (camionAveriado != null && !camionAveriado.getDestinos().isEmpty()) {
+                    // Marcar todos los pedidos pendientes y en curso como PENDIENTE para reasignación
+                    for (Destino destino : camionAveriado.getDestinos()) {
+                        if (destino instanceof EntregaPedido) {
+                            Pedido pedido = ((EntregaPedido) destino).getPedido();
+                            if (pedido.getEstado() == EstadoPedido.DESPACHANDO || 
+                                pedido.getEstado() == EstadoPedido.PENDIENTE) {
+                                pedido.setEstado(EstadoPedido.PENDIENTE);
+                            }
+                        }
+                    }
+                }
+            }
+            
             replanificado.setFechaHoraInicio(inicioAveria);
 //            replanificado.setFlota(new ArrayList<>());
 //            replanificado.setPedidos(new ArrayList<>(mejorSolucion.getSistemaPLG().getPedidos()));
@@ -663,12 +699,14 @@ public class SolutionController {
                 //System.out.println("Pedidos del camion QUE PASAN A REPLAN");
                 for (Pedido p : mejorSolucion.getSistemaPLG().getFlota().get(camAveriado.getId()-1).getPedidosAsignados()) {
                     //System.out.println("ped " + p.getId() + p.getNumeroPedido() +" " + p.getEstado() );
-                    if (p.getEstado() == EstadoPedido.PENDIENTE) {
-                        //pasan a replanificacion
+                    if (p.getEstado() == EstadoPedido.PENDIENTE || p.getEstado() == EstadoPedido.DESPACHANDO) {
+                        //pasan a replanificacion - incluir tanto pendientes como en curso de entrega
                         Pedido pedRep = new Pedido(p);
+                        pedRep.setEstado(EstadoPedido.PENDIENTE); // Asegurar que esté pendiente para reasignación
                         idxPedidosAnterior.add(p.getId());
                         pedidosReprogramados.add(pedRep);
                         pedRep.setId(idxPedRep++);
+                        System.out.println("Pedido agregado a replanificación: " + p.getNumeroPedido() + " (estado original: " + p.getEstado() + ")");
                     }
                 }
                 mejorSolucion.getSistemaPLG().getFlota().get(idcam-1).setPedidosAsignados(new ArrayList<>());//caso 2 y 3 donde no atiende sino se va
@@ -686,6 +724,29 @@ public class SolutionController {
                 System.out.println(p.getNumeroPedido() +" "+p.getId()+" "+p.getEstado());
                 p.setId(i++);//momentaneamentge
             }
+            
+            // Verificación adicional: asegurar que no se pierdan pedidos
+            if (pedidosReprogramados.isEmpty() && (a.getTipo().getId() == 2 || a.getTipo().getId() == 3)) {
+                System.out.println("ADVERTENCIA: No se encontraron pedidos para replanificar en avería tipo " + a.getTipo().getId());
+                // Buscar pedidos en destinos del camión averiado
+                Camion camionAveriado = mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion());
+                if (camionAveriado != null) {
+                    for (Destino destino : camionAveriado.getDestinos()) {
+                        if (destino instanceof EntregaPedido) {
+                            Pedido pedido = ((EntregaPedido) destino).getPedido();
+                            if (pedido.getEstado() != EstadoPedido.ENTREGADO) {
+                                System.out.println("Encontrado pedido en destino: " + pedido.getNumeroPedido() + " estado: " + pedido.getEstado());
+                                Pedido pedRep = new Pedido(pedido);
+                                pedRep.setEstado(EstadoPedido.PENDIENTE);
+                                idxPedidosAnterior.add(pedido.getId());
+                                pedidosReprogramados.add(pedRep);
+                                pedRep.setId(i++);
+                            }
+                        }
+                    }
+                }
+            }
+            
             replanificado.setPedidos(pedidosReprogramados);
             int tamPoblacion = 10;
             int generaciones = 0;
@@ -720,11 +781,54 @@ public class SolutionController {
             Destino destManteniemiento = mejorSolucion.getSistemaPLG().getFlota().get(idCamAveriado-1).getDestinos().getLast();
             destManteniemiento.setFechaHoraSalida(a.determinarTiempoSalidaTaller(mejorSolucion.getSistemaPLG(), destManteniemiento.getFechaHoraLlegada()));
 
+            // Para averías tipo 2 y 3, preservar pedidos no atendidos en el sistema
+            if (a.getTipo().getId() == 2 || a.getTipo().getId() == 3) {
+                // Verificar si hay pedidos que no fueron reasignados en la replanificación
+                Camion camionAveriado = mejorSolucion.getSistemaPLG().getFlota().get(idCamAveriado-1);
+                List<Pedido> pedidosNoAtendidos = new ArrayList<>();
+                
+                // Buscar pedidos que estaban asignados al camión averiado pero no fueron reasignados
+                for (Pedido pedidoOriginal : camionAveriado.getPedidosAsignados()) {
+                    boolean fueReasignado = false;
+                    for (Pedido pedidoReprogramado : pedidosReprogramados) {
+                        if (pedidoOriginal.getNumeroPedido().equals(pedidoReprogramado.getNumeroPedido())) {
+                            fueReasignado = true;
+                            break;
+                        }
+                    }
+                    
+                    // Si el pedido no fue reasignado y no está entregado, agregarlo al sistema
+                    if (!fueReasignado && pedidoOriginal.getEstado() != EstadoPedido.ENTREGADO) {
+                        System.out.println("Preservando pedido no atendido: " + pedidoOriginal.getNumeroPedido());
+                        pedidoOriginal.setEstado(EstadoPedido.PENDIENTE);
+                        pedidosNoAtendidos.add(pedidoOriginal);
+                    }
+                }
+                
+                // Agregar los pedidos no atendidos al sistema principal
+                for (Pedido pedido : pedidosNoAtendidos) {
+                    if (!mejorSolucion.getSistemaPLG().getPedidos().contains(pedido)) {
+                        mejorSolucion.getSistemaPLG().getPedidos().add(pedido);
+                        System.out.println("Pedido agregado al sistema principal: " + pedido.getNumeroPedido());
+                    }
+                }
+            }
+
 //            if(mejorSolucionTemp.getSistemaPLG().getCamionCausanteReplan()!=null){
 //                mejorSolucion.getSistemaPLG().getFlota().get(idcam-1).setDestinos(mejorSolucionTemp.getSistemaPLG().getCamionCausanteReplan().getDestinos());
 //            }
             mejorSolucion.getSistemaPLG().setReplanning(false);
             mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
+
+            // Verificación final: asegurar que todos los pedidos estén en el sistema principal
+            if (a.getTipo().getId() == 2 || a.getTipo().getId() == 3) {
+                System.out.println("Verificación final - Pedidos en sistema principal: " + mejorSolucion.getSistemaPLG().getPedidos().size());
+                for (Pedido pedido : mejorSolucion.getSistemaPLG().getPedidos()) {
+                    if (pedido.getEstado() == EstadoPedido.PENDIENTE) {
+                        System.out.println("Pedido pendiente en sistema: " + pedido.getNumeroPedido());
+                    }
+                }
+            }
 
             //PlanificacionPlgApplication.setMejorSolucion(mejorSolucion);
 

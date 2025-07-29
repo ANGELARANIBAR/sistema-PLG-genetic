@@ -576,6 +576,38 @@ public class PlanificacionPlgApplication {
                 mejorSolucionSiguiente.setSistemaPLG(new SistemaPLG());
                 mejorSolucionSiguiente.getSistemaPLG().deepCopy(mejorSolucionActual.getSistemaPLG());
                 
+                // Verificar y preservar pedidos de camiones averiados tipo 2 y 3 antes de procesar el batch
+                System.out.println("Verificando camiones averiados antes del batch " + (batchActual + 1));
+                for (Camion camion : mejorSolucionActual.getSistemaPLG().getFlota()) {
+                    if (camion.getAverias() != null && !camion.getAverias().isEmpty()) {
+                        Averia ultimaAveria = ListUtils.getLast(camion.getAverias());
+                        if (ultimaAveria.getTipo().getId() == 2 || ultimaAveria.getTipo().getId() == 3) {
+                            System.out.println("Camión " + camion.getId() + " tiene avería tipo " + ultimaAveria.getTipo().getId());
+                            // Verificar si hay pedidos pendientes que no se han reasignado
+                            for (Pedido pedido : camion.getPedidosAsignados()) {
+                                if (pedido.getEstado() != EstadoPedido.ENTREGADO) {
+                                    System.out.println("Pedido pendiente del camión averiado: " + pedido.getNumeroPedido());
+                                    // Agregar al sistema general si no está ya incluido
+                                    boolean pedidoExiste = false;
+                                    for (Pedido pedidoBatch : pedidosNuevos) {
+                                        if (pedidoBatch.getNumeroPedido().equals(pedido.getNumeroPedido())) {
+                                            pedidoExiste = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!pedidoExiste) {
+                                        Pedido pedidoNuevo = new Pedido(pedido);
+                                        pedidoNuevo.setEstado(EstadoPedido.PENDIENTE);
+                                        pedidoNuevo.setId(pedidosNuevos.size() + 1);
+                                        pedidosNuevos.add(pedidoNuevo);
+                                        System.out.println("Pedido agregado al batch: " + pedido.getNumeroPedido());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 // Process the batch
                 PlanificacionPlgApplication.setBatchActual(batchActual + 1);
                 PlanificacionPlgApplication.setCancelarReplanificacion(false);
@@ -680,6 +712,34 @@ public class PlanificacionPlgApplication {
                         }
                         camionSiguiente.setPedidosAsignados(pedidosAsignados);
                         System.out.println("Preservando " + pedidosAsignados.size() + " pedidos para camión averiado tipo 1: " + c.getId());
+                    } else if (ultimaAveria.getTipo().getId() == 2 || ultimaAveria.getTipo().getId() == 3) {
+                        // Para averías tipo 2 y 3, agregar los pedidos al sistema general para que otros camiones los atiendan
+                        System.out.println("Camión averiado tipo " + ultimaAveria.getTipo().getId() + " - Agregando pedidos al sistema general");
+                        for (Destino destino : destActuales) {
+                            if (destino instanceof EntregaPedido) {
+                                Pedido pedido = destino.getPedido();
+                                if (pedido.getEstado() != EstadoPedido.ENTREGADO) {
+                                    // Verificar si el pedido ya está en el sistema
+                                    boolean pedidoExiste = false;
+                                    for (Pedido pedidoExistente : mejorSolucionSiguiente.getSistemaPLG().getPedidos()) {
+                                        if (pedidoExistente.getNumeroPedido().equals(pedido.getNumeroPedido())) {
+                                            pedidoExiste = true;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    if (!pedidoExiste) {
+                                        Pedido pedidoNuevo = new Pedido(pedido);
+                                        pedidoNuevo.setEstado(EstadoPedido.PENDIENTE);
+                                        pedidoNuevo.setId(mejorSolucionSiguiente.getSistemaPLG().getPedidos().size() + 1);
+                                        mejorSolucionSiguiente.getSistemaPLG().getPedidos().add(pedidoNuevo);
+                                        System.out.println("Pedido agregado al sistema general: " + pedido.getNumeroPedido() + " del camión averiado tipo " + ultimaAveria.getTipo().getId());
+                                    }
+                                }
+                            }
+                        }
+                        // Limpiar los pedidos asignados del camión averiado ya que irá al taller
+                        mejorSolucionSiguiente.getSistemaPLG().getFlota().get(c.getId()-1).setPedidosAsignados(new ArrayList<>());
                     }
                 }
             }
@@ -821,7 +881,67 @@ public class PlanificacionPlgApplication {
     public static void replanificar(Individuo mejorSolucion, LocalDateTime inicioReplan, ArrayList<Pedido>pedidosnuevos){
         SistemaPLG replanificado = mejorSolucion.getSistemaPLG();
         mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
-        replanificado.setPedidos(pedidosnuevos);
+        
+        // Preservar pedidos existentes del sistema y agregar los nuevos
+        List<Pedido> pedidosCompletos = new ArrayList<>();
+        
+        // Agregar pedidos existentes que no están entregados
+        for (Pedido pedidoExistente : mejorSolucion.getSistemaPLG().getPedidos()) {
+            if (pedidoExistente.getEstado() != EstadoPedido.ENTREGADO) {
+                pedidosCompletos.add(pedidoExistente);
+            }
+        }
+        
+        // Agregar pedidos nuevos del batch
+        for (Pedido pedidoNuevo : pedidosnuevos) {
+            // Verificar si ya existe
+            boolean existe = false;
+            for (Pedido pedidoExistente : pedidosCompletos) {
+                if (pedidoExistente.getNumeroPedido().equals(pedidoNuevo.getNumeroPedido())) {
+                    existe = true;
+                    break;
+                }
+            }
+            if (!existe) {
+                pedidosCompletos.add(pedidoNuevo);
+            }
+        }
+        
+        // Reasignar IDs
+        for (int i = 0; i < pedidosCompletos.size(); i++) {
+            pedidosCompletos.get(i).setId(i + 1);
+        }
+        
+        replanificado.setPedidos(pedidosCompletos);
+        System.out.println("Pedidos en replanificación: " + pedidosCompletos.size() + " (nuevos: " + pedidosnuevos.size() + ")");
+        
+        // Verificación adicional: asegurar que pedidos de camiones averiados tipo 2 y 3 estén incluidos
+        for (Camion camion : mejorSolucion.getSistemaPLG().getFlota()) {
+            if (camion.getAverias() != null && !camion.getAverias().isEmpty()) {
+                Averia ultimaAveria = ListUtils.getLast(camion.getAverias());
+                if (ultimaAveria.getTipo().getId() == 2 || ultimaAveria.getTipo().getId() == 3) {
+                    System.out.println("Verificando pedidos del camión averiado " + camion.getId() + " tipo " + ultimaAveria.getTipo().getId());
+                    for (Pedido pedidoAveriado : camion.getPedidosAsignados()) {
+                        if (pedidoAveriado.getEstado() != EstadoPedido.ENTREGADO) {
+                            boolean pedidoIncluido = false;
+                            for (Pedido pedidoCompleto : pedidosCompletos) {
+                                if (pedidoCompleto.getNumeroPedido().equals(pedidoAveriado.getNumeroPedido())) {
+                                    pedidoIncluido = true;
+                                    break;
+                                }
+                            }
+                            if (!pedidoIncluido) {
+                                System.out.println("Agregando pedido faltante del camión averiado: " + pedidoAveriado.getNumeroPedido());
+                                Pedido pedidoNuevo = new Pedido(pedidoAveriado);
+                                pedidoNuevo.setEstado(EstadoPedido.PENDIENTE);
+                                pedidoNuevo.setId(pedidosCompletos.size() + 1);
+                                pedidosCompletos.add(pedidoNuevo);
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
 //        mejorSolucion.getSistemaPLG().estadoDePedidosALas(inicioReplan);
 //        for(Pedido p : mejorSolucion.getSistemaPLG().getPedidos()){
