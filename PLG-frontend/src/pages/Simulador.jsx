@@ -25,6 +25,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import StopIcon from '@mui/icons-material/Stop';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import AddIcon from '@mui/icons-material/Add';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import MapVisualization from "../components/MapVisualization";
 import ItemListPanel from "../components/ItemListPanel/ItemListPanel";
 import ItemDetailsPanel from "../components/ItemDetailsPanel/ItemDetailsPanel";
@@ -86,6 +87,11 @@ export default function Simulador() {
     const [showAddPedidoModal, setShowAddPedidoModal] = useState(false);
     const [reportData, setReportData] = useState(null);
     const [isLoadingReport, setIsLoadingReport] = useState(false);
+    const [forcePedidosTab, setForcePedidosTab] = useState(undefined);
+    const [showPedidoSuccess, setShowPedidoSuccess] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [lastRefreshTime, setLastRefreshTime] = useState(null);
+    const [showAutoRefreshNotice, setShowAutoRefreshNotice] = useState(false);
 
     // Set the interval in hours here:
     const simulatedIntervalHours = 2;
@@ -96,6 +102,63 @@ export default function Simulador() {
 
     // Monitor for batch refresh notifications
     useBatchRefreshMonitor(true, 2000);
+
+    // Refresh system data function
+    const refreshSystemData = async (showLoading = true) => {
+        if (showLoading) setIsRefreshing(true);
+        
+        try {
+            console.log('Refreshing system data...');
+            
+            // Fetch updated system data
+            const updatedSystem = await fetchSystem();
+            setSystem(updatedSystem);
+            
+            setLastRefreshTime(new Date());
+            console.log('System data refreshed successfully');
+            
+        } catch (error) {
+            console.error('Error refreshing system data:', error);
+        } finally {
+            if (showLoading) setIsRefreshing(false);
+        }
+    };
+
+    // Manual refresh handler
+    const handleManualRefresh = () => {
+        refreshSystemData(true);
+    };
+
+    // Auto-refresh every 5 minutes
+    useEffect(() => {
+        const autoRefreshInterval = setInterval(async () => {
+            console.log('Auto-refreshing system data (5-minute interval)');
+            
+            // Show brief notification for auto-refresh
+            setShowAutoRefreshNotice(true);
+            setTimeout(() => {
+                setShowAutoRefreshNotice(false);
+            }, 3000);
+            
+            await refreshSystemData(false); // Don't show loading spinner for auto-refresh
+        }, 5 * 60 * 1000); // 5 minutes
+
+        return () => clearInterval(autoRefreshInterval);
+    }, []);
+
+    // Keyboard shortcut for manual refresh (Ctrl+R or F5)
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            // Prevent default browser refresh and use our custom refresh
+            if ((event.ctrlKey && event.key === 'r') || event.key === 'F5') {
+                event.preventDefault();
+                handleManualRefresh();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     // Modal handlers
     const handleOpenReportModal = async () => {
@@ -125,10 +188,37 @@ export default function Simulador() {
         setShowAddPedidoModal(false);
     };
 
-    const handlePedidoAdded = (pedidoData) => {
+    const handlePedidoAdded = async (pedidoData) => {
         console.log('Nuevo pedido agregado:', pedidoData);
-        // Optionally refresh system data here
-        // fetchSystem().then(setSystem);
+        
+        try {
+            // Use the refresh function to update system data
+            await refreshSystemData(false);
+            
+            // Switch to pedidos tab to show the new pedido
+            setForcePedidosTab(2); // Tab index 2 is for pedidos
+            
+            // Clear the force tab after a brief delay
+            setTimeout(() => {
+                setForcePedidosTab(undefined);
+            }, 100);
+            
+            // Also refresh pedidos stats if report is open
+            if (showReportModal) {
+                const updatedReportData = await reportService.getSimulationReport();
+                setReportData(updatedReportData);
+            }
+            
+            // Show success notification
+            setShowPedidoSuccess(true);
+            setTimeout(() => {
+                setShowPedidoSuccess(false);
+            }, 4000);
+            
+            console.log('Sistema actualizado con el nuevo pedido');
+        } catch (error) {
+            console.error('Error al actualizar sistema después de agregar pedido:', error);
+        }
     };
 
     // Check if simulation should show report automatically (for daily scenarios)
@@ -248,6 +338,7 @@ export default function Simulador() {
             try {
                 const systemData = await fetchSystem();
                 setSystem(systemData);
+                setLastRefreshTime(new Date()); // Set initial refresh time
             } catch (error) {
                 console.error("Error loading system data:", error);
             }
@@ -703,7 +794,7 @@ export default function Simulador() {
             </Box>
 
             {/* Alerts section */}
-            {(colapsoInfo?.colapso || showAutoPlayNotification) && (
+            {(colapsoInfo?.colapso || showAutoPlayNotification || showPedidoSuccess || showAutoRefreshNotice) && (
                 <Box sx={{ px: 3, py: 1 }}>
                     {colapsoInfo && colapsoInfo.colapso && (
                         <Alert severity="error" sx={{ mb: 1 }}>
@@ -720,6 +811,18 @@ export default function Simulador() {
                         <Alert severity="info" sx={{ mb: 1 }}>
                             <Typography variant="subtitle1" fontWeight="bold">Simulación reiniciada automáticamente</Typography>
                             <Typography variant="body2">La simulación se ha reiniciado después del procesamiento del nuevo batch y comenzará a reproducirse automáticamente.</Typography>
+                        </Alert>
+                    )}
+                    {showPedidoSuccess && (
+                        <Alert severity="success" sx={{ mb: 1 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">¡Pedido agregado exitosamente!</Typography>
+                            <Typography variant="body2">El nuevo pedido se ha registrado y aparece en la pestaña "Pedidos" del panel de elementos. El sistema ha sido actualizado automáticamente.</Typography>
+                        </Alert>
+                    )}
+                    {showAutoRefreshNotice && (
+                        <Alert severity="info" sx={{ mb: 1 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">Sistema actualizado automáticamente</Typography>
+                            <Typography variant="body2">Los datos del sistema se han actualizado automáticamente. Se detectaron posibles cambios en pedidos, flota o cisternas.</Typography>
                         </Alert>
                     )}
                 </Box>
@@ -815,6 +918,9 @@ export default function Simulador() {
                                             truckGLPs={truckGLPs}
                                             cisternaGLPs={cisternaGLPs}
                                             currentTime={currentTime}
+                                            forceActiveTab={forcePedidosTab}
+                                            lastRefreshTime={lastRefreshTime}
+                                            isRefreshing={isRefreshing}
                                         />
                                     </Box>
                                 )}
@@ -873,6 +979,52 @@ export default function Simulador() {
                         }}
                     >
                         <AddIcon />
+                    </Fab>
+                </Tooltip>
+                
+                <Tooltip 
+                    title={
+                        <Box>
+                            <Typography variant="body2">Refrescar Sistema</Typography>
+                            <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                Atajo: Ctrl+R o F5
+                            </Typography>
+                            {lastRefreshTime && (
+                                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                    Último: {lastRefreshTime.toLocaleTimeString()}
+                                </Typography>
+                            )}
+                        </Box>
+                    } 
+                    placement="left"
+                >
+                    <Fab
+                        color="secondary"
+                        onClick={handleManualRefresh}
+                        disabled={isRefreshing}
+                        sx={{ 
+                            bgcolor: '#ff9800', 
+                            '&:hover': { bgcolor: '#f57c00' },
+                            boxShadow: '0 4px 20px rgba(255, 152, 0, 0.3)',
+                            '&:disabled': {
+                                bgcolor: '#ffcc80',
+                                color: '#fff'
+                            }
+                        }}
+                    >
+                        <RefreshIcon 
+                            sx={{ 
+                                animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
+                                '@keyframes spin': {
+                                    '0%': {
+                                        transform: 'rotate(0deg)',
+                                    },
+                                    '100%': {
+                                        transform: 'rotate(360deg)',
+                                    },
+                                }
+                            }} 
+                        />
                     </Fab>
                 </Tooltip>
                 

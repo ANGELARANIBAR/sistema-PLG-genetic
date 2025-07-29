@@ -8,7 +8,6 @@ public class SistemaPLGDTO {
     private List<CisternaDTO> cisternas;
     private List<PedidoDTO> pedidos;
     private List<BloqueoDTO> bloqueos;
-    private List<AveriaDTO> averias;
     private double distanciaManzana;
     private double maxXmapa;
     private double maxYmapa;
@@ -46,14 +45,6 @@ public class SistemaPLGDTO {
 
     public void setBloqueos(List<BloqueoDTO> bloqueos) {
         this.bloqueos = bloqueos;
-    }
-
-    public List<AveriaDTO> getAverias() {
-        return averias;
-    }
-
-    public void setAverias(List<AveriaDTO> averias) {
-        this.averias = averias;
     }
 
     public double getDistanciaManzana() {

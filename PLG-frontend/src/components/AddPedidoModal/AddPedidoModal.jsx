@@ -139,7 +139,7 @@ const AddPedidoModal = ({ open, onClose, onPedidoAdded }) => {
       
       await pedidosService.createPedido(dataToSave);
       
-      setSuccess('¡Pedido registrado exitosamente!');
+      setSuccess('¡Pedido registrado exitosamente! Se mostrará en el panel de elementos.');
       
       // Notify parent component
       if (onPedidoAdded) {
@@ -149,7 +149,7 @@ const AddPedidoModal = ({ open, onClose, onPedidoAdded }) => {
       // Close modal after a short delay
       setTimeout(() => {
         handleClose();
-      }, 1500);
+      }, 2000);
       
     } catch (error) {
       console.error('Error creating pedido:', error);

@@ -123,10 +123,6 @@ public class SolutionController {
         dto.setBloqueos(sistema.getBloqueos().stream()
                 .map(this::convertToBloqueoDTO)
                 .collect(Collectors.toList()));
-
-        dto.setAverias(sistema.getAverias().stream()
-                .map(this::convertToAveriaDTO)
-                .collect(Collectors.toList()));
         
         dto.setDistanciaManzana(sistema.getDistanciaManzana());
         dto.setMaxXmapa(sistema.getMaxXmapa());
@@ -185,10 +181,6 @@ public class SolutionController {
 
         dto.setBloqueos(sistema.getBloqueos().stream()
                 .map(this::convertToBloqueoDTO)
-                .collect(Collectors.toList()));
-
-        dto.setAverias(sistema.getAverias().stream()
-                .map(this::convertToAveriaDTO)
                 .collect(Collectors.toList()));
         
         dto.setDistanciaManzana(sistema.getDistanciaManzana());
@@ -1121,21 +1113,6 @@ public class SolutionController {
         dto.setRutasBloqueadas(bloqueo.getRutasBloqueadas().stream()
                 .map(node -> new NodeDTO(node.getPosX(), node.getPosY()))
                 .collect(Collectors.toList()));
-        return dto;
-    }
-
-    private AveriaDTO convertToAveriaDTO(Averia averia) {
-        AveriaDTO dto = new AveriaDTO();
-        dto.setId(averia.getId());
-        dto.setFechaHoraInicio(averia.getFechaHoraInicio());
-        dto.setFechaHoraFin(averia.getFechaHoraFin());
-        dto.setIdCamion(averia.getIdCamion());
-        dto.setTurnoOcurrencia(averia.getTurnoOcurrencia());
-        if (averia.getTipo() != null) {
-            dto.setTipoId(averia.getTipo().getId());
-            dto.setTiempoInmovilizado(averia.getTipo().getTiempoInmovilizado());
-            dto.setRegresaAlmacen(averia.getTipo().getRegresaAlmacen());
-        }
         return dto;
     }
 
