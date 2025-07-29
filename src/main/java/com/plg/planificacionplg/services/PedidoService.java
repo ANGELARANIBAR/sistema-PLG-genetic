@@ -181,7 +181,7 @@ public class PedidoService {
         pedido.setVolumenGLP(request.getVolumen());
         pedido.setUbicacion(ubicacion);
         pedido.setFechaHoraRegistro(request.getFechaRegistro() != null ? request.getFechaRegistro() : LocalDateTime.now());
-        pedido.setTiempoMaxEntrega(request.getTiempoMaxEntrega());
+        pedido.setTiempoMaxEntrega(request.getTiempoMaxEntrega()*3600);
         
         // Calcular fecha máxima de entrega basada en el tiempo máximo
         if (request.getTiempoMaxEntrega() > 0) {
