@@ -38,6 +38,12 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
   const mapContainerRef = useRef(null);
   const [legendVisible, setLegendVisible] = useState(false);
 
+  // Estados para movimiento fluido
+  const [previousTruckPositions, setPreviousTruckPositions] = useState(new Map());
+  const [interpolatedPositions, setInterpolatedPositions] = useState(new Map());
+  const [lastUpdateTime, setLastUpdateTime] = useState(null);
+  const animationFrameRef = useRef(null);
+
   // Use external selectedItem if provided, otherwise use internal state
   const selectedItem = externalSelectedItem || internalSelectedItem;
   
@@ -45,6 +51,104 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
   useEffect(() => {
     setSelectedAveriaType(null);
   }, [selectedItem]);
+
+  // Función para interpolar entre dos posiciones
+  const interpolatePosition = (start, end, factor) => {
+    if (!start || !end) return end || start;
+    return {
+      x: start.x + (end.x - start.x) * factor,
+      y: start.y + (end.y - start.y) * factor
+    };
+  };
+
+  // Función para calcular la velocidad estimada basada en la ruta
+  const estimateVelocity = (truck, currentDest) => {
+    if (!truck?.tipoCamion?.velocidadPromedio || !currentDest?.route) {
+      return 1; // Velocidad por defecto
+    }
+    return truck.tipoCamion.velocidadPromedio / 60; // Convertir a unidades por segundo
+  };
+
+  // Función de animación fluida
+  const animatePositions = useCallback(() => {
+    if (!lastUpdateTime) return;
+
+    const now = Date.now();
+    const deltaTime = (now - lastUpdateTime) / 1000; // segundos
+    const newInterpolated = new Map();
+
+    truckPositions.forEach((targetPos, truckId) => {
+      const currentInterpolated = interpolatedPositions.get(truckId);
+      const previousPos = previousTruckPositions.get(truckId);
+      const truck = system?.flota?.find(t => t.truckId === truckId);
+      const currentDest = currentDestinations.get(truckId);
+
+      if (!currentInterpolated) {
+        // Primera vez, usar la posición actual
+        newInterpolated.set(truckId, targetPos);
+        return;
+      }
+
+      // Calcular velocidad estimada (más realista)
+      const velocity = estimateVelocity(truck, currentDest);
+      
+      // Calcular distancia al objetivo
+      const distance = Math.sqrt(
+        Math.pow(targetPos.x - currentInterpolated.x, 2) + 
+        Math.pow(targetPos.y - currentInterpolated.y, 2)
+      );
+
+      // Si está muy cerca del objetivo, usar la posición exacta
+      if (distance < 0.05) {
+        newInterpolated.set(truckId, targetPos);
+        return;
+      }
+
+      // Calcular factor de interpolación más dinámico
+      const baseSpeed = 0.15; // Velocidad base de interpolación
+      const adaptiveSpeed = Math.min(baseSpeed + (velocity * deltaTime * 0.1), 0.25);
+      
+      // Aplicar factor adaptativo basado en distancia
+      let factor = adaptiveSpeed;
+      if (distance > 2) {
+        factor = Math.min(factor * 1.5, 0.3); // Acelerar si está lejos
+      } else if (distance < 0.5) {
+        factor = Math.max(factor * 0.7, 0.05); // Desacelerar al acercarse
+      }
+
+      const newPos = interpolatePosition(currentInterpolated, targetPos, factor);
+      newInterpolated.set(truckId, newPos);
+    });
+
+    setInterpolatedPositions(newInterpolated);
+    setLastUpdateTime(now);
+
+    // Continuar la animación
+    animationFrameRef.current = requestAnimationFrame(animatePositions);
+  }, [truckPositions, interpolatedPositions, previousTruckPositions, lastUpdateTime, system, currentDestinations]);
+
+  // Iniciar/detener animación
+  useEffect(() => {
+    if (truckPositions.size > 0) {
+      setLastUpdateTime(Date.now());
+      animationFrameRef.current = requestAnimationFrame(animatePositions);
+    }
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [animatePositions]);
+
+  // Limpiar animación al desmontar
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
 
   // Toggle legend visibility
   const handleLegendToggle = () => {
@@ -89,6 +193,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
       const newGLPs = new Map();
       if(system.flota === null || system.flota === undefined)
         return;
+      
       for (const truck of system.flota) {
         try {
           const [position, fuel, glp] = await Promise.all([
@@ -109,6 +214,14 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
         } catch (error) {
           console.error(`Error updating truck ${truck.truckId}:`, error);
         }
+      }
+
+      // Actualizar posiciones anteriores antes de establecer las nuevas
+      setPreviousTruckPositions(new Map(truckPositions));
+      
+      // Si es la primera vez, inicializar interpolatedPositions
+      if (interpolatedPositions.size === 0 && newPositions.size > 0) {
+        setInterpolatedPositions(new Map(newPositions));
       }
 
       setTruckPositions(newPositions);
@@ -228,35 +341,72 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
     if (!system) return;
 
     const newDirections = new Map();
-    const previousPositions = new Map(truckPositions);
 
     Array.from(truckPositions.entries()).forEach(([truckId, currentPos]) => {
-      const prevPos = previousPositions.get(truckId);
+      const prevPos = previousTruckPositions.get(truckId);
+      const interpolatedPos = interpolatedPositions.get(truckId);
+      const currentDest = currentDestinations.get(truckId);
       
-      if (prevPos) {
-        if (Math.abs(currentPos.x - prevPos.x) > Math.abs(currentPos.y - prevPos.y)) {
-          // Moving horizontally
-          if (currentPos.x > prevPos.x) {
-            newDirections.set(truckId, 'right');
-          } else if (currentPos.x < prevPos.x) {
-            newDirections.set(truckId, 'left');
+      // Usar posición interpolada si está disponible para cálculos más suaves
+      const currentPosition = interpolatedPos || currentPos;
+      
+      if (prevPos && currentPosition) {
+        const deltaX = currentPosition.x - prevPos.x;
+        const deltaY = currentPosition.y - prevPos.y;
+        
+        // Solo cambiar dirección si hay movimiento significativo
+        const movementThreshold = 0.05;
+        if (Math.abs(deltaX) > movementThreshold || Math.abs(deltaY) > movementThreshold) {
+          if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            // Moving horizontally
+            if (deltaX > 0) {
+              newDirections.set(truckId, 'right');
+            } else {
+              newDirections.set(truckId, 'left');
+            }
+          } else {
+            // Moving vertically
+            if (deltaY > 0) {
+              newDirections.set(truckId, 'up');
+            } else {
+              newDirections.set(truckId, 'down');
+            }
           }
         } else {
-          // Moving vertically
-          if (currentPos.y > prevPos.y) {
+          // Si no hay movimiento significativo, mantener dirección anterior
+          const currentDirection = truckDirections.get(truckId);
+          if (currentDirection) {
+            newDirections.set(truckId, currentDirection);
+          } else {
             newDirections.set(truckId, 'up');
-          } else if (currentPos.y < prevPos.y) {
-            newDirections.set(truckId, 'down');
           }
         }
+      } else if (currentDest && currentDest.route && currentDest.route.length > 1) {
+        // Usar la ruta para determinar dirección si no hay posición anterior
+        const route = currentDest.route;
+        const nextPoint = route[1]; // Siguiente punto en la ruta
+        const currentPoint = route[0]; // Punto actual en la ruta
+        
+        if (nextPoint && currentPoint) {
+          const deltaX = nextPoint.x - currentPoint.x;
+          const deltaY = nextPoint.y - currentPoint.y;
+          
+          if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            newDirections.set(truckId, deltaX > 0 ? 'right' : 'left');
+          } else {
+            newDirections.set(truckId, deltaY > 0 ? 'up' : 'down');
+          }
+        } else {
+          newDirections.set(truckId, 'up');
+        }
       } else {
-        // Default direction if no previous position
+        // Default direction if no previous position or route
         newDirections.set(truckId, 'up');
       }
     });
 
     setTruckDirections(newDirections);
-  }, [truckPositions, system]);
+  }, [truckPositions, interpolatedPositions, previousTruckPositions, currentDestinations, system]);
 
   // Fetch real-time estado for all pedidos
   useEffect(() => {
@@ -411,9 +561,10 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
     const items = [];
     const threshold = 15; // Pixel threshold for overlap detection
 
-    // Check trucks
+    // Check trucks - usar posiciones interpoladas
     Array.from(truckPositions.entries()).forEach(([truckId, position]) => {
-      const pos = toScreenPosition(position.x, position.y);
+      const displayPosition = interpolatedPositions.get(truckId) || position;
+      const pos = toScreenPosition(displayPosition.x, displayPosition.y);
       if (Math.abs(pos.x - x) < threshold && Math.abs(pos.y - y) < threshold) {
         const truck = system?.flota?.find(t => t.truckId === truckId);
         if (truck) {
@@ -776,7 +927,11 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
 
           const currentFuel = Number(truckFuels.get(truckId) || 0);
           const currentGLP = Number(truckGLPs.get(truckId) || 0);
-          const pos = toScreenPosition(position.x, position.y);
+          
+          // Usar posición interpolada si está disponible, sino usar posición real
+          const displayPosition = interpolatedPositions.get(truckId) || position;
+          const pos = toScreenPosition(displayPosition.x, displayPosition.y);
+          
           const direction = truckDirections.get(truckId) || 'up';
           
           // Calcular el filtro de color basado en la capacidad de GLP
@@ -788,7 +943,7 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
             checkAndUpdateOrderState(truck, currentDest);
           }
 
-          // Preparar datos para el tooltip
+          // Preparar datos para el tooltip usando la posición real para los datos
           const tooltipData = {
             codigo: truck.codigo,
             ubicacion: { x: position.x.toFixed(1), y: position.y.toFixed(1) },
@@ -800,11 +955,11 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
             glpActual: currentGLP.toFixed(2),
             glpMax: truck.tipoCamion?.cargaGLPMax?.toFixed(2) || 'N/A',
             velocidad: truck.tipoCamion?.velocidadPromedio?.toFixed(2) || 'N/A',
-                            estadoActual: currentDest ? 
-                  (currentDest.destinationType === 'AVERIADO' && selectedAveriaType 
-                    ? `Averiado Tipo ${selectedAveriaType}`
-                    : getDestinationTypeLabel(currentDest.destinationType, currentDest.averiaType)
-                  ) : null
+            estadoActual: currentDest ? 
+              (currentDest.destinationType === 'AVERIADO' && selectedAveriaType 
+                ? `Averiado Tipo ${selectedAveriaType}`
+                : getDestinationTypeLabel(currentDest.destinationType, currentDest.averiaType)
+              ) : null
           };
 
           return (
@@ -817,7 +972,10 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
                 className={`truck-marker ${selectedItem?.type === 'truck' && selectedItem.id === truckId ? 'selected' : ''} direction-${direction}`}
                 style={{
                   left: pos.x - 12,
-                  top: pos.y - 12
+                  top: pos.y - 12,
+                  transition: 'left 0.05s linear, top 0.05s linear', // Transición más rápida y linear
+                  transform: 'translateZ(0)', // Habilitar aceleración por hardware
+                  willChange: 'left, top' // Optimizar para cambios frecuentes
                 }}
                 onClick={(e) => handleMarkerClick(e, { type: 'truck', id: truckId })}
                 onContextMenu={(e) => handleTruckRightClick(e, truckId)}
@@ -826,7 +984,10 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
                   src={getTruckIcon(truckId)} 
                   alt="Truck" 
                   className="marker-icon" 
-                  style={{ filter: colorFilter }}
+                  style={{ 
+                    filter: colorFilter,
+                    transition: 'transform 0.1s ease-out' // Transición suave para cambios de dirección
+                  }}
                 />
                 <div className={`direction-arrow direction-${direction}`}></div>
                 <span className="marker-label">T{truckId}</span>
