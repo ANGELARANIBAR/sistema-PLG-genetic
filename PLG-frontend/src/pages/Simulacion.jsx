@@ -24,6 +24,9 @@ export default function Simulacion() {
       // Combine fecha and hora into a single datetime string
       const fechaHoraInicio = `${fecha}T${hora}:00`;
       
+      // Store current scenario in sessionStorage for the simulator
+      sessionStorage.setItem('currentScenario', escenario);
+      
       // Initialize the fechaHoraInicio in the backend
       //await simulationService.initializeFechaHora(fechaHoraInicio);
       if(escenario === "diario"){

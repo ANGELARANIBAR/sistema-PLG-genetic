@@ -1,0 +1,210 @@
+.add-pedido-modal {
+  .MuiDialog-paper {
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+  }
+  
+  .MuiDialogTitle-root {
+    background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+    color: white;
+    font-weight: 600;
+    padding: 20px 24px;
+    
+    .title-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      
+      .title-text {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 18px;
+        font-weight: 600;
+      }
+    }
+  }
+  
+  .MuiDialogContent-root {
+    padding: 24px;
+    
+    .form-description {
+      margin-bottom: 24px;
+      color: #666;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .MuiTextField-root {
+      .MuiOutlinedInput-root {
+        border-radius: 8px;
+        
+        &:hover .MuiOutlinedInput-notchedOutline {
+          border-color: #4caf50;
+        }
+        
+        &.Mui-focused .MuiOutlinedInput-notchedOutline {
+          border-color: #4caf50;
+          border-width: 2px;
+        }
+      }
+      
+      .MuiInputLabel-root {
+        &.Mui-focused {
+          color: #4caf50;
+        }
+      }
+      
+      &.error .MuiOutlinedInput-root {
+        .MuiOutlinedInput-notchedOutline {
+          border-color: #f44336;
+        }
+      }
+    }
+    
+         .MuiAlert-root {
+       border-radius: 8px;
+       
+       &.MuiAlert-standardError {
+         background-color: #ffebee;
+         color: #c62828;
+         
+         .MuiAlert-icon {
+           color: #f44336;
+         }
+       }
+       
+       &.MuiAlert-standardSuccess {
+         background-color: #e8f5e8;
+         color: #2e7d32;
+         
+         .MuiAlert-icon {
+           color: #4caf50;
+         }
+       }
+     }
+   }
+  
+  .MuiDialogActions-root {
+    padding: 20px 24px;
+    background-color: #fafafa;
+    border-top: 1px solid #e0e0e0;
+    
+    .MuiButton-root {
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-weight: 600;
+      text-transform: none;
+      min-width: 120px;
+      
+      &.MuiButton-contained {
+        background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+        box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+        
+        &:hover {
+          background: linear-gradient(135deg, #388e3c 0%, #2e7d32 100%);
+          box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+        }
+        
+        &:disabled {
+          background: #cccccc;
+          color: #666;
+          box-shadow: none;
+        }
+      }
+      
+      &.MuiButton-outlined {
+        border-color: #ccc;
+        color: #666;
+        
+        &:hover {
+          border-color: #999;
+          background-color: #f5f5f5;
+        }
+      }
+    }
+  }
+}
+
+/* Form field enhancements */
+.form-field-enhanced {
+  .MuiInputAdornment-root {
+    .MuiSvgIcon-root {
+      color: #4caf50;
+      font-size: 20px;
+    }
+  }
+  
+  .MuiFormHelperText-root {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+    
+    &.Mui-error {
+      color: #f44336;
+    }
+  }
+}
+
+/* Loading states */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  z-index: 1000;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .add-pedido-modal {
+    .MuiDialog-paper {
+      margin: 16px;
+      width: calc(100% - 32px);
+      max-height: calc(100% - 32px);
+    }
+    
+    .MuiDialogTitle-root {
+      padding: 16px;
+      font-size: 16px;
+    }
+    
+    .MuiDialogContent-root {
+      padding: 16px;
+    }
+    
+    .MuiDialogActions-root {
+      padding: 16px;
+      flex-direction: column;
+      gap: 8px;
+      
+      .MuiButton-root {
+        width: 100%;
+      }
+    }
+  }
+}
+
+/* Success animation */
+@keyframes successPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+  }
+}
+
+.success-button {
+  animation: successPulse 1.5s ease-out;
+} 

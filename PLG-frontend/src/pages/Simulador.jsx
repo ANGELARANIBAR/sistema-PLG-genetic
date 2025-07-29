@@ -12,7 +12,9 @@ import {
     Alert,
     LinearProgress,
     Tabs,
-    Tab
+    Tab,
+    Tooltip,
+    Fab
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -21,10 +23,14 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import StopIcon from '@mui/icons-material/Stop';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import AddIcon from '@mui/icons-material/Add';
 import MapVisualization from "../components/MapVisualization";
 import ItemListPanel from "../components/ItemListPanel/ItemListPanel";
 import ItemDetailsPanel from "../components/ItemDetailsPanel/ItemDetailsPanel";
 import BloqueosListPanel from "../components/BloqueosListPanel/BloqueosListPanel";
+import SimulationReportModal from "../components/SimulationReportModal/SimulationReportModal";
+import AddPedidoModal from "../components/AddPedidoModal/AddPedidoModal";
 import { mapService } from "../services/mapService";
 import { useBatchRefreshMonitor } from "../hooks/useBatchRefreshMonitor";
 import { 
@@ -34,6 +40,7 @@ import {
     fetchCisternaGLP,
     fetchTruckDestination 
 } from "../services/routeService";
+import { reportService } from "../services/reportService";
 import './Simulacion.css';
 
 /**
@@ -74,6 +81,12 @@ export default function Simulador() {
     const [currentDestinations, setCurrentDestinations] = useState(new Map());
     const [selectedItem, setSelectedItem] = useState(null);
 
+    // Modal states
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [showAddPedidoModal, setShowAddPedidoModal] = useState(false);
+    const [reportData, setReportData] = useState(null);
+    const [isLoadingReport, setIsLoadingReport] = useState(false);
+
     // Set the interval in hours here:
     const simulatedIntervalHours = 2;
 
@@ -83,6 +96,67 @@ export default function Simulador() {
 
     // Monitor for batch refresh notifications
     useBatchRefreshMonitor(true, 2000);
+
+    // Modal handlers
+    const handleOpenReportModal = async () => {
+        setIsLoadingReport(true);
+        try {
+            const data = await reportService.getSimulationReport();
+            setReportData(data);
+            setShowReportModal(true);
+        } catch (error) {
+            console.error('Error loading report data:', error);
+            alert('Error al cargar los datos del reporte');
+        } finally {
+            setIsLoadingReport(false);
+        }
+    };
+
+    const handleCloseReportModal = () => {
+        setShowReportModal(false);
+        setReportData(null);
+    };
+
+    const handleOpenAddPedidoModal = () => {
+        setShowAddPedidoModal(true);
+    };
+
+    const handleCloseAddPedidoModal = () => {
+        setShowAddPedidoModal(false);
+    };
+
+    const handlePedidoAdded = (pedidoData) => {
+        console.log('Nuevo pedido agregado:', pedidoData);
+        // Optionally refresh system data here
+        // fetchSystem().then(setSystem);
+    };
+
+    // Check if simulation should show report automatically (for daily scenarios)
+    useEffect(() => {
+        const checkSimulationCompletion = async () => {
+            try {
+                // Only check for daily simulations
+                const urlParams = new URLSearchParams(window.location.search);
+                const scenario = sessionStorage.getItem('currentScenario') || 'diario';
+                
+                if (scenario === 'diario' && system && !isPlaying) {
+                    const isCompleted = await reportService.isSimulationCompleted();
+                    if (isCompleted && !showReportModal && !isLoadingReport) {
+                        // Automatically show report after a brief delay
+                        setTimeout(() => {
+                            handleOpenReportModal();
+                        }, 2000);
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking simulation completion:', error);
+            }
+        };
+
+        if (system) {
+            checkSimulationCompletion();
+        }
+    }, [system, isPlaying, showReportModal, isLoadingReport]);
 
     // Check if we should auto-play after a refresh
     useEffect(() => {
@@ -776,6 +850,60 @@ export default function Simulador() {
                     </Box>
                 )}
             </Box>
+
+            {/* Floating Action Buttons */}
+            <Box sx={{ 
+                position: 'fixed', 
+                bottom: 20, 
+                right: isPanelVisible ? 370 : 20, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: 2, 
+                zIndex: 1000,
+                transition: 'right 0.3s ease-in-out'
+            }}>
+                <Tooltip title="Agregar Nuevo Pedido" placement="left">
+                    <Fab
+                        color="primary"
+                        onClick={handleOpenAddPedidoModal}
+                        sx={{ 
+                            bgcolor: '#4caf50', 
+                            '&:hover': { bgcolor: '#388e3c' },
+                            boxShadow: '0 4px 20px rgba(76, 175, 80, 0.3)'
+                        }}
+                    >
+                        <AddIcon />
+                    </Fab>
+                </Tooltip>
+                
+                <Tooltip title="Ver Reporte de Simulación" placement="left">
+                    <Fab
+                        color="secondary"
+                        onClick={handleOpenReportModal}
+                        disabled={isLoadingReport}
+                        sx={{ 
+                            bgcolor: '#2196f3', 
+                            '&:hover': { bgcolor: '#1976d2' },
+                            boxShadow: '0 4px 20px rgba(33, 150, 243, 0.3)'
+                        }}
+                    >
+                        <AssignmentIcon />
+                    </Fab>
+                </Tooltip>
+            </Box>
+
+            {/* Modals */}
+            <SimulationReportModal
+                open={showReportModal}
+                onClose={handleCloseReportModal}
+                reportData={reportData}
+            />
+            
+            <AddPedidoModal
+                open={showAddPedidoModal}
+                onClose={handleCloseAddPedidoModal}
+                onPedidoAdded={handlePedidoAdded}
+            />
         </Box>
     );
 }
