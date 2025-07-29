@@ -51,7 +51,7 @@ public class PedidoController {
     }
 
     // GET: listar todos los pedidos
-    @GetMapping
+    @GetMapping("/listarTodos")
     public ResponseEntity<List<PedidoDTO>> listarTodos() {
         return ResponseEntity.ok(pedidoService.listarTodosDTO());
     }

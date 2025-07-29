@@ -7,6 +7,8 @@ import com.plg.planificacionplg.dto.NodeDTO;
 import com.plg.planificacionplg.dto.PedidoDTO;
 import com.plg.planificacionplg.dto.PedidoRequest;
 import com.plg.planificacionplg.repository.PedidoRepository;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -147,7 +149,9 @@ public class PedidoService {
 
     public boolean existe(Integer id) {
         return pedidoRepository.existsById(id);
-    }    public List<PedidoDTO> listarTodosDTO() {
+    }
+    @Transactional(readOnly = true)
+    public List<PedidoDTO> listarTodosDTO() {
         return pedidoRepository.findAll().stream()
                 .map(p -> {
                     PedidoDTO dto = new PedidoDTO();

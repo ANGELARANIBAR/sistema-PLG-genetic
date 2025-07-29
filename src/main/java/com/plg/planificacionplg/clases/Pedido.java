@@ -1,5 +1,6 @@
 package com.plg.planificacionplg.clases;
 
+import com.plg.planificacionplg.dto.PedidoDTO;
 import lombok.*;
 
 import jakarta.persistence.*;
@@ -108,4 +109,22 @@ public class Pedido{
             completado = false;
         }
     }
+
+    public Pedido(PedidoDTO dto) {
+        this.id = dto.getId();
+        this.idCliente = dto.getIdCliente();
+        this.numeroPedido = dto.getNumeroPedido();
+        this.volumenGLP = dto.getVolumenGLP();
+        this.volumenGLPEntregado = 0.0; // asumido: aún no entregado
+        this.ubicacion = new Nodo(dto.getUbicacion().getX(), dto.getUbicacion().getY()); // necesitas constructor Nodo(NodeDTO)
+        this.fechaHoraRegistro = dto.getFechaHoraRegistro();
+        this.fechaHoraEntrega = null; // asumido: aún no entregado
+        this.fechaHoraMaxEntrega = dto.getFechaHoraMaxEntrega();
+        this.tiempoMaxEntrega = dto.getTiempoMaxEntrega();
+        this.estado = EstadoPedido.valueOf(dto.getEstado());
+        this.completado = dto.isCompletado();
+        this.camiones = new ArrayList<>(); // asumido: aún no asignado
+        this.consumoCombustibleTotal = dto.getConsumoCombustibleTotal();
+    }
+
 }

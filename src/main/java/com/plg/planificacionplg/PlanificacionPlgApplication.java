@@ -1,17 +1,30 @@
 package com.plg.planificacionplg;
 
 import com.plg.planificacionplg.clases.*;
+import com.plg.planificacionplg.dto.PedidoDTO;
+import com.plg.planificacionplg.services.PedidoService;
+import jakarta.transaction.Transactional;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.catalina.core.ApplicationContext;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @SpringBootApplication
-public class PlanificacionPlgApplication {
+public class PlanificacionPlgApplication{
+    private static ConfigurableApplicationContext context;
+    @Autowired
+    private static PedidoService pedidoService;
+
+
     private static final double MAX_DOUBLE = Double.MAX_VALUE;
     @Setter @Getter
     private static Individuo mejorSolucion;
@@ -64,12 +77,9 @@ public class PlanificacionPlgApplication {
     private static final String MANTENIMIENTO_FILE = BASE_DIR + "planmantenimiento.txt";
 
     public static void main(String[] args) {
-        SpringApplication.run(PlanificacionPlgApplication.class, args);
-        estadoInicialSistemaPLG();
-//        fechaHoraInicio = LocalDateTime.of(2025, 3, 23, 10, 30);
-//        ejecutarAlgoritmo(2);
+        context = SpringApplication.run(PlanificacionPlgApplication.class, args);
+        estadoInicialSistemaPLG(); // aquí sí puedes usar pedidoService
     }
-
 
     private static void estadoInicialSistemaPLG(){
         SistemaPLG sistemaPLG = new SistemaPLG();
@@ -209,16 +219,35 @@ public class PlanificacionPlgApplication {
     public static void ejecutarAlgoritmo(int escenario) {
 
         SistemaPLG sistemaPLG = PlanificacionPlgApplication.mejorSolucionSiguiente.getSistemaPLG();
-
+        List<Integer>idxPedidosBD;
         LocalDateTime fechaInicio = (fechaHoraInicio != null) ? fechaHoraInicio : null;
         sistemaPLG.setFechaHoraInicio(fechaInicio);
         listaPedidosTotal = new ArrayList<>();
-        if(escenario == 1 || escenario == 3) {
+        if(escenario == 3) {
             listaPedidosTotal = sistemaPLG.cargarPedidosDesdeCarpeta(PEDIDOS_FILE, fechaInicio, LocalDateTime.MAX);
         }
         else if(escenario == 2) {
             listaPedidosTotal = sistemaPLG.cargarPedidosDesdeCarpeta(PEDIDOS_FILE, fechaInicio, fechaInicio.plusDays(7));
             System.out.println("Pedidos cantidad: " + sistemaPLG.getPedidos().size());
+        }
+        else if(escenario == 1){
+            idxPedidosBD = new ArrayList<>();
+            listaPedidosTotal = new ArrayList<>();
+            // Ya puedes usar pedidoService directamente aquí
+            PedidoService pedidoService = context.getBean(PedidoService.class);
+            List<PedidoDTO> lista = pedidoService.listarTodosDTO();
+
+            // También puedes asignarlo a tu lista estática si quieres
+            listaPedidosTotal = lista.stream()
+                    .map(dto -> new Pedido(dto)) // si necesitas convertir de DTO a entidad
+                    .collect(Collectors.toList());
+
+            listaPedidosTotal.forEach(pedido -> {
+                idxPedidosBD.add(pedido.getId());
+                pedido.setId(idxPedidosBD.size());
+            });
+
+            sistemaPLG.setPedidos(listaPedidosTotal);
         }
         sistemaPLG.setPedidosTodos(new ArrayList<>(sistemaPLG.getPedidos()));
 
@@ -255,6 +284,9 @@ public class PlanificacionPlgApplication {
 
         int finBatch1 = (listaPedidosTotal.size() > inicioBatchActual) ? inicioBatchActual : listaPedidosTotal.size();
         List<Pedido> primerBatch = listaPedidosTotal.subList(0, finBatch1);
+        if(escenario==1){
+            primerBatch = listaPedidosTotal;
+        }
         sistemaPLG.setPedidos(new ArrayList<>(primerBatch));
         pedidosAtendidos = primerBatch.size();
         System.out.println("Iniciando Planificación");
