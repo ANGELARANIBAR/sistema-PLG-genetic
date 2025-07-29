@@ -49,6 +49,8 @@ public class PlanificacionPlgApplication {
     private static boolean allBatchesProcessed = false;
 
     @Setter @Getter
+    private static List<Camion>camAtenPedAv;
+    @Setter @Getter
     private static List<Integer> flotaXTipoCam = new ArrayList<>(Arrays.asList(2, 3, 4, 10));
 
     @Setter @Getter
@@ -614,6 +616,7 @@ public class PlanificacionPlgApplication {
                 System.out.println("actualizando system al front");
                 PlanificacionPlgApplication.setSigListo(false);
                 conservarAveriados(inicio);
+
                 PlanificacionPlgApplication.setMejorSolucion(mejorSolucionSiguiente);
                 PlanificacionPlgApplication.setBatchRefreshNeeded(false);//true);
                 mejorSolucion = mejorSolucionSiguiente;
@@ -666,7 +669,12 @@ public class PlanificacionPlgApplication {
                     else destActuales.add(d);
                 }
                 mejorSolucionSiguiente.getSistemaPLG().getFlota().get(c.getId()-1).setDestinos(destActuales);
+
             }
+        }
+
+        for(Camion camAt : PlanificacionPlgApplication.getCamAtenPedAv()){
+            Individuo.replanificarRutasCamion(camAt);
         }
     }
     public static void replanificar2(Individuo mejorSolucion, LocalDateTime inicioReplan, ArrayList<Pedido>pedidosnuevos){

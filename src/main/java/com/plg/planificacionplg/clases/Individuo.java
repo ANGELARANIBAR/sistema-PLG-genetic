@@ -1,5 +1,6 @@
 package com.plg.planificacionplg.clases;
 
+import com.plg.planificacionplg.PlanificacionPlgApplication;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -453,10 +454,87 @@ public class Individuo {
         double factorCamiones = wCamiones * (camionesActivos / (double) flota.size());
 
         fitness = factorCamiones * k / (0.4 * totalCombustible + 0.1 * totalTiempo + entregasTardias * 500 + 1e-5);
+    }
+    public static void replanificarRutasCamion(Camion camAt){
+        int idCamion = camAt.getId();
+        List<Pedido>pedidosNuevos = PlanificacionPlgApplication.getMejorSolucionSiguiente().getSistemaPLG()
+                .getFlota().get(idCamion-1).getPedidosAsignados();
+        if(pedidosNuevos.size()>0){
+            LocalDateTime inicioReplan = PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG().getFechaHoraInicio().plusHours(2);
+            List<Destino>destinos = camAt.getDestinos();
+            List<Pedido>pedidosEnCurso = new ArrayList<>();
+            List<Destino>destinosEnCurso = new ArrayList<>();
+
+            List<Pedido>pedidosTemp = new ArrayList<>();
+            List<Integer>idxPedidos = new ArrayList<>();
+            for(Pedido p : pedidosNuevos){
+                idxPedidos.add(p.getId());
+                Pedido temp = new Pedido(p);
+                pedidosTemp.add(temp);
+                temp.setId(pedidosTemp.size());
+            }
+            SistemaPLG sistemamejor = PlanificacionPlgApplication.getMejorSolucion().getSistemaPLG();
+            Camion camion = new Camion(sistemamejor.getFlota().get(idCamion-1));
+            camion.setId(1);
+            camion.setDestinos(new ArrayList<>());
+            for(Destino d : destinos){
+                if(d.getFechaHoraSalida()!=null && d.getFechaHoraSalida().isBefore(inicioReplan))continue; //solo utilizara los destins a partir de aca
+                Destino nuevoDest = d.copiar();
+                if(d instanceof EntregaPedido){
+                    Pedido p = new Pedido(d.getPedido());
+                    pedidosEnCurso.add(p);
+                    destinosEnCurso.add(nuevoDest);
+                    nuevoDest.setPedido(p);
+                }
+                camion.getDestinos().add(nuevoDest);
+            }
+            destinos = camion.getDestinos();
+            if(destinos.size()<2){return;}
+            //tiene almenos una entrega y el retorno, donc size > 1
+            Destino ultEntrega = camion.getDestinos().get(destinos.size()-2);//incluye pedido replanificado en averia
+            SistemaPLG replanificado = new SistemaPLG();
+            replanificado.deepCopy(sistemamejor);
+            List<Camion>camiones = new ArrayList<>();
+            camiones.add(camion);
+            replanificado.setFechaHoraInicio(ultEntrega.getFechaHoraSalida());
+            replanificado.setFlota(camiones);
+            replanificado.setPedidos(pedidosTemp);
+            int tamPoblacion = 5;
+            int generaciones = 0;
+            double probCruce = 0.1;
+            double probMutacion = 0.1;
+            double porcentajeElite = 0.1;
+            Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
+            Individuo mejorSolucionTemp = ga2.ejecutar(2, replanificado);
+            Camion camionSigBatch = PlanificacionPlgApplication.getMejorSolucionSiguiente().getSistemaPLG().getFlota().get(idCamion-1);
+            camionSigBatch.setDestinos(new ArrayList<>(destinos));
+            camionSigBatch.getDestinos().removeLast();
+            camionSigBatch.getDestinos().addAll(mejorSolucionTemp.getSistemaPLG().getFlota().getFirst().getDestinos());
+            for(int i=0; i<idxPedidos.size(); i++){
+                int idxPedido = idxPedidos.get(i);
+                PlanificacionPlgApplication.getMejorSolucionSiguiente().getSistemaPLG().getPedidos().set(idxPedido-1,
+                        mejorSolucionTemp.getSistemaPLG().getPedidos().get(i));
+            }
+            List<Pedido>pedidosSig = new ArrayList<>(PlanificacionPlgApplication.getMejorSolucionSiguiente().getSistemaPLG().getPedidos());
+            for(int i=0; i<pedidosEnCurso.size(); i++){
+                Pedido p = pedidosEnCurso.get(i);
+                Boolean encontrado = false;
+                for(Pedido p2 : pedidosSig){
+                    if(p2.getNumeroPedido().equals(p.getNumeroPedido())) {
+                        encontrado = true;
+                        p.setId(p2.getId());
+                        break;
+                    }
+                }
+                if(!encontrado){
+                    PlanificacionPlgApplication.getMejorSolucionSiguiente().getSistemaPLG().getPedidos().add(p);
+                    p.setId(PlanificacionPlgApplication.getMejorSolucionSiguiente().getSistemaPLG().getPedidos().size());
+                }
+            }
+        }
 
 
     }
-
     public Individuo clonar(int code) {
         Individuo copia = new Individuo(0, 0, this.sistemaPLG, code);
         Map<Integer, List<Integer>> nuevaAsignacion = new HashMap<>();

@@ -695,13 +695,17 @@ public class SolutionController {
             Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
             Individuo mejorSolucionTemp = ga2.ejecutar(2, replanificado);
             System.out.println("%%%%%%%%%%%%%%%%%Solucion Averia%%%%%%%%%%%%%%%%%");
-            mejorSolucionTemp.getSistemaPLG().imprimirPlanificacion();
+            //mejorSolucionTemp.getSistemaPLG().imprimirPlanificacion();
+
+
             for(int j=0; j<idxPedidosAnterior.size(); j++){
                 Integer idx = idxPedidosAnterior.get(j);
                 pedidosReprogramados.get(j).setId(idx);
                 mejorSolucionTemp.getSistemaPLG().getPedidos().get(j).setId(idx);
                 mejorSolucion.getSistemaPLG().getPedidos().set(idx-1, mejorSolucionTemp.getSistemaPLG().getPedidos().get(j));
             }
+            PlanificacionPlgApplication.setCamAtenPedAv(new ArrayList<>());
+
             for(int j=0; j< camionesDisponibles.size(); j++){
                 Camion c = mejorSolucionTemp.getSistemaPLG().getFlota().get(j);
                 int idCam = idxFlotaAnterior.get(j);
@@ -712,11 +716,15 @@ public class SolutionController {
                 camionReal.setPedidosAsignados(c.getPedidosAsignados());
                 mejorSolucion.getAsignacion().put(idCam, mejorSolucionTemp.getAsignacion().get(c.getId()));
                 mejorSolucion.getPedidosXcargasGLP().put(idCam, mejorSolucionTemp.getPedidosXcargasGLP().get(c.getId()));
+                if(!c.getPedidosAsignados().isEmpty())PlanificacionPlgApplication.getCamAtenPedAv()
+                        .add(mejorSolucion.getSistemaPLG().getFlota().get(idCam-1));
                 if(fechaFinPlan==null || (fechaFinPlan.isAfter(mejorSolucion.getSistemaPLG().getFechaHoraFinEntregas()))){
                     fechaFinPlan = c.getDestinos().getLast().getFechaHoraSalida();
                     mejorSolucion.getSistemaPLG().setFechaHoraFinEntregas(fechaFinPlan);
                 }
             }
+
+
             Destino destManteniemiento = mejorSolucion.getSistemaPLG().getFlota().get(idCamAveriado-1).getDestinos().getLast();
             destManteniemiento.setFechaHoraSalida(a.determinarTiempoSalidaTaller(mejorSolucion.getSistemaPLG(), destManteniemiento.getFechaHoraLlegada()));
 
