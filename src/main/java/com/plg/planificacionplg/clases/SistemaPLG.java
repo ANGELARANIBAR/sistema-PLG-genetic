@@ -199,7 +199,7 @@ public class SistemaPLG {
             }
             anterior = d;
         }
-        return c.getDestinos().getLast().getSaldoGLPCamion();
+        return c.getDestinos().get(c.getDestinos().size() - 1).getSaldoGLPCamion();
     }
 
     public Camion getCamionEnInstante(int idCamion, LocalDateTime fecha){
@@ -422,7 +422,7 @@ public class SistemaPLG {
     }
     private void calcularCostoPedido(Pedido pedidoNuevo) {
         long tiempoRestante = Duration.between(fechaHoraInicio, pedidoNuevo.getFechaHoraMaxEntrega()).getSeconds();
-        double distancia = Ruta.heuristica(cisternas.getFirst().getUbicacion(), pedidoNuevo.getUbicacion());
+        double distancia = Ruta.heuristica(cisternas.get(0).getUbicacion(), pedidoNuevo.getUbicacion());
 
         // Escalar para no saturar la sigmoide (muy importante)
         double escalaTiempo = 7*24*60*60;   // 1 semana en segundos
@@ -645,7 +645,29 @@ public class SistemaPLG {
             for (Camion camion : otro.flota) {
                 Camion nuevoCamion = new Camion();
                 nuevoCamion.deepCopy(camion);
-                nuevoCamion.setDestinos(new ArrayList<>());
+                
+                // Preservar rutas de camiones averiados tipo 1
+                boolean esCamionAveriadoTipo1 = false;
+                if (camion.getAverias() != null && !camion.getAverias().isEmpty()) {
+                    Averia ultimaAveria = camion.getAverias().get(camion.getAverias().size() - 1);
+                    if (ultimaAveria.getTipo().getId() == 1) {
+                        esCamionAveriadoTipo1 = true;
+                    }
+                }
+                
+                if (esCamionAveriadoTipo1) {
+                    // Para camiones averiados tipo 1, preservar los destinos existentes
+                    nuevoCamion.setDestinos(new ArrayList<>());
+                    if (camion.getDestinos() != null) {
+                        for (Destino destino : camion.getDestinos()) {
+                            nuevoCamion.getDestinos().add(destino.copiar());
+                        }
+                    }
+                } else {
+                    // Para otros camiones, limpiar destinos como antes
+                    nuevoCamion.setDestinos(new ArrayList<>());
+                }
+                
                 this.flota.add(nuevoCamion);
             }
         }

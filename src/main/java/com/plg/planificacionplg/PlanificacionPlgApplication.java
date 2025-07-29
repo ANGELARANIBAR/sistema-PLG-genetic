@@ -635,14 +635,14 @@ public class PlanificacionPlgApplication {
         Boolean encontrado = false;
         for(Camion c : sistema.getFlota()){
             List<Destino>destinos = c.getDestinos();
-            if(destinos.getFirst().getEstadoCamion() == EstadoCamion.AVERIADO && destinos.getFirst().getFechaHoraSalida().isAfter(inicioReplan)){
+            if(destinos.size() > 0 && destinos.get(0).getEstadoCamion() == EstadoCamion.AVERIADO && destinos.get(0).getFechaHoraSalida().isAfter(inicioReplan)){
                 //AVERIA ACTIVA
                 List<Destino>destActuales = new ArrayList<>();
                 for(Destino d : destinos){
                     if(d instanceof EntregaPedido){
                         Destino nuevaEntrega = d.copiar();
                         Pedido p = new Pedido(d.getPedido());
-                        p.setEstado(EstadoPedido.PENDIENTE);   // o el enum que uses para “no entregado”
+                        p.setEstado(EstadoPedido.PENDIENTE);   // o el enum que uses para "no entregado"
                         p.setFechaHoraEntrega(null);
                         System.out.println("Entrega pedido en destino averia: "  + d.getPedido().getNumeroPedido());
                         encontrado = false;
@@ -666,6 +666,22 @@ public class PlanificacionPlgApplication {
                     else destActuales.add(d);
                 }
                 mejorSolucionSiguiente.getSistemaPLG().getFlota().get(c.getId()-1).setDestinos(destActuales);
+                
+                // Asegurar que el camión averiado tipo 1 mantenga sus pedidos asignados
+                if (c.getAverias() != null && !c.getAverias().isEmpty()) {
+                    Averia ultimaAveria = ListUtils.getLast(c.getAverias());
+                    if (ultimaAveria.getTipo().getId() == 1) {
+                        Camion camionSiguiente = mejorSolucionSiguiente.getSistemaPLG().getFlota().get(c.getId()-1);
+                        List<Pedido> pedidosAsignados = new ArrayList<>();
+                        for (Destino destino : destActuales) {
+                            if (destino instanceof EntregaPedido) {
+                                pedidosAsignados.add(destino.getPedido());
+                            }
+                        }
+                        camionSiguiente.setPedidosAsignados(pedidosAsignados);
+                        System.out.println("Preservando " + pedidosAsignados.size() + " pedidos para camión averiado tipo 1: " + c.getId());
+                    }
+                }
             }
         }
     }
