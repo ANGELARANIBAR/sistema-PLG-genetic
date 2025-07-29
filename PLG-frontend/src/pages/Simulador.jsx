@@ -12,7 +12,9 @@ import {
     Alert,
     LinearProgress,
     Tabs,
-    Tab
+    Tab,
+    Tooltip,
+    Fab
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -21,10 +23,15 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import StopIcon from '@mui/icons-material/Stop';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import AddIcon from '@mui/icons-material/Add';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import MapVisualization from "../components/MapVisualization";
 import ItemListPanel from "../components/ItemListPanel/ItemListPanel";
 import ItemDetailsPanel from "../components/ItemDetailsPanel/ItemDetailsPanel";
 import BloqueosListPanel from "../components/BloqueosListPanel/BloqueosListPanel";
+import SimulationReportModal from "../components/SimulationReportModal/SimulationReportModal";
+import AddPedidoModal from "../components/AddPedidoModal/AddPedidoModal";
 import { mapService } from "../services/mapService";
 import { useBatchRefreshMonitor } from "../hooks/useBatchRefreshMonitor";
 import { 
@@ -34,6 +41,8 @@ import {
     fetchCisternaGLP,
     fetchTruckDestination 
 } from "../services/routeService";
+import { reportService } from "../services/reportService";
+import { pedidosService } from "../services/pedidosService";
 import './Simulacion.css';
 
 /**
@@ -74,6 +83,18 @@ export default function Simulador() {
     const [currentDestinations, setCurrentDestinations] = useState(new Map());
     const [selectedItem, setSelectedItem] = useState(null);
 
+    // Modal states
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [showAddPedidoModal, setShowAddPedidoModal] = useState(false);
+    const [reportData, setReportData] = useState(null);
+    const [isLoadingReport, setIsLoadingReport] = useState(false);
+    const [forcePedidosTab, setForcePedidosTab] = useState(undefined);
+    const [showPedidoSuccess, setShowPedidoSuccess] = useState(false);
+    const [showRefreshSuccess, setShowRefreshSuccess] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [lastRefreshTime, setLastRefreshTime] = useState(null);
+    const [showAutoRefreshNotice, setShowAutoRefreshNotice] = useState(false);
+
     // Set the interval in hours here:
     const simulatedIntervalHours = 2;
 
@@ -83,6 +104,227 @@ export default function Simulador() {
 
     // Monitor for batch refresh notifications
     useBatchRefreshMonitor(true, 2000);
+
+    // Helper function to format pedidos DTOs from database
+    const formatPedidosFromDB = (pedidosDTO) => {
+        return pedidosDTO.map(pedidoDTO => ({
+            id: pedidoDTO.id || pedidoDTO.numeroPedido,
+            numeroPedido: pedidoDTO.numeroPedido,
+            volumenGLP: pedidoDTO.volumenGLP,
+            fechaHoraRegistro: pedidoDTO.fechaHoraRegistro,
+            fechaHoraMaxEntrega: pedidoDTO.fechaHoraMaxEntrega,
+            tiempoMaxEntrega: pedidoDTO.tiempoMaxEntrega,
+            estado: pedidoDTO.estado || 'PENDIENTE',
+            completado: pedidoDTO.completado || false,
+            consumoCombustibleTotal: pedidoDTO.consumoCombustibleTotal || 0,
+            idCliente: pedidoDTO.idCliente,
+            ubicacion: pedidoDTO.ubicacion ? {
+                x: pedidoDTO.ubicacion.x,
+                y: pedidoDTO.ubicacion.y
+            } : { x: 0, y: 0 },
+            volumenGLPEntregado: pedidoDTO.volumenGLPEntregado || 0
+        }));
+    };
+
+    // Refresh only pedidos data from database
+    const refreshPedidosData = async (showLoading = true) => {
+        if (showLoading) setIsRefreshing(true);
+        
+        try {
+            console.log('Refreshing pedidos data from database...');
+            
+            // Fetch fresh pedidos directly from database
+            const freshPedidos = await pedidosService.fetchPedidosFresh();
+            
+            // Convert DTOs to the format expected by the system
+            const formattedPedidos = formatPedidosFromDB(freshPedidos);
+            
+            // Update system with fresh pedidos data
+            setSystem(prevSystem => ({
+                ...prevSystem,
+                pedidos: formattedPedidos
+            }));
+            
+            setLastRefreshTime(new Date());
+            console.log(`✅ Pedidos refreshed from DB: ${formattedPedidos.length} pedidos found`);
+            
+            // Log pedidos for debugging
+            if (formattedPedidos.length > 0) {
+                console.log('📋 Latest pedidos from DB:', formattedPedidos.map(p => ({
+                    id: p.id,
+                    numero: p.numeroPedido,
+                    estado: p.estado,
+                    registro: p.fechaHoraRegistro
+                })));
+            }
+            
+        } catch (error) {
+            console.error('Error refreshing pedidos data:', error);
+            // Fallback to full system refresh if pedidos refresh fails
+            console.log('Falling back to full system refresh...');
+            await refreshSystemData(false);
+        } finally {
+            if (showLoading) setIsRefreshing(false);
+        }
+    };
+
+    // Refresh system data function  
+    const refreshSystemData = async (showLoading = true) => {
+        if (showLoading) setIsRefreshing(true);
+        
+        try {
+            console.log('Refreshing full system data...');
+            
+            // Fetch updated system data
+            const updatedSystem = await fetchSystem();
+            setSystem(updatedSystem);
+            
+            setLastRefreshTime(new Date());
+            console.log('System data refreshed successfully');
+            
+        } catch (error) {
+            console.error('Error refreshing system data:', error);
+        } finally {
+            if (showLoading) setIsRefreshing(false);
+        }
+    };
+
+    // Manual refresh handler
+    const handleManualRefresh = async () => {
+        console.log('🔄 Manual refresh triggered by user');
+        
+        try {
+            await refreshPedidosData(true); // Use pedidos-specific refresh for better performance
+            
+            // Show success notification briefly
+            setShowRefreshSuccess(true);
+            setTimeout(() => {
+                setShowRefreshSuccess(false);
+            }, 2000);
+            
+        } catch (error) {
+            console.error('❌ Manual refresh failed:', error);
+        }
+    };
+
+    // Auto-refresh every 5 minutes
+    useEffect(() => {
+        const autoRefreshInterval = setInterval(async () => {
+            console.log('Auto-refreshing pedidos data (5-minute interval)');
+            
+            // Show brief notification for auto-refresh
+            setShowAutoRefreshNotice(true);
+            setTimeout(() => {
+                setShowAutoRefreshNotice(false);
+            }, 3000);
+            
+            await refreshPedidosData(false); // Don't show loading spinner for auto-refresh
+        }, 5 * 60 * 1000); // 5 minutes
+
+        return () => clearInterval(autoRefreshInterval);
+    }, []);
+
+    // Keyboard shortcut for manual refresh (Ctrl+R or F5)
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            // Prevent default browser refresh and use our custom refresh
+            if ((event.ctrlKey && event.key === 'r') || event.key === 'F5') {
+                event.preventDefault();
+                handleManualRefresh();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    // Modal handlers
+    const handleOpenReportModal = async () => {
+        setIsLoadingReport(true);
+        try {
+            const data = await reportService.getSimulationReport();
+            setReportData(data);
+            setShowReportModal(true);
+        } catch (error) {
+            console.error('Error loading report data:', error);
+            alert('Error al cargar los datos del reporte');
+        } finally {
+            setIsLoadingReport(false);
+        }
+    };
+
+    const handleCloseReportModal = () => {
+        setShowReportModal(false);
+        setReportData(null);
+    };
+
+    const handleOpenAddPedidoModal = () => {
+        setShowAddPedidoModal(true);
+    };
+
+    const handleCloseAddPedidoModal = () => {
+        setShowAddPedidoModal(false);
+    };
+
+    const handlePedidoAdded = async (pedidoData) => {
+        console.log('Nuevo pedido agregado:', pedidoData);
+        
+        try {
+            // Use the pedidos refresh function to update pedidos data specifically
+            await refreshPedidosData(false);
+            
+            // Switch to pedidos tab to show the new pedido
+            setForcePedidosTab(2); // Tab index 2 is for pedidos
+            
+            // Clear the force tab after a brief delay
+            setTimeout(() => {
+                setForcePedidosTab(undefined);
+            }, 100);
+            
+            // Also refresh pedidos stats if report is open
+            if (showReportModal) {
+                const updatedReportData = await reportService.getSimulationReport();
+                setReportData(updatedReportData);
+            }
+            
+            // Show success notification
+            setShowPedidoSuccess(true);
+            setTimeout(() => {
+                setShowPedidoSuccess(false);
+            }, 4000);
+            
+            console.log('Sistema actualizado con el nuevo pedido');
+        } catch (error) {
+            console.error('Error al actualizar sistema después de agregar pedido:', error);
+        }
+    };
+
+    // Check if simulation should show report automatically (for daily scenarios)
+    useEffect(() => {
+        const checkSimulationCompletion = async () => {
+            try {
+                // Only check for daily simulations
+                const urlParams = new URLSearchParams(window.location.search);
+                const scenario = sessionStorage.getItem('currentScenario') || 'diario';
+                
+                if (scenario === 'diario' && system && !isPlaying) {
+                    const isCompleted = await reportService.isSimulationCompleted();
+                    if (isCompleted && !showReportModal && !isLoadingReport) {
+                        // Automatically show report after a brief delay
+                        setTimeout(() => {
+                            handleOpenReportModal();
+                        }, 2000);
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking simulation completion:', error);
+            }
+        };
+
+        if (system) {
+            checkSimulationCompletion();
+        }
+    }, [system, isPlaying, showReportModal, isLoadingReport]);
 
     // Check if we should auto-play after a refresh
     useEffect(() => {
@@ -172,8 +414,24 @@ export default function Simulador() {
     useEffect(() => {
         const loadSystem = async () => {
             try {
+                // Load base system data
                 const systemData = await fetchSystem();
+                
+                // Load fresh pedidos from database to ensure we have the latest data
+                try {
+                    const freshPedidos = await pedidosService.fetchPedidosFresh();
+                    const formattedPedidos = formatPedidosFromDB(freshPedidos);
+                    
+                    // Merge fresh pedidos with system data
+                    systemData.pedidos = formattedPedidos;
+                    console.log(`🚀 Initial load: ${formattedPedidos.length} pedidos loaded from database`);
+                } catch (pedidosError) {
+                    console.warn("Could not load fresh pedidos, using system pedidos:", pedidosError);
+                    // Use system pedidos as fallback
+                }
+                
                 setSystem(systemData);
+                setLastRefreshTime(new Date()); // Set initial refresh time
             } catch (error) {
                 console.error("Error loading system data:", error);
             }
@@ -629,7 +887,7 @@ export default function Simulador() {
             </Box>
 
             {/* Alerts section */}
-            {(colapsoInfo?.colapso || showAutoPlayNotification) && (
+            {(colapsoInfo?.colapso || showAutoPlayNotification || showPedidoSuccess || showAutoRefreshNotice || showRefreshSuccess) && (
                 <Box sx={{ px: 3, py: 1 }}>
                     {colapsoInfo && colapsoInfo.colapso && (
                         <Alert severity="error" sx={{ mb: 1 }}>
@@ -646,6 +904,24 @@ export default function Simulador() {
                         <Alert severity="info" sx={{ mb: 1 }}>
                             <Typography variant="subtitle1" fontWeight="bold">Simulación reiniciada automáticamente</Typography>
                             <Typography variant="body2">La simulación se ha reiniciado después del procesamiento del nuevo batch y comenzará a reproducirse automáticamente.</Typography>
+                        </Alert>
+                    )}
+                    {showPedidoSuccess && (
+                        <Alert severity="success" sx={{ mb: 1 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">¡Pedido agregado exitosamente!</Typography>
+                            <Typography variant="body2">El nuevo pedido se ha registrado y aparece en la pestaña "Pedidos" del panel de elementos. El sistema ha sido actualizado automáticamente.</Typography>
+                        </Alert>
+                    )}
+                    {showRefreshSuccess && (
+                        <Alert severity="success" sx={{ mb: 1 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">¡Datos actualizados exitosamente!</Typography>
+                            <Typography variant="body2">Los pedidos se han actualizado con los datos más recientes de la base de datos. Ahora puedes ver todos los pedidos más recientes.</Typography>
+                        </Alert>
+                    )}
+                    {showAutoRefreshNotice && (
+                        <Alert severity="info" sx={{ mb: 1 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">Pedidos actualizados automáticamente</Typography>
+                            <Typography variant="body2">Los pedidos se han actualizado con datos frescos de la base de datos. Ahora puedes ver los pedidos más recientes.</Typography>
                         </Alert>
                     )}
                 </Box>
@@ -741,6 +1017,9 @@ export default function Simulador() {
                                             truckGLPs={truckGLPs}
                                             cisternaGLPs={cisternaGLPs}
                                             currentTime={currentTime}
+                                            forceActiveTab={forcePedidosTab}
+                                            lastRefreshTime={lastRefreshTime}
+                                            isRefreshing={isRefreshing}
                                         />
                                     </Box>
                                 )}
@@ -776,6 +1055,109 @@ export default function Simulador() {
                     </Box>
                 )}
             </Box>
+
+            {/* Floating Action Buttons */}
+            <Box sx={{ 
+                position: 'fixed', 
+                bottom: 20, 
+                right: isPanelVisible ? 370 : 20, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: 2, 
+                zIndex: 1000,
+                transition: 'right 0.3s ease-in-out'
+            }}>
+                <Tooltip title="Agregar Nuevo Pedido" placement="left">
+                    <Fab
+                        color="primary"
+                        onClick={handleOpenAddPedidoModal}
+                        sx={{ 
+                            bgcolor: '#4caf50', 
+                            '&:hover': { bgcolor: '#388e3c' },
+                            boxShadow: '0 4px 20px rgba(76, 175, 80, 0.3)'
+                        }}
+                    >
+                        <AddIcon />
+                    </Fab>
+                </Tooltip>
+                
+                <Tooltip 
+                    title={
+                        <Box>
+                            <Typography variant="body2">Refrescar Pedidos</Typography>
+                            <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                Datos frescos desde BD
+                            </Typography>
+                            <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                Atajo: Ctrl+R o F5
+                            </Typography>
+                            {lastRefreshTime && (
+                                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                    Último: {lastRefreshTime.toLocaleTimeString()}
+                                </Typography>
+                            )}
+                        </Box>
+                    } 
+                    placement="left"
+                >
+                    <Fab
+                        color="secondary"
+                        onClick={handleManualRefresh}
+                        disabled={isRefreshing}
+                        sx={{ 
+                            bgcolor: '#ff9800', 
+                            '&:hover': { bgcolor: '#f57c00' },
+                            boxShadow: '0 4px 20px rgba(255, 152, 0, 0.3)',
+                            '&:disabled': {
+                                bgcolor: '#ffcc80',
+                                color: '#fff'
+                            }
+                        }}
+                    >
+                        <RefreshIcon 
+                            sx={{ 
+                                animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
+                                '@keyframes spin': {
+                                    '0%': {
+                                        transform: 'rotate(0deg)',
+                                    },
+                                    '100%': {
+                                        transform: 'rotate(360deg)',
+                                    },
+                                }
+                            }} 
+                        />
+                    </Fab>
+                </Tooltip>
+                
+                <Tooltip title="Ver Reporte de Simulación" placement="left">
+                    <Fab
+                        color="secondary"
+                        onClick={handleOpenReportModal}
+                        disabled={isLoadingReport}
+                        sx={{ 
+                            bgcolor: '#2196f3', 
+                            '&:hover': { bgcolor: '#1976d2' },
+                            boxShadow: '0 4px 20px rgba(33, 150, 243, 0.3)'
+                        }}
+                    >
+                        <AssignmentIcon />
+                    </Fab>
+                </Tooltip>
+            </Box>
+
+            {/* Modals */}
+            <SimulationReportModal
+                open={showReportModal}
+                onClose={handleCloseReportModal}
+                reportData={reportData}
+            />
+            
+            <AddPedidoModal
+                open={showAddPedidoModal}
+                onClose={handleCloseAddPedidoModal}
+                onPedidoAdded={handlePedidoAdded}
+            />
         </Box>
     );
 }

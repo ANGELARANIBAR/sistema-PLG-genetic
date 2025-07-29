@@ -30,12 +30,42 @@ const ItemListPanel = ({
     truckFuels,
     truckGLPs,
     cisternaGLPs,
-    currentTime // <-- add currentTime prop
+    currentTime, // <-- add currentTime prop
+    forceActiveTab, // <-- new prop to force tab selection
+    lastRefreshTime, // <-- last refresh time for display
+    isRefreshing // <-- refresh status
 }) => {
     const [activeTab, setActiveTab] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [camionesEnRuta, setCamionesEnRuta] = useState(null);
     const [pedidoEstados, setPedidoEstados] = useState({});
+    const [highlightedPedidoId, setHighlightedPedidoId] = useState(null);
+
+    // Force tab change when prop changes
+    useEffect(() => {
+        if (forceActiveTab !== undefined && forceActiveTab !== activeTab) {
+            setActiveTab(forceActiveTab);
+        }
+    }, [forceActiveTab]);
+
+    // Highlight newest pedido when system updates
+    useEffect(() => {
+        if (system?.pedidos && system.pedidos.length > 0) {
+            // Find the most recent pedido by registration date
+            const sortedPedidos = [...system.pedidos].sort((a, b) => 
+                new Date(b.fechaHoraRegistro) - new Date(a.fechaHoraRegistro)
+            );
+            const newestPedido = sortedPedidos[0];
+            
+            // If we switched to pedidos tab and there's a new pedido, highlight it
+            if (forceActiveTab === 2 && newestPedido) {
+                setHighlightedPedidoId(newestPedido.id);
+                setTimeout(() => {
+                    setHighlightedPedidoId(null);
+                }, 3000);
+            }
+        }
+    }, [system?.pedidos, forceActiveTab]);
 
     useEffect(() => {
         let mounted = true;
@@ -251,6 +281,8 @@ const ItemListPanel = ({
     const renderPedidoItem = (pedido) => {
         const estado = pedidoEstados[pedido.id] ?? pedido.estado;
         const loading = pedidoEstados[pedido.id] === undefined;
+        const isHighlighted = highlightedPedidoId === pedido.id;
+        
         return (
             <ListItem key={pedido.id} disablePadding>
                 <ListItemButton 
@@ -263,7 +295,16 @@ const ItemListPanel = ({
                             '&:hover': {
                                 backgroundColor: 'secondary.main',
                             }
-                        }
+                        },
+                        ...(isHighlighted && {
+                            backgroundColor: '#e8f5e8 !important',
+                            border: '2px solid #4caf50',
+                            borderRadius: 1,
+                            animation: 'pulse 1.5s ease-in-out 3',
+                            '&:hover': {
+                                backgroundColor: '#d4edda !important',
+                            }
+                        })
                     }}
                 >
                     <ListItemIcon>
@@ -319,6 +360,22 @@ const ItemListPanel = ({
 
     return (
         <>
+            {/* CSS Animation for pulse effect */}
+            <style>
+                {`
+                @keyframes pulse {
+                    0% {
+                        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+                    }
+                    70% {
+                        box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
+                    }
+                    100% {
+                        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+                    }
+                }
+                `}
+            </style>
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 1 }}>
                 <Tooltip title="Camiones en ruta / Total flota">
                     <Box sx={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
@@ -351,9 +408,21 @@ const ItemListPanel = ({
             </Box>
             <Paper elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <Box sx={{ p: 2, pb: 1 }}>
-                    <Typography variant="h6" gutterBottom>
-                        Elementos del Sistema
-                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Typography variant="h6">
+                            Elementos del Sistema
+                        </Typography>
+                        {lastRefreshTime && (
+                            <Tooltip title={`Última actualización de pedidos desde BD: ${lastRefreshTime.toLocaleString()}`}>
+                                <Typography variant="caption" sx={{ 
+                                    color: isRefreshing ? 'primary.main' : 'text.secondary',
+                                    fontWeight: isRefreshing ? 'bold' : 'normal'
+                                }}>
+                                    {isRefreshing ? 'Actualizando BD...' : `${lastRefreshTime.toLocaleTimeString()}`}
+                                </Typography>
+                            </Tooltip>
+                        )}
+                    </Box>
                     
                     <Tabs 
                         value={activeTab} 

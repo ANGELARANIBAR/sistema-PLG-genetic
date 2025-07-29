@@ -14,6 +14,26 @@ export const pedidosService = {
         throw error;
       }
     },
+
+    // Fetch all pedidos with fresh data (no cache)
+    async fetchPedidosFresh() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/listarTodos?t=${Date.now()}`, {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        }); 
+        if (!response.ok) {
+          throw new Error('Error al obtener pedidos frescos');
+        }
+        return await response.json(); 
+      } catch (error) {
+        console.error('Error fetching fresh pedidos:', error);
+        throw error;
+      }
+    },
     // Create a new pedido
     async createPedido(pedido) {
         try {
