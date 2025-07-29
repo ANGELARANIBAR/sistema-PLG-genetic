@@ -25,7 +25,7 @@ public class PedidoMonitor {
         listaInicial.forEach(p -> idsPedidosPrevios.add(p.getId()));
 
         executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(this::verificarNuevosPedidos, 0, 5, TimeUnit.MINUTES);
+        executor.scheduleAtFixedRate(this::verificarNuevosPedidos, 0, 1, TimeUnit.MINUTES);
     }
 
     public void detener() {
@@ -58,7 +58,7 @@ public class PedidoMonitor {
             SistemaPLG replanificado = new SistemaPLG();
             replanificado.deepCopy(mejorSolucion.getSistemaPLG());
             //recibir tiempo simulado o si no es simulado el itempo real
-            LocalDateTime inicioReplan = LocalDateTime.now().plusMinutes(2);
+            LocalDateTime inicioReplan = LocalDateTime.now().plusSeconds(2);
             List<Pedido>pedidosPendientes = new ArrayList<>();List<Integer>idxPedPendientes = new ArrayList<>();
             List<Camion>camionesReplan = new ArrayList<>();
             replanificado.setFechaHoraInicio(inicioReplan);
@@ -67,9 +67,25 @@ public class PedidoMonitor {
             for(Camion c : mejorSolucion.getSistemaPLG().getFlota()){
                 Destino anterior = null;
                 Camion nuevoCamion = new Camion(c);
+                nuevoCamion.setDestinos(new ArrayList<>());
                 primerPedidoEncontrado = true;
-                for(Destino d : c.getDestinos()){
-                    if(!d.getFechaHoraSalida().isBefore(inicioReplan)){
+                if(c.getDestinos().size()<3){
+                    Reabastecimiento origen = new Reabastecimiento();
+                    origen.setCisterna(mejorSolucion.getSistemaPLG().getCisternas().get(0));
+                    origen.setUbicacion(mejorSolucion.getSistemaPLG().getCisternas().get(0).getUbicacion());
+                    origen.setFechaHoraSalida(replanificado.getFechaHoraInicio()); //primera solucion a evaluar
+                    replanificado.getCisternas().get(0).registrarRetiroGLP(mejorSolucion.getSistemaPLG().getFechaHoraInicio(),
+                            0.0, nuevoCamion);
+                    nuevoCamion.setCargaGLPActual(0.0);
+                    nuevoCamion.setCombustibleActual(nuevoCamion.getTipo().getCapCombustibleMax());
+                    nuevoCamion.getDestinos().add(0, origen);
+                    origen.setSaldoGLPCamion(0.0);
+                    origen.setSaldoCombustibleCamion(nuevoCamion.getCombustibleActual());
+                    nuevoCamion.setEstado(EstadoCamion.DISPONIBLE);
+                    camionesReplan.add(nuevoCamion);
+                }
+                else for(Destino d : c.getDestinos()){
+                    if(d.getFechaHoraSalida()!=null && !d.getFechaHoraSalida().isBefore(inicioReplan)){
                         if(primerPedidoEncontrado){
                             if(d.getFechaHoraLlegada() == null){
                                 Reabastecimiento origen = new Reabastecimiento();
@@ -121,16 +137,19 @@ public class PedidoMonitor {
             }
             replanificado.setFlota(camionesReplan);
             replanificado.setPedidos(pedidosPendientes);
+
             for (Pedido n : pedidosNuevos){
                 replanificado.getPedidos().add(n);
                 n.setId(replanificado.getPedidos().size());
             }
-            int tamPoblacion = 30;
-            int generaciones = 5;
+
+            int tamPoblacion = 10;
+            int generaciones = 0;
             double probCruce = 0.3;
             double probMutacion = 0.15;
             double porcentajeElite = 0.2;
             //replanificado.imprimirPlanificacion();
+            System.out.println("$$$$$$$$$$$$$$$$$INICIANDO REPLAN OP DIARIUA$$$$$$$$$$$$$$$$$$");
             Genetico ga = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
             mejorSolucion = ga.ejecutar(2, replanificado);
             mejorSolucion.getSistemaPLG().imprimirPlanificacion();

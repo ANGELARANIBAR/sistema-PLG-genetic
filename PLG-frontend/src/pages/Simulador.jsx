@@ -265,11 +265,13 @@ export default function Simulador() {
     
         if (isPlaying && currentTime) {
             intervalId = setInterval(() => {
-                setCurrentTime(prevTime => {
-                    if (!prevTime) return new Date();
-                    // Use seconds instead of minutes for smoother movement
-                    return new Date(prevTime.getTime() + 1000 * playbackSpeed);
-                });
+                setCurrentTime(new Date()); // Usa la hora real del sistema
+                ///descomentar para sim semnanal
+                // setCurrentTime(prevTime => {
+                //     if (!prevTime) return new Date();
+                //     // Use seconds instead of minutes for smoother movement
+                //     return new Date(prevTime.getTime() + 1000 * playbackSpeed);
+                // });
             }, 1000);
         }
     

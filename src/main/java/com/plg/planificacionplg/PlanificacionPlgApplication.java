@@ -126,7 +126,8 @@ public class PlanificacionPlgApplication{
                 LocalTime.of(16, 0),
                 LocalTime.MAX
         ));
-        double velocidadPromedio = 5.0 / 6.0;
+        //double velocidadPromedio = 5.0 / 6.0;
+        double velocidadPromedio = 50.0 / 6.0;
 
         TipoCamion tipoCamion1 = new TipoCamion();
         tipoCamion1.setId(1);
@@ -290,9 +291,14 @@ public class PlanificacionPlgApplication{
         System.out.println("Procesando batch Nro: " + 1);
         System.out.println("Cantidad pedidos: " + sistemaPLG.getPedidos().size());
         //hilo para sacar solucion en 5 segundos
+        int maxTiempoPrimerCalc;
+        if(escenario==1)
+            maxTiempoPrimerCalc = 20000;
+        else maxTiempoPrimerCalc = 5000;
+
         Thread hiloSaltoAlgoritmo = new Thread(() -> {
             try {
-                Thread.sleep(5000); // Esperar 5 segundos
+                Thread.sleep(maxTiempoPrimerCalc); // Esperar 5 segundos
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt(); // Restablecer el estado de interrupción
                 System.err.println("Hilo interrumpido: " + e.getMessage());
