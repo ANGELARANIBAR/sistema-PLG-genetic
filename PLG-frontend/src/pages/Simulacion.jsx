@@ -68,14 +68,16 @@ export default function Simulacion() {
         
         <ScenarioSelector value={escenario} onChange={setEscenario} />
 
-        <Box sx={{ mt: 4 }}>
-          <DateTimeInputs
-            date={fecha}
-            time={hora}
-            onDateChange={setFecha}
-            onTimeChange={setHora}
-          />
-        </Box>
+        {escenario !== "diario" && (
+          <Box sx={{ mt: 4 }}>
+            <DateTimeInputs
+              date={fecha}
+              time={hora}
+              onDateChange={setFecha}
+              onTimeChange={setHora}
+            />
+          </Box>
+        )}
 
         {message && (
           <Alert 
