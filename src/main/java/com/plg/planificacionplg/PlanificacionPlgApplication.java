@@ -2,6 +2,7 @@ package com.plg.planificacionplg;
 
 import com.plg.planificacionplg.clases.*;
 import com.plg.planificacionplg.dto.PedidoDTO;
+import com.plg.planificacionplg.monitor.PedidoMonitor;
 import com.plg.planificacionplg.services.PedidoService;
 import jakarta.transaction.Transactional;
 import lombok.Getter;
@@ -21,10 +22,6 @@ import java.util.stream.Collectors;
 @SpringBootApplication
 public class PlanificacionPlgApplication{
     private static ConfigurableApplicationContext context;
-    @Autowired
-    private static PedidoService pedidoService;
-
-
     private static final double MAX_DOUBLE = Double.MAX_VALUE;
     @Setter @Getter
     private static Individuo mejorSolucion;
@@ -38,7 +35,6 @@ public class PlanificacionPlgApplication{
     private static double porcentajeEjecucion;
     @Setter @Getter
     private static LocalDateTime fechaHoraInicio;
-
     @Setter @Getter
     private static int batchActual;
     @Setter @Getter
@@ -231,6 +227,7 @@ public class PlanificacionPlgApplication{
             System.out.println("Pedidos cantidad: " + sistemaPLG.getPedidos().size());
         }
         else if(escenario == 1){
+            sistemaPLG.setFechaHoraInicio(LocalDateTime.now());
             idxPedidosBD = new ArrayList<>();
             listaPedidosTotal = new ArrayList<>();
             // Ya puedes usar pedidoService directamente aquí
@@ -307,6 +304,7 @@ public class PlanificacionPlgApplication{
         });hiloSaltoAlgoritmo.start();
 
         Genetico ga = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
+        System.out.println("Fehca hora incii " + sistemaPLG.getFechaHoraInicio());
         if(escenario==3){
             mejorSolucion = ga.ejecutar(escenario, sistemaPLG);
         }
@@ -326,7 +324,13 @@ public class PlanificacionPlgApplication{
         batchActual = 1;
         
         // Process all remaining batches
-        procesarTodosLosBatches();
+        if(escenario != 1)procesarTodosLosBatches();
+        else{
+            //lanzar el monitor
+            PedidoService pedidoService = context.getBean(PedidoService.class);
+            PedidoMonitor monitor = new PedidoMonitor(pedidoService);
+            monitor.iniciar();
+        }
 
         double min = 0.35;
         double max = 0.75;
