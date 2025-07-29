@@ -15,13 +15,11 @@ export default function NuevoPedido() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    nombreCliente: '',
+    codigoCliente: '',
     coordenadas: '',
-    correoElectronico: '',
     cargaGLP: '',
-    fechaPedido: '2025-03-23 10:30',
     plazoEntrega: '',
-    observaciones: ''
+    fechaRegistro: ''
   });
 
   const handleChange = (field) => (event) => {
@@ -36,7 +34,13 @@ export default function NuevoPedido() {
   };
 
   const handleSave = () => {
-    console.log('Saving form data:', formData);
+    const now = new Date();
+    // Formato local YYYY-MM-DD HH:mm:ss
+    const pad = (n) => n.toString().padStart(2, '0');
+    const fechaRegistro = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const dataToSave = { ...formData, fechaRegistro };
+    console.log('Saving form data:', dataToSave);
+    // Aquí puedes hacer la petición al backend usando dataToSave
     navigate('/pedidos');
   };
 
@@ -52,32 +56,20 @@ export default function NuevoPedido() {
         <div className="form-container">
           <div className="form-field-wrapper">
             <FormField
-              titulo="Nombre del cliente*"
-              placeholder="Ingrese el nombre del cliente"
-              value={formData.nombreCliente}
-              onChange={handleChange('nombreCliente')}
+              titulo="Código del cliente*"
+              placeholder="Ingrese el código del cliente"
+              value={formData.codigoCliente}
+              onChange={handleChange('codigoCliente')}
             />
           </div>
-
           <div className="form-field-wrapper">
             <FormField
-              titulo="Dirección de Entrega*"
+              titulo="Dirección de entrega*"
               placeholder="Ingrese las coordenadas (x, y)"
               value={formData.coordenadas}
               onChange={handleChange('coordenadas')}
             />
           </div>
-
-          <div className="form-field-wrapper">
-            <FormField
-              titulo="Correo electrónico"
-              placeholder="Ingrese el correo electrónico"
-              value={formData.correoElectronico}
-              onChange={handleChange('correoElectronico')}
-              type="email"
-            />
-          </div>
-         
           <div className="form-field-wrapper">
             <FormField
               titulo="Carga GLP (en metros cúbicos)*"
@@ -87,34 +79,13 @@ export default function NuevoPedido() {
               type="number"
             />
           </div>
-
           <div className="form-field-wrapper">
             <FormField
-              titulo="Fecha de Pedido*"
-              placeholder="AAAA-MM-DD HH:MM"
-              value={formData.fechaPedido}
-              onChange={handleChange('fechaPedido')}
-              icono={<CalendarTodayIcon fontSize="small" />}
-            />
-          </div>
-
-          <div className="form-field-wrapper">
-            <FormField
-              titulo="Plazo de entrega (min)*"
-              placeholder="Ingrese el número de minutos del plazo"
+              titulo="Plazo de entrega (horas)*"
+              placeholder="Ingrese el número de horas del plazo"
               value={formData.plazoEntrega}
               onChange={handleChange('plazoEntrega')}
               type="number"
-            />
-          </div>          
-          <div className="form-field-wrapper full-width">
-            <FormField
-              titulo="Observaciones"
-              placeholder="Ingrese cualquier observación o detalle adicional"
-              value={formData.observaciones}
-              onChange={handleChange('observaciones')}
-              multiline
-              rows={4}
             />
           </div>
         </div>
