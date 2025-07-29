@@ -160,6 +160,7 @@ public class PedidoService {
                     dto.setEstado(p.getEstado() != null ? p.getEstado().toString() : "");
                     dto.setCompletado(p.isCompletado());
                     dto.setConsumoCombustibleTotal(p.getConsumoCombustibleTotal());
+                    dto.setIdCliente(p.getIdCliente());
                     
                     // Convertir ubicación a NodeDTO
                     if (p.getUbicacion() != null) {
@@ -181,7 +182,7 @@ public class PedidoService {
         pedido.setVolumenGLP(request.getVolumen());
         pedido.setUbicacion(ubicacion);
         pedido.setFechaHoraRegistro(request.getFechaRegistro() != null ? request.getFechaRegistro() : LocalDateTime.now());
-        pedido.setTiempoMaxEntrega(request.getTiempoMaxEntrega());
+        pedido.setTiempoMaxEntrega(request.getTiempoMaxEntrega()*3600);
         
         // Calcular fecha máxima de entrega basada en el tiempo máximo
         if (request.getTiempoMaxEntrega() > 0) {

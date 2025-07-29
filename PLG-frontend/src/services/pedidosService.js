@@ -50,7 +50,7 @@ export const pedidosService = {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            return await response.json();
+            return await response.text();
         } catch (error) {
             console.error('Error creating multiple pedidos:', error);
             throw error;
