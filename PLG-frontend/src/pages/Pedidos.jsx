@@ -26,7 +26,7 @@ import AssignmentIcon from "@mui/icons-material/Assignment";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import ScheduleIcon from "@mui/icons-material/Schedule";
-import { fetchPedidos } from "../services/pedidosService";
+import { pedidosService  } from "../services/pedidosService";
 import "./Pedidos.css";
 
 export default function Pedidos() {
@@ -37,7 +37,8 @@ export default function Pedidos() {
   useEffect(() => {
     const cargarPedidos = async () => {
       try {
-        const data = await fetchPedidos();
+        const data = await pedidosService.fetchPedidos();
+        console.log("Pedidos cargados:", data);
         setPedidos(data);
       } catch (error) {
         console.error("Error al cargar los pedidos:", error);
@@ -55,87 +56,81 @@ export default function Pedidos() {
   };
 
   const handleCargarArchivo = () => {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.txt,.csv';
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.txt,.csv';
 
-  input.onchange = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+    input.onchange = async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
 
-    const match = file.name.match(/ventas(\d{4})(\d{2})/);
-    if (!match) {
-      alert('Nombre de archivo no válido. Debe ser del tipo ventasYYYYMM.txt');
-      return;
-    }
+      const match = file.name.match(/ventas(\d{4})(\d{2})/);
+      if (!match) {
+        alert('Nombre de archivo no válido. Debe ser del tipo ventasYYYYMM.txt');
+        return;
+      }
 
-    const anio = parseInt(match[1]);
-    const mes = parseInt(match[2]);
+      const anio = parseInt(match[1]);
+      const mes = parseInt(match[2]);
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const contenido = e.target.result;
-      const lineas = contenido.split('\n').map(l => l.trim()).filter(Boolean);
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const contenido = e.target.result;
+        const lineas = contenido.split('\n').map(l => l.trim()).filter(Boolean);
 
-      const pedidos = [];
+        const pedidos = [];
 
-      for (let linea of lineas) {
-        try {
-          const [fechaStr, resto] = linea.split(':');
-          const partes = resto.split(',');
+        for (let linea of lineas) {
+          try {
+            const [fechaStr, resto] = linea.split(':');
+            const partes = resto.split(',');
 
-          if (partes.length < 5) {
-            console.warn("Línea ignorada por formato incorrecto:", linea);
-            continue;
+            if (partes.length < 5) {
+              console.warn("Línea ignorada por formato incorrecto:", linea);
+              continue;
+            }
+
+            const dia = parseInt(fechaStr.match(/(\d+)d/)?.[1] || '0');
+            const hora = parseInt(fechaStr.match(/(\d+)h/)?.[1] || '0');
+            const minuto = parseInt(fechaStr.match(/(\d+)m/)?.[1] || '0');
+
+            const posX = parseFloat(partes[0]);
+            const posY = parseFloat(partes[1]);
+            const numeroPedido = partes[2];
+            let idCliente = 0;
+            if (numeroPedido && numeroPedido.startsWith('c-')) {
+              const idStr = numeroPedido.substring(2).trim();
+              idCliente = Number(idStr);
+            }
+            const volumen = parseInt(partes[3].replace('m3', ''));
+            const tiempoMaxEntrega = parseInt(partes[4].replace('h', ''));
+
+            pedidos.push({
+              idCliente,
+              numeroPedido,
+              coordenadaX: posX,
+              coordenadaY: posY,
+              volumen,
+              tiempoMaxEntrega,
+              fechaRegistro: `${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')} ${String(hora).padStart(2, '0')}:${String(minuto).padStart(2, '0')}:00`
+            });
+          } catch (error) {
+            console.error("Error procesando línea:", linea, error);
           }
+        }
 
-          const dia = parseInt(fechaStr.match(/(\d+)d/)?.[1] || '0');
-          const hora = parseInt(fechaStr.match(/(\d+)h/)?.[1] || '0');
-          const minuto = parseInt(fechaStr.match(/(\d+)m/)?.[1] || '0');
-
-          const posX = parseFloat(partes[0]);
-          const posY = parseFloat(partes[1]);
-          const cliente = partes[2];
-          const volumen = parseInt(partes[3].replace('m3', ''));
-          const plazoMinutos = parseInt(partes[4].replace('h', '')) * 60;
-
-          pedidos.push({
-            cliente,
-            coordenadaX: posX,
-            coordenadaY: posY,
-            volumen,
-            plazoMinutos,
-            fechaRegistro: `${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}T${String(hora).padStart(2, '0')}:${String(minuto).padStart(2, '0')}:00`
-          });
+        try {
+          console.log("Pedidos que se enviarán:", pedidos);
+          await pedidosService.createMultiplePedidos(pedidos);
         } catch (error) {
-          console.error("Error procesando línea:", linea, error);
+          console.error("Error al crear pedidos:", error);
+          alert('Error al registrar los pedidos. Ver consola para más detalles.');
         }
-      }
-
-      try {
-        console.log("Pedidos que se enviarán:", pedidos);
-
-        const res = await fetch("/api/pedidos/registrar-masivo", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(pedidos)
-        });
-
-        if (res.ok) {
-          alert("Pedidos históricos cargados correctamente.");
-        } else {
-          alert("Error al registrar los pedidos.");
-        }
-      } catch (error) {
-        console.error("Error de red:", error);
-      }
+      };
+      reader.readAsText(file);
     };
-
-    reader.readAsText(file);
+    input.click();
   };
-
-  input.click();
-};
 
 
   // Render the status chip based on the estado
@@ -270,13 +265,13 @@ export default function Pedidos() {
               pedidos.map((pedido, index) => (
                 <TableRow key={index}>
                   <TableCell>{pedido.id}</TableCell>
-                  <TableCell>{pedido.cliente}</TableCell>
-                  <TableCell>{pedido.volumen}</TableCell>
-                  <TableCell>{pedido.plazoHoras} h</TableCell>
+                  <TableCell>{'c-' + pedido.idCliente}</TableCell>
+                  <TableCell>{pedido.volumenGLP}</TableCell>
+                  <TableCell>{pedido.tiempoMaxEntrega / 3600} h</TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       <AssignmentIcon fontSize="small" sx={{ mr: 1 }} />
-                      {new Date(pedido.fechaRegistro).toLocaleString("es-PE")}
+                      {new Date(pedido.fechaHoraRegistro).toLocaleString("es-PE")}
                     </Box>
                   </TableCell>
                   <TableCell>{renderEstadoChip(pedido.estado)}</TableCell>

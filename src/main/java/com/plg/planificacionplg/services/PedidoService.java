@@ -160,6 +160,7 @@ public class PedidoService {
                     dto.setEstado(p.getEstado() != null ? p.getEstado().toString() : "");
                     dto.setCompletado(p.isCompletado());
                     dto.setConsumoCombustibleTotal(p.getConsumoCombustibleTotal());
+                    dto.setIdCliente(p.getIdCliente());
                     
                     // Convertir ubicación a NodeDTO
                     if (p.getUbicacion() != null) {

@@ -13,6 +13,7 @@ public class PedidoDTO {
     private String estado;
     private boolean completado;
     private double consumoCombustibleTotal;
+    private int idCliente;
 
     // Constructor vacío
     public PedidoDTO() {}    // Getters and Setters
@@ -94,5 +95,11 @@ public class PedidoDTO {
 
     public void setConsumoCombustibleTotal(double consumoCombustibleTotal) {
         this.consumoCombustibleTotal = consumoCombustibleTotal;
+    }
+    public int getIdCliente() {
+        return idCliente;
+    }
+    public void setIdCliente(int idCliente) {
+        this.idCliente = idCliente;
     }
 }
