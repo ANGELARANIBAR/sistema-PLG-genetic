@@ -1,6 +1,7 @@
 package com.plg.planificacionplg.dto;
 
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 public class PedidoRequest {
     private int idCliente;
@@ -8,6 +9,7 @@ public class PedidoRequest {
     private double volumen;
     private double coordenadaX;
     private double coordenadaY;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime fechaRegistro;
     private double tiempoMaxEntrega; // en horas
 

@@ -9,6 +9,7 @@ import {
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import { useNavigate } from 'react-router-dom';
 import FormField from '../components/formField/FormField';
+import { pedidosService } from '../services/pedidosService';
 import './NuevoPedido.css';
 
 export default function NuevoPedido() {
@@ -33,15 +34,44 @@ export default function NuevoPedido() {
     navigate('/pedidos');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const now = new Date();
     // Formato local YYYY-MM-DD HH:mm:ss
     const pad = (n) => n.toString().padStart(2, '0');
     const fechaRegistro = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    const dataToSave = { ...formData, fechaRegistro };
-    console.log('Saving form data:', dataToSave);
-    // Aquí puedes hacer la petición al backend usando dataToSave
-    navigate('/pedidos');
+    // Parsear coordenadas en formato (x, y)
+    let coordenadaX = null;
+    let coordenadaY = null;
+    if (formData.coordenadas) {
+      // Eliminar paréntesis y espacios
+      const coords = formData.coordenadas.replace(/[()]/g, '').split(',').map(s => s.trim());
+      if (coords.length === 2) {
+        coordenadaX = Number(coords[0]);
+        coordenadaY = Number(coords[1]);
+      }
+    }
+    // Extraer idCliente como el número después de 'c-'
+    let idCliente = null;
+    if (formData.codigoCliente && formData.codigoCliente.startsWith('c-')) {
+      const idStr = formData.codigoCliente.substring(2).trim();
+      idCliente = Number(idStr);
+    }
+    const dataToSave = {
+      idCliente,
+      numeroPedido: formData.codigoCliente,
+      volumen: Number(formData.cargaGLP),
+      coordenadaX,
+      coordenadaY,
+      tiempoMaxEntrega: Number(formData.plazoEntrega),
+      fechaRegistro
+    };
+    console.log('Datos a guardar:', dataToSave);
+    try {
+      await pedidosService.createPedido(dataToSave);
+      navigate('/pedidos');
+    } catch (error) {
+      alert('Error al registrar el pedido. Intente nuevamente.');
+    }
   };
 
   return (

@@ -17,7 +17,7 @@ export const pedidosService = {
     // Create a new pedido
     async createPedido(pedido) {
         try {
-            const response = await fetch(API_BASE_URL, {
+            const response = await fetch(`${API_BASE_URL}/registrar`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
