@@ -295,29 +295,34 @@ public class PlanificacionPlgApplication{
         if(escenario==1)
             maxTiempoPrimerCalc = 20000;
         else maxTiempoPrimerCalc = 5000;
+        if (!sistemaPLG.getPedidos().isEmpty()) {
+            Thread hiloSaltoAlgoritmo = new Thread(() -> {
+                try {
+                    Thread.sleep(maxTiempoPrimerCalc); // Esperar 5 segundos
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt(); // Restablecer el estado de interrupción
+                    System.err.println("Hilo interrumpido: " + e.getMessage());
+                    return;
+                }
 
-        Thread hiloSaltoAlgoritmo = new Thread(() -> {
-            try {
-                Thread.sleep(maxTiempoPrimerCalc); // Esperar 5 segundos
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt(); // Restablecer el estado de interrupción
-                System.err.println("Hilo interrumpido: " + e.getMessage());
-                return;
+                // Levantar la bandera después de la espera
+                PlanificacionPlgApplication.setCancelarReplanificacion(true);
+            });hiloSaltoAlgoritmo.start();
+
+            Genetico ga = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
+            System.out.println("Fehca hora incii " + sistemaPLG.getFechaHoraInicio());
+            if(escenario==3){
+                mejorSolucion = ga.ejecutar(escenario, sistemaPLG);
             }
-
-            // Levantar la bandera después de la espera
-            PlanificacionPlgApplication.setCancelarReplanificacion(true);
-        });hiloSaltoAlgoritmo.start();
-
-        Genetico ga = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
-        System.out.println("Fehca hora incii " + sistemaPLG.getFechaHoraInicio());
-        if(escenario==3){
-            mejorSolucion = ga.ejecutar(escenario, sistemaPLG);
+            else{
+                mejorSolucion = ga.ejecutar(1, sistemaPLG);
+            }
         }
-        else{
-            mejorSolucion = ga.ejecutar(1, sistemaPLG);
-
+        else {
+            mejorSolucion = new Individuo();
+            mejorSolucion.setSistemaPLG(sistemaPLG);
         }
+
         PlanificacionPlgApplication.setCancelarReplanificacion(false);
         // Load maintenance and averias
         mejorSolucion.getSistemaPLG().cargarMantenimientos(

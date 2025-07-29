@@ -60,15 +60,17 @@ public class PedidoMonitor {
             //recibir tiempo simulado o si no es simulado el itempo real
             LocalDateTime inicioReplan = LocalDateTime.now().plusSeconds(2);
             List<Pedido>pedidosPendientes = new ArrayList<>();List<Integer>idxPedPendientes = new ArrayList<>();
+            List<Pedido>pedidosEnCurso = new ArrayList<>();
             List<Camion>camionesReplan = new ArrayList<>();
             replanificado.setFechaHoraInicio(inicioReplan);
-            boolean primerPedidoEncontrado;
+            boolean primerPedidoEncontrado, considerarPrimerPedido;
             //pedidos que dentro de 2 minutos no estaran completados o en proceso, osea en ruta hacia esos pedidos en la sol actual
             for(Camion c : mejorSolucion.getSistemaPLG().getFlota()){
                 Destino anterior = null;
                 Camion nuevoCamion = new Camion(c);
                 nuevoCamion.setDestinos(new ArrayList<>());
                 primerPedidoEncontrado = true;
+                considerarPrimerPedido = true;
                 if(c.getDestinos().size()<3){
                     Reabastecimiento origen = new Reabastecimiento();
                     origen.setCisterna(mejorSolucion.getSistemaPLG().getCisternas().get(0));
@@ -109,14 +111,23 @@ public class PedidoMonitor {
                                     origenReplan.setFechaHoraLlegada(inicioReplan);
                                     origenReplan.setFechaHoraSalida(inicioReplan);
                                     origenReplan.setGLPOperacion(0.0);
-                                    if(anterior==null)
+                                    if(anterior==null) {
                                         origenReplan.setSaldoGLPCamion(0.0);
-                                    else origenReplan.setSaldoGLPCamion(d.getSaldoGLPCamion());
+                                        nuevoCamion.setCargaGLPActual(0.0);
+                                    }
+                                    else{
+                                        origenReplan.setSaldoGLPCamion(anterior.getSaldoGLPCamion());
+                                        nuevoCamion.setCargaGLPActual(anterior.getSaldoGLPCamion());
+                                    }
                                     origenReplan.setSaldoCombustibleCamion(d.getSaldoCombustibleCamion());
                                     nuevoCamion.getDestinos().add(origenReplan);
                                 }
                                 else{
-                                    //usar destino actual
+                                    //en el destino actual
+                                    if(d instanceof EntregaPedido){
+                                        pedidosEnCurso.add(d.getPedido());
+                                        considerarPrimerPedido = false;
+                                    }
                                     nuevoCamion.getDestinos().add(d.copiar());
                                     nuevoCamion.setCargaGLPActual(d.getSaldoGLPCamion());
                                     nuevoCamion.setCombustibleActual(d.getSaldoCombustibleCamion());
@@ -125,7 +136,7 @@ public class PedidoMonitor {
                             camionesReplan.add(nuevoCamion);
                             primerPedidoEncontrado = false;
                         }
-                        if(d instanceof EntregaPedido){
+                        if(d instanceof EntregaPedido && considerarPrimerPedido){
                             idxPedPendientes.add(d.getPedido().getId());
                             Pedido pendiente = new Pedido(d.getPedido());
                             pedidosPendientes.add(pendiente);
@@ -144,7 +155,7 @@ public class PedidoMonitor {
             }
 
             int tamPoblacion = 10;
-            int generaciones = 0;
+            int generaciones = 5;
             double probCruce = 0.3;
             double probMutacion = 0.15;
             double porcentajeElite = 0.2;
@@ -153,6 +164,11 @@ public class PedidoMonitor {
             Genetico ga = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
             mejorSolucion = ga.ejecutar(2, replanificado);
             mejorSolucion.getSistemaPLG().imprimirPlanificacion();
+            for(Pedido p : pedidosEnCurso){
+                mejorSolucion.getSistemaPLG().getPedidos().add(p);
+                p.setId(mejorSolucion.getSistemaPLG().getPedidos().size());
+
+            }
 
             PlanificacionPlgApplication.setMejorSolucion(mejorSolucion);
 
