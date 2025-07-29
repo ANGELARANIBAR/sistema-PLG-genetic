@@ -672,7 +672,7 @@ public class PlanificacionPlgApplication {
 
             }
         }
-
+        if(PlanificacionPlgApplication.getCamAtenPedAv()==null)return;
         for(Camion camAt : PlanificacionPlgApplication.getCamAtenPedAv()){
             Individuo.replanificarRutasCamion(camAt);
         }
