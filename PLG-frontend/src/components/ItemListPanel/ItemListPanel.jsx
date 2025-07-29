@@ -413,12 +413,12 @@ const ItemListPanel = ({
                             Elementos del Sistema
                         </Typography>
                         {lastRefreshTime && (
-                            <Tooltip title="Última actualización del sistema">
+                            <Tooltip title={`Última actualización de pedidos desde BD: ${lastRefreshTime.toLocaleString()}`}>
                                 <Typography variant="caption" sx={{ 
                                     color: isRefreshing ? 'primary.main' : 'text.secondary',
                                     fontWeight: isRefreshing ? 'bold' : 'normal'
                                 }}>
-                                    {isRefreshing ? 'Actualizando...' : `${lastRefreshTime.toLocaleTimeString()}`}
+                                    {isRefreshing ? 'Actualizando BD...' : `${lastRefreshTime.toLocaleTimeString()}`}
                                 </Typography>
                             </Tooltip>
                         )}

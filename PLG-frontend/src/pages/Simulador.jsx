@@ -42,6 +42,7 @@ import {
     fetchTruckDestination 
 } from "../services/routeService";
 import { reportService } from "../services/reportService";
+import { pedidosService } from "../services/pedidosService";
 import './Simulacion.css';
 
 /**
@@ -89,6 +90,7 @@ export default function Simulador() {
     const [isLoadingReport, setIsLoadingReport] = useState(false);
     const [forcePedidosTab, setForcePedidosTab] = useState(undefined);
     const [showPedidoSuccess, setShowPedidoSuccess] = useState(false);
+    const [showRefreshSuccess, setShowRefreshSuccess] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastRefreshTime, setLastRefreshTime] = useState(null);
     const [showAutoRefreshNotice, setShowAutoRefreshNotice] = useState(false);
@@ -103,12 +105,75 @@ export default function Simulador() {
     // Monitor for batch refresh notifications
     useBatchRefreshMonitor(true, 2000);
 
-    // Refresh system data function
+    // Helper function to format pedidos DTOs from database
+    const formatPedidosFromDB = (pedidosDTO) => {
+        return pedidosDTO.map(pedidoDTO => ({
+            id: pedidoDTO.id || pedidoDTO.numeroPedido,
+            numeroPedido: pedidoDTO.numeroPedido,
+            volumenGLP: pedidoDTO.volumenGLP,
+            fechaHoraRegistro: pedidoDTO.fechaHoraRegistro,
+            fechaHoraMaxEntrega: pedidoDTO.fechaHoraMaxEntrega,
+            tiempoMaxEntrega: pedidoDTO.tiempoMaxEntrega,
+            estado: pedidoDTO.estado || 'PENDIENTE',
+            completado: pedidoDTO.completado || false,
+            consumoCombustibleTotal: pedidoDTO.consumoCombustibleTotal || 0,
+            idCliente: pedidoDTO.idCliente,
+            ubicacion: pedidoDTO.ubicacion ? {
+                x: pedidoDTO.ubicacion.x,
+                y: pedidoDTO.ubicacion.y
+            } : { x: 0, y: 0 },
+            volumenGLPEntregado: pedidoDTO.volumenGLPEntregado || 0
+        }));
+    };
+
+    // Refresh only pedidos data from database
+    const refreshPedidosData = async (showLoading = true) => {
+        if (showLoading) setIsRefreshing(true);
+        
+        try {
+            console.log('Refreshing pedidos data from database...');
+            
+            // Fetch fresh pedidos directly from database
+            const freshPedidos = await pedidosService.fetchPedidosFresh();
+            
+            // Convert DTOs to the format expected by the system
+            const formattedPedidos = formatPedidosFromDB(freshPedidos);
+            
+            // Update system with fresh pedidos data
+            setSystem(prevSystem => ({
+                ...prevSystem,
+                pedidos: formattedPedidos
+            }));
+            
+            setLastRefreshTime(new Date());
+            console.log(`✅ Pedidos refreshed from DB: ${formattedPedidos.length} pedidos found`);
+            
+            // Log pedidos for debugging
+            if (formattedPedidos.length > 0) {
+                console.log('📋 Latest pedidos from DB:', formattedPedidos.map(p => ({
+                    id: p.id,
+                    numero: p.numeroPedido,
+                    estado: p.estado,
+                    registro: p.fechaHoraRegistro
+                })));
+            }
+            
+        } catch (error) {
+            console.error('Error refreshing pedidos data:', error);
+            // Fallback to full system refresh if pedidos refresh fails
+            console.log('Falling back to full system refresh...');
+            await refreshSystemData(false);
+        } finally {
+            if (showLoading) setIsRefreshing(false);
+        }
+    };
+
+    // Refresh system data function  
     const refreshSystemData = async (showLoading = true) => {
         if (showLoading) setIsRefreshing(true);
         
         try {
-            console.log('Refreshing system data...');
+            console.log('Refreshing full system data...');
             
             // Fetch updated system data
             const updatedSystem = await fetchSystem();
@@ -125,14 +190,27 @@ export default function Simulador() {
     };
 
     // Manual refresh handler
-    const handleManualRefresh = () => {
-        refreshSystemData(true);
+    const handleManualRefresh = async () => {
+        console.log('🔄 Manual refresh triggered by user');
+        
+        try {
+            await refreshPedidosData(true); // Use pedidos-specific refresh for better performance
+            
+            // Show success notification briefly
+            setShowRefreshSuccess(true);
+            setTimeout(() => {
+                setShowRefreshSuccess(false);
+            }, 2000);
+            
+        } catch (error) {
+            console.error('❌ Manual refresh failed:', error);
+        }
     };
 
     // Auto-refresh every 5 minutes
     useEffect(() => {
         const autoRefreshInterval = setInterval(async () => {
-            console.log('Auto-refreshing system data (5-minute interval)');
+            console.log('Auto-refreshing pedidos data (5-minute interval)');
             
             // Show brief notification for auto-refresh
             setShowAutoRefreshNotice(true);
@@ -140,7 +218,7 @@ export default function Simulador() {
                 setShowAutoRefreshNotice(false);
             }, 3000);
             
-            await refreshSystemData(false); // Don't show loading spinner for auto-refresh
+            await refreshPedidosData(false); // Don't show loading spinner for auto-refresh
         }, 5 * 60 * 1000); // 5 minutes
 
         return () => clearInterval(autoRefreshInterval);
@@ -192,8 +270,8 @@ export default function Simulador() {
         console.log('Nuevo pedido agregado:', pedidoData);
         
         try {
-            // Use the refresh function to update system data
-            await refreshSystemData(false);
+            // Use the pedidos refresh function to update pedidos data specifically
+            await refreshPedidosData(false);
             
             // Switch to pedidos tab to show the new pedido
             setForcePedidosTab(2); // Tab index 2 is for pedidos
@@ -336,7 +414,22 @@ export default function Simulador() {
     useEffect(() => {
         const loadSystem = async () => {
             try {
+                // Load base system data
                 const systemData = await fetchSystem();
+                
+                // Load fresh pedidos from database to ensure we have the latest data
+                try {
+                    const freshPedidos = await pedidosService.fetchPedidosFresh();
+                    const formattedPedidos = formatPedidosFromDB(freshPedidos);
+                    
+                    // Merge fresh pedidos with system data
+                    systemData.pedidos = formattedPedidos;
+                    console.log(`🚀 Initial load: ${formattedPedidos.length} pedidos loaded from database`);
+                } catch (pedidosError) {
+                    console.warn("Could not load fresh pedidos, using system pedidos:", pedidosError);
+                    // Use system pedidos as fallback
+                }
+                
                 setSystem(systemData);
                 setLastRefreshTime(new Date()); // Set initial refresh time
             } catch (error) {
@@ -794,7 +887,7 @@ export default function Simulador() {
             </Box>
 
             {/* Alerts section */}
-            {(colapsoInfo?.colapso || showAutoPlayNotification || showPedidoSuccess || showAutoRefreshNotice) && (
+            {(colapsoInfo?.colapso || showAutoPlayNotification || showPedidoSuccess || showAutoRefreshNotice || showRefreshSuccess) && (
                 <Box sx={{ px: 3, py: 1 }}>
                     {colapsoInfo && colapsoInfo.colapso && (
                         <Alert severity="error" sx={{ mb: 1 }}>
@@ -819,10 +912,16 @@ export default function Simulador() {
                             <Typography variant="body2">El nuevo pedido se ha registrado y aparece en la pestaña "Pedidos" del panel de elementos. El sistema ha sido actualizado automáticamente.</Typography>
                         </Alert>
                     )}
+                    {showRefreshSuccess && (
+                        <Alert severity="success" sx={{ mb: 1 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">¡Datos actualizados exitosamente!</Typography>
+                            <Typography variant="body2">Los pedidos se han actualizado con los datos más recientes de la base de datos. Ahora puedes ver todos los pedidos más recientes.</Typography>
+                        </Alert>
+                    )}
                     {showAutoRefreshNotice && (
                         <Alert severity="info" sx={{ mb: 1 }}>
-                            <Typography variant="subtitle1" fontWeight="bold">Sistema actualizado automáticamente</Typography>
-                            <Typography variant="body2">Los datos del sistema se han actualizado automáticamente. Se detectaron posibles cambios en pedidos, flota o cisternas.</Typography>
+                            <Typography variant="subtitle1" fontWeight="bold">Pedidos actualizados automáticamente</Typography>
+                            <Typography variant="body2">Los pedidos se han actualizado con datos frescos de la base de datos. Ahora puedes ver los pedidos más recientes.</Typography>
                         </Alert>
                     )}
                 </Box>
@@ -985,7 +1084,10 @@ export default function Simulador() {
                 <Tooltip 
                     title={
                         <Box>
-                            <Typography variant="body2">Refrescar Sistema</Typography>
+                            <Typography variant="body2">Refrescar Pedidos</Typography>
+                            <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                Datos frescos desde BD
+                            </Typography>
                             <Typography variant="caption" sx={{ opacity: 0.8 }}>
                                 Atajo: Ctrl+R o F5
                             </Typography>
