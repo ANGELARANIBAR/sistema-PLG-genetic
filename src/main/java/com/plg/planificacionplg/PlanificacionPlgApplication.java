@@ -281,10 +281,16 @@ public class PlanificacionPlgApplication{
         }
 
         int finBatch1 = (listaPedidosTotal.size() > inicioBatchActual) ? inicioBatchActual : listaPedidosTotal.size();
-        List<Pedido> primerBatch = listaPedidosTotal.subList(0, finBatch1);
-        if(escenario==1){
+        List<Pedido> primerBatch;
+        
+        if(escenario == 1){
+            // Para simulación diaria, usar TODOS los pedidos de la BD
             primerBatch = listaPedidosTotal;
+        } else {
+            // Para simulación semanal/colapso, usar solo el primer batch
+            primerBatch = listaPedidosTotal.subList(0, finBatch1);
         }
+        
         sistemaPLG.setPedidos(new ArrayList<>(primerBatch));
         pedidosAtendidos = primerBatch.size();
         System.out.println("Iniciando Planificación");
@@ -356,16 +362,37 @@ public class PlanificacionPlgApplication{
             double tiempoAveria = camion.getDistanciaTotal() * random / camion.getTipo().getVelocidadPromedio();
             LocalDateTime inicioAveria = mejorSolucion.getSistemaPLG().getFechaHoraInicio().plusSeconds((long) tiempoAveria * 60);
             int turnoiniidx = a.getTurnoOcurrencia() - 2, turnoidx = a.getTurnoOcurrencia() - 1;
-            LocalTime turnoini;
-            if (turnoiniidx < 0) {
-                turnoini = LocalTime.MIN;
-            } else turnoini = mejorSolucion.getSistemaPLG().getTurnosFin().get(turnoiniidx);
+            LocalTime turnoini = LocalTime.MIN;
+            
+            // Para simulación diaria, no dependemos de turnos
+            if (escenario != 1) {
+                if (turnoiniidx < 0) {
+                    turnoini = LocalTime.MIN;
+                } else {
+                    turnoini = mejorSolucion.getSistemaPLG().getTurnosFin().get(turnoiniidx);
+                }
+            }
+            
             if (mejorSolucion.getSistemaPLG().getFlota().get(a.getIdCamion()).getDestinos().size() < 2) continue;
             Camion cam = mejorSolucion.getSistemaPLG().getCamionEnInstante(a.getIdCamion() + 1, inicioAveria);
             a.setFechaHoraInicio(inicioAveria);
             if (cam != null && cam.getEstado() == EstadoCamion.EN_RETORNO) continue;
-            if (false && (turnoini.isBefore(inicioAveria.toLocalTime())
-                    && mejorSolucion.getSistemaPLG().getTurnosFin().get(turnoidx).isAfter(inicioAveria.toLocalTime()))) {
+            
+            // Para simulaciones diarias (escenario 1), procesar las averías de forma simplificada
+            // Para simulaciones semanales/colapso, usar la lógica original con turnos
+            boolean procesarAveria = false;
+            if(escenario == 1) {
+                // En simulación diaria, procesar todas las averías cargadas
+                procesarAveria = true;
+            } else {
+                // En simulación semanal/colapso, usar la lógica original con turnos
+                if (turnoidx >= 0 && turnoidx < mejorSolucion.getSistemaPLG().getTurnosFin().size()) {
+                    procesarAveria = (turnoini.isBefore(inicioAveria.toLocalTime())
+                        && mejorSolucion.getSistemaPLG().getTurnosFin().get(turnoidx).isAfter(inicioAveria.toLocalTime()));
+                }
+            }
+            
+            if (procesarAveria) {
                 System.out.println("Iniciando RePlanificación Aleatoria");
                 // Set replanning flag and averia start time at the start of this specific averia's replanification
                 mejorSolucion.getSistemaPLG().setReplanning(true);
