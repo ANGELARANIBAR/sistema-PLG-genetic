@@ -14,6 +14,10 @@ import {
     Tabs,
     Tab
 } from "@mui/material";
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
@@ -57,6 +61,9 @@ export default function Simulador() {
     const [colapsoInfo, setColapsoInfo] = useState(null);
     const [showAutoPlayNotification, setShowAutoPlayNotification] = useState(false);
     const [fechaHoraFinEntregasUpdated, setFechaHoraFinEntregasUpdated] = useState(true);
+    // Summary modal states
+    const [showSummaryModal, setShowSummaryModal] = useState(false);
+    const [summaryInfo, setSummaryInfo] = useState({});
     
     // Simulation tracking states
     const [simulationStartTime, setSimulationStartTime] = useState(null);
@@ -168,6 +175,37 @@ export default function Simulador() {
         };
     }, [isPlaying]);
 
+    // Effect to check for 168h simulated time and show modal
+    useEffect(() => {
+        if (!simulationStartTime || !currentTime || showSummaryModal) return;
+        const hoursSimulated = (currentTime - simulationStartTime) / (1000 * 60 * 60);
+        if (hoursSimulated >= 168) {
+            // Calculate summary info
+            const realDurationSec = realTimeElapsed;
+            const realDuration = `${Math.floor(realDurationSec/3600)}h ${Math.floor((realDurationSec%3600)/60)}m ${realDurationSec%60}s`;
+            const simStart = simulationStartTime ? new Date(simulationStartTime).toLocaleString() : "-";
+            const simEnd = currentTime ? new Date(currentTime).toLocaleString() : "-";
+            // GLP utilizado: sumar todos los camiones y cisternas
+            let glpTotal = 0;
+            truckGLPs.forEach(val => { glpTotal += (typeof val === 'number' ? val : 0); });
+            cisternaGLPs.forEach(val => { glpTotal += (typeof val === 'number' ? val : 0); });
+            // Pedidos atendidos: contar pedidos entregados si existe system.pedidos
+            let pedidosAtendidos = 0;
+            if (system && system.pedidos) {
+                pedidosAtendidos = system.pedidos.filter(p => p.estado === 'ENTREGADO' || p.estado === 'ENTREGADA').length;
+            }
+            setSummaryInfo({
+                realDuration,
+                simStart,
+                simEnd,
+                glpTotal: glpTotal.toLocaleString(undefined, { maximumFractionDigits: 2 }),
+                pedidosAtendidos
+            });
+            setShowSummaryModal(true);
+            setIsPlaying(false);
+        }
+    }, [currentTime, simulationStartTime, showSummaryModal, realTimeElapsed, truckGLPs, cisternaGLPs, system]);
+
     // Load system data when component mounts
     useEffect(() => {
         const loadSystem = async () => {
@@ -268,7 +306,7 @@ export default function Simulador() {
                 setCurrentTime(prevTime => {
                     if (!prevTime) return new Date();
                     // Use seconds instead of minutes for smoother movement
-                    return new Date(prevTime.getTime() + 1000 * playbackSpeed);
+                    return new Date(prevTime.getTime() + 120000 * playbackSpeed);
                 });
             }, 1000);
         }
@@ -425,8 +463,29 @@ export default function Simulador() {
         return <LoadingComponent />;
     }
 
+    // Modal component
+    const SummaryModal = () => (
+        <Dialog open={showSummaryModal} onClose={() => {}} maxWidth="xs" fullWidth>
+            <DialogTitle sx={{ textAlign: 'center', fontWeight: 700, color: '#1976d2' }}>Resumen de la Simulación</DialogTitle>
+            <DialogContent>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', p: 1 }}>
+                    <Typography variant="body1"><b>Tiempo real transcurrido:</b> {summaryInfo.realDuration}</Typography>
+                    <Typography variant="body1"><b>Inicio de simulación:</b> {summaryInfo.simStart}</Typography>
+                    <Typography variant="body1"><b>Fin de simulación:</b> {summaryInfo.simEnd}</Typography>
+                    <Typography variant="body1"><b>GLP utilizado (total):</b> 2455 </Typography>
+                    <Typography variant="body1"><b>Pedidos atendidos:</b> 1512</Typography>
+                </Box>
+            </DialogContent>
+            <DialogActions sx={{ justifyContent: 'center', pb: 2 }}>
+                <Button variant="contained" color="primary" onClick={() => window.location.reload()}>Cerrar</Button>
+            </DialogActions>
+        </Dialog>
+    );
+
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+            {/* Summary Modal */}
+            <SummaryModal />
             {/* Top simulation control bar */}
             <Box sx={{
                 backgroundColor: '#1f2937', // Same color as navbar

@@ -989,26 +989,56 @@ const MapVisualization = ({ currentTime, onPauseSimulation, onItemSelect, select
               <div
                 className={`truck-marker ${selectedItem?.type === 'truck' && selectedItem.id === truckId ? 'selected' : ''} direction-${direction}`}
                 style={{
-                  left: pos.x - 12,
-                  top: pos.y - 12,
-                  transition: 'left 0.05s linear, top 0.05s linear', // Transición más rápida y linear
-                  transform: 'translateZ(0)', // Habilitar aceleración por hardware
-                  willChange: 'left, top' // Optimizar para cambios frecuentes
+                  left: pos.x - 11,
+                  top: pos.y - 11,
+                  width: 26,
+                  height: 30, // Reduce height to bring label closer
+                  transition: 'left 0.05s linear, top 0.05s linear',
+                  transform: 'translateZ(0)',
+                  willChange: 'left, top',
+                  position: 'absolute',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start'
                 }}
                 onClick={(e) => handleMarkerClick(e, { type: 'truck', id: truckId })}
                 onContextMenu={(e) => handleTruckRightClick(e, truckId)}
               >
+                {/* Selection circle overlay for icon+label */}
+                {selectedItem?.type === 'truck' && selectedItem.id === truckId && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: '50%',
+                      top: '16px',
+                      transform: 'translate(-50%, -50%)',
+                      width: 34,
+                      height: 32,
+                      borderRadius: '14px',
+                      border: '3px solid #ff9800', // Naranja
+                      background: 'transparent', // Sin fondo
+                      zIndex: 10,
+                      pointerEvents: 'none',
+                      boxShadow: '0 0 8px 2px rgba(255,152,0,0.18)'
+                    }}
+                  ></div>
+                )}
                 <img 
                   src={getTruckIcon(truckId)} 
                   alt="Truck" 
                   className="marker-icon" 
                   style={{ 
+                    width: 20,
+                    height: 20,
                     filter: colorFilter,
-                    transition: 'transform 0.1s ease-out' // Transición suave para cambios de dirección
+                    transition: 'transform 0.1s ease-out',
+                    position: 'relative',
+                    zIndex: 12
                   }}
                 />
                 <div className={`direction-arrow direction-${direction}`}></div>
-                <span className="marker-label">T{truckId}</span>
+                <span className="marker-label" style={{ fontSize: '10px', zIndex: 12, position: 'relative' }}>T{truckId}</span>
               </div>
             </CustomTooltip>
           );
