@@ -32,7 +32,7 @@ public class Individuo {
         }
         //Collections.shuffle(pedidos);
         int nIntentos=0;Boolean sePuedoAsociarPedido = false;
-        if(nIndividuo<20 || true){
+        if(nIndividuo<30 || true){
             asignarEquitativamente(numCamiones, pedidos, sistema);
         }
         else{

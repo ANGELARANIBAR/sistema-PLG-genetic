@@ -60,7 +60,7 @@ public class PlanificacionPlgApplication{
     @Setter @Getter
     private static List<Camion>camAtenPedAv;
     @Setter @Getter
-    private static List<Integer> flotaXTipoCam = new ArrayList<>(Arrays.asList(2, 3, 4, 10));
+    private static List<Integer> flotaXTipoCam = new ArrayList<>(Arrays.asList(2, 4, 4, 10));
 
     @Setter @Getter
     private static boolean cancelarReplanificacion = false;
@@ -127,7 +127,7 @@ public class PlanificacionPlgApplication{
                 LocalTime.MAX
         ));
         //double velocidadPromedio = 5.0 / 6.0;
-        double velocidadPromedio = 50.0 / 6.0;
+        double velocidadPromedio = 25.0 / 6.0;
 
         TipoCamion tipoCamion1 = new TipoCamion();
         tipoCamion1.setId(1);
