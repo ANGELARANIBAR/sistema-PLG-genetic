@@ -9,6 +9,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.plg.planificacionplg.config.DatabaseHealthChecker;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -29,6 +31,9 @@ public class SolutionController {
 
     // Ruta base donde se guardarán los archivos
     private static final String BASE_UPLOAD_DIR = "src/main/java/com/plg/planificacionplg/test/";
+    
+    @Autowired
+    private DatabaseHealthChecker databaseHealthChecker;
 
     @GetMapping("/routes")
     public List<TruckRouteDTO> getRoutes() {
@@ -454,15 +459,22 @@ public class SolutionController {
             double probCruce = 0.1;
             double probMutacion = 0.1;
             double porcentajeElite = 0.1;
-            Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
-            mejorSolucion = ga2.ejecutar(2, replanificado);
-            mejorSolucion.getSistemaPLG().imprimirPlanificacion();
+            // Start database health checks for long-running replanification
+            databaseHealthChecker.startHealthCheck();
+            
+            try {
+                Genetico ga2 = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
+                mejorSolucion = ga2.ejecutar(2, replanificado);
+                mejorSolucion.getSistemaPLG().imprimirPlanificacion();
 
-            mejorSolucion.getSistemaPLG().setReplanning(false);
-            mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
+                mejorSolucion.getSistemaPLG().setReplanning(false);
+                mejorSolucion.getSistemaPLG().setAveriaStartTime(null);
 
-            PlanificacionPlgApplication.setMejorSolucion(mejorSolucion);
-
+                PlanificacionPlgApplication.setMejorSolucion(mejorSolucion);
+            } finally {
+                // Stop health checks when replanification completes
+                databaseHealthChecker.stopHealthCheck();
+            }
 
     } finally {
             sistema.setReplanning(false);

@@ -3,6 +3,7 @@ package com.plg.planificacionplg.services;
 import com.plg.planificacionplg.clases.Nodo;
 import com.plg.planificacionplg.repository.NodoRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,10 +17,12 @@ public class NodoService {
         this.nodoRepository = nodoRepository;
     }
 
+    @Transactional(readOnly = true, timeout = 30)
     public Optional<Nodo> buscarPorPosicion(double posX, double posY) {
         return nodoRepository.findByPosXAndPosY(posX, posY);
     }
 
+    @Transactional(timeout = 30)
     public Nodo guardar(Nodo nodo) {
         return nodoRepository.save(nodo);
     }
@@ -28,6 +31,7 @@ public class NodoService {
         return nodoRepository.findById(id);
     }
 
+    @Transactional(readOnly = true, timeout = 30)
     public List<Nodo> listarTodos() {
         return nodoRepository.findAll();
     }
@@ -81,6 +85,7 @@ public class NodoService {
     }
 
     // Método auxiliar para crear o buscar un nodo existente
+    @Transactional(timeout = 30)
     public Nodo crearOBuscar(double posX, double posY) {
         return buscarPorPosicion(posX, posY)
                 .orElseGet(() -> guardar(new Nodo(posX, posY)));

@@ -24,6 +24,7 @@ public class PedidoService {
         this.pedidoRepository = pedidoRepository;
     }
 
+    @Transactional(timeout = 30)
     public Pedido guardar(Pedido pedido) {
         if (pedido.getFechaHoraRegistro() == null) {
             pedido.setFechaHoraRegistro(LocalDateTime.now());
@@ -31,10 +32,12 @@ public class PedidoService {
         return pedidoRepository.save(pedido);
     }
 
+    @Transactional(timeout = 60)
     public List<Pedido> guardarMasivo(List<Pedido> pedidos) {
         return pedidoRepository.saveAll(pedidos);
     }
 
+    @Transactional(readOnly = true, timeout = 30)
     public List<Pedido> listarTodos() {
         return pedidoRepository.findAll();
     }
@@ -109,6 +112,7 @@ public class PedidoService {
         return pedidoRepository.findAllByOrderByFechaHoraMaxEntregaAsc();
     }
 
+    @Transactional(timeout = 30)
     public Pedido actualizarEstado(Integer id, EstadoPedido nuevoEstado) {
         Optional<Pedido> pedidoOpt = pedidoRepository.findById(id);
         
@@ -128,6 +132,7 @@ public class PedidoService {
         return null;
     }
 
+    @Transactional(timeout = 30)
     public Pedido completarPedido(Integer id) {
         Optional<Pedido> pedidoOpt = pedidoRepository.findById(id);
         
@@ -150,7 +155,7 @@ public class PedidoService {
     public boolean existe(Integer id) {
         return pedidoRepository.existsById(id);
     }
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, timeout = 30)
     public List<PedidoDTO> listarTodosDTO() {
         return pedidoRepository.findAll().stream()
                 .map(p -> {
