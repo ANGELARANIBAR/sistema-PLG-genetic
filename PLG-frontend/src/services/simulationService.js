@@ -214,5 +214,21 @@ export const simulationService = {
             console.error('Error getting colapso info:', error);
             throw error;
         }
+    },
+
+    // Get simulation statistics
+    async getSimulationStats() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/simulation-stats`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error getting simulation stats:', error);
+            throw error;
+        }
     }
 }; 

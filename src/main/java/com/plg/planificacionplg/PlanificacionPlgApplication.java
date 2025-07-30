@@ -16,6 +16,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -74,6 +75,9 @@ public class PlanificacionPlgApplication{
     
     @Setter @Getter
     private static List<Pedido> pedidosNoAtendidos = new ArrayList<>();
+    
+    @Setter @Getter
+    private static Pedido pedidoColapso = null;
 
     // Rutas base para los archivos de datos
     private static final String BASE_DIR = "src/main/java/com/plg/planificacionplg/test/";
@@ -237,6 +241,7 @@ public class PlanificacionPlgApplication{
             colapsoDetectado = false;
             mensajeColapso = "";
             pedidosNoAtendidos = new ArrayList<>();
+            pedidoColapso = null;
         }
         else if(escenario == 2) {
             listaPedidosTotal = sistemaPLG.cargarPedidosDesdeCarpeta(PEDIDOS_FILE, fechaInicio, fechaInicio.plusDays(7));
@@ -596,22 +601,42 @@ public class PlanificacionPlgApplication{
                     pedidosNuevos.get(j).setId(j + 1);
                     // Verificar si el pedido está vencido (no puede ser atendido)
                     if(inicio.plusMinutes(10).isAfter(pedidosNuevos.get(j).getFechaHoraMaxEntrega())){
-                        System.out.println("!!!!!!!!!!!!!!!!!!!!!!PEDIDO NO PUEDE SER ATENDIDO - COLAPSO DETECTADO!!!");
+                        
+                        // Calcular días transcurridos desde el inicio de la simulación
+                        long diasTranscurridos = ChronoUnit.DAYS.between(
+                            sistemaPLG.getFechaHoraInicio().toLocalDate(), 
+                            inicio.toLocalDate()
+                        );
+                        
+                        System.out.println("Pedido no puede ser atendido - Días transcurridos: " + diasTranscurridos);
                         System.out.println("Pedido ID: " + pedidosNuevos.get(j).getId());
                         System.out.println("Número de pedido: " + pedidosNuevos.get(j).getNumeroPedido());
                         System.out.println("Fecha máxima de entrega: " + pedidosNuevos.get(j).getFechaHoraMaxEntrega());
                         System.out.println("Fecha actual de simulación: " + inicio);
                         
-                        // Activar estado de colapso
-                        colapsoDetectado = true;
-                        mensajeColapso = "Colapso detectado: Pedido " + pedidosNuevos.get(j).getNumeroPedido() + 
-                                       " no puede ser atendido. Fecha límite: " + pedidosNuevos.get(j).getFechaHoraMaxEntrega() + 
-                                       ", Fecha actual: " + inicio;
-                        pedidosNoAtendidos.add(pedidosNuevos.get(j));
-                        
-                        // Terminar la simulación inmediatamente
-                        System.out.println(mensajeColapso);
-                        return;
+                        // Solo activar colapso si han pasado más de 4 días
+                        if (diasTranscurridos >= 4) {
+                            System.out.println("!!!!!!!!!!!!!!!!!!!!!!COLAPSO DETECTADO DESPUÉS DEL DÍA 4!!!");
+                            
+                            // Activar estado de colapso
+                            colapsoDetectado = true;
+                            pedidoColapso = pedidosNuevos.get(j);
+                            mensajeColapso = "Colapso detectado después del día " + (diasTranscurridos + 1) + 
+                                           ": El pedido " + pedidosNuevos.get(j).getNumeroPedido() + 
+                                           " no puede ser atendido. Fecha límite: " + pedidosNuevos.get(j).getFechaHoraMaxEntrega() + 
+                                           ", Fecha actual: " + inicio;
+                            
+                            // Solo agregar el pedido específico que causó el colapso
+                            pedidosNoAtendidos.clear();
+                            pedidosNoAtendidos.add(pedidosNuevos.get(j));
+                            
+                            // Terminar la simulación inmediatamente
+                            System.out.println(mensajeColapso);
+                            return;
+                        } else {
+                            System.out.println("Pedido no atendido antes del día 4 - Continuando simulación...");
+                            // Continuar con la simulación sin activar colapso
+                        }
                     }
                 }
 

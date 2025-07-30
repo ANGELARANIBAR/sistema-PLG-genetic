@@ -32,6 +32,7 @@ import BloqueosListPanel from "../components/BloqueosListPanel/BloqueosListPanel
 import { mapService } from "../services/mapService";
 import { simulationService } from "../services/simulationService";
 import { useBatchRefreshMonitor } from "../hooks/useBatchRefreshMonitor";
+import ReporteColapsoModal from "../components/ReporteColapsoModal/ReporteColapsoModal";
 import { 
     fetchSystem, 
     fetchTruckFuel, 
@@ -62,6 +63,11 @@ export default function Simulador() {
     const [colapsoInfo, setColapsoInfo] = useState(null);
     const [showAutoPlayNotification, setShowAutoPlayNotification] = useState(false);
     const [fechaHoraFinEntregasUpdated, setFechaHoraFinEntregasUpdated] = useState(true);
+    
+    // Reporte colapso modal states
+    const [showReporteColapsoModal, setShowReporteColapsoModal] = useState(false);
+    const [simulationStats, setSimulationStats] = useState(null);
+    
     // Summary modal states
     const [showSummaryModal, setShowSummaryModal] = useState(false);
     const [summaryInfo, setSummaryInfo] = useState({});
@@ -328,11 +334,16 @@ export default function Simulador() {
                 if (info && info.colapsoDetectado) {
                     // Obtener información detallada del colapso
                     const colapsoDetails = await simulationService.getColapsoInfo();
+                    
+                    // Obtener estadísticas de la simulación
+                    const stats = await simulationService.getSimulationStats();
+                    
                     setColapsoInfo(colapsoDetails);
+                    setSimulationStats(stats);
                     setIsPlaying(false);
                     
-                    // Mostrar alerta de colapso
-                    alert(`⚠️ COLAPSO DETECTADO ⚠️\n\n${info.mensajeColapso}\n\nLa simulación se ha detenido.`);
+                    // Mostrar modal de reporte de colapso
+                    setShowReporteColapsoModal(true);
                 } else {
                     setColapsoInfo(null);
                 }
@@ -843,6 +854,16 @@ export default function Simulador() {
                     </Box>
                 )}
             </Box>
+
+            {/* Reporte Colapso Modal */}
+            <ReporteColapsoModal
+                open={showReporteColapsoModal}
+                onClose={() => setShowReporteColapsoModal(false)}
+                colapsoInfo={colapsoInfo}
+                simulationStats={simulationStats}
+                currentTime={currentTime}
+                simulationStartTime={simulationStartTime}
+            />
         </Box>
     );
 }

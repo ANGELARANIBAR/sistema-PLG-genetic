@@ -976,15 +976,87 @@ public class SolutionController {
         Map<String, Object> response = new HashMap<>();
         response.put("colapsoDetectado", true);
         response.put("mensajeColapso", PlanificacionPlgApplication.getMensajeColapso());
-        response.put("pedidosNoAtendidos", PlanificacionPlgApplication.getPedidosNoAtendidos().stream()
-                .map(pedido -> Map.of(
-                    "id", pedido.getId(),
-                    "numeroPedido", pedido.getNumeroPedido(),
-                    "fechaHoraMaxEntrega", pedido.getFechaHoraMaxEntrega(),
-                    "volumenGLP", pedido.getVolumenGLP()
-                ))
-                .collect(Collectors.toList()));
+        
+        // Solo devolver el pedido específico que causó el colapso
+        Pedido pedidoColapso = PlanificacionPlgApplication.getPedidoColapso();
+        List<Map<String, Object>> pedidosColapso = new ArrayList<>();
+        
+        if (pedidoColapso != null) {
+            pedidosColapso.add(Map.of(
+                "id", pedidoColapso.getId(),
+                "numeroPedido", pedidoColapso.getNumeroPedido(),
+                "fechaHoraMaxEntrega", pedidoColapso.getFechaHoraMaxEntrega(),
+                "volumenGLP", pedidoColapso.getVolumenGLP()
+            ));
+        }
+        
+        response.put("pedidosNoAtendidos", pedidosColapso);
+        response.put("pedidoColapso", pedidoColapso != null ? Map.of(
+            "id", pedidoColapso.getId(),
+            "numeroPedido", pedidoColapso.getNumeroPedido(),
+            "fechaHoraMaxEntrega", pedidoColapso.getFechaHoraMaxEntrega(),
+            "volumenGLP", pedidoColapso.getVolumenGLP()
+        ) : null);
+        
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/simulation-stats")
+    public ResponseEntity<Map<String, Object>> getSimulationStats() {
+        Map<String, Object> stats = new HashMap<>();
+        
+        // Estadísticas básicas
+        stats.put("pedidosAtendidos", PlanificacionPlgApplication.getPedidosAtendidos());
+        stats.put("batchActual", PlanificacionPlgApplication.getBatchActual());
+        stats.put("fechaHoraInicio", PlanificacionPlgApplication.getFechaHoraInicio());
+        
+        // Estadísticas de la flota
+        Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
+        if (mejorSolucion != null && mejorSolucion.getSistemaPLG() != null) {
+            SistemaPLG sistema = mejorSolucion.getSistemaPLG();
+            
+            // Contar camiones por estado
+            long camionesDisponibles = sistema.getFlota().stream()
+                    .mapToLong(camion -> camion.getEstado() == EstadoCamion.DISPONIBLE ? 1 : 0)
+                    .sum();
+            
+            long camionesEnRuta = sistema.getFlota().stream()
+                    .mapToLong(camion -> camion.getEstado() == EstadoCamion.EN_RUTA ? 1 : 0)
+                    .sum();
+            
+            long camionesAveriados = sistema.getFlota().stream()
+                    .mapToLong(camion -> camion.getEstado() == EstadoCamion.AVERIADO ? 1 : 0)
+                    .sum();
+            
+            // Combustible total empleado
+            double combustibleTotal = sistema.getFlota().stream()
+                    .mapToDouble(Camion::getCombustibleEmpleado)
+                    .sum();
+            
+            // Capacidad total de la flota
+            double capacidadTotalGLP = sistema.getFlota().stream()
+                    .mapToDouble(camion -> camion.getTipo().getCargaGLPMax())
+                    .sum();
+            
+            stats.put("totalCamiones", sistema.getFlota().size());
+            stats.put("camionesDisponibles", camionesDisponibles);
+            stats.put("camionesEnRuta", camionesEnRuta);
+            stats.put("camionesAveriados", camionesAveriados);
+            stats.put("combustibleTotalEmpleado", Math.round(combustibleTotal * 100.0) / 100.0);
+            stats.put("capacidadTotalFlota", Math.round(capacidadTotalGLP * 100.0) / 100.0);
+            
+            // Estadísticas de pedidos
+            if (PlanificacionPlgApplication.getListaPedidosTotal() != null) {
+                stats.put("totalPedidosPlanificados", PlanificacionPlgApplication.getListaPedidosTotal().size());
+                
+                double volumenTotalPedidos = PlanificacionPlgApplication.getListaPedidosTotal().stream()
+                        .mapToDouble(Pedido::getVolumenGLP)
+                        .sum();
+                stats.put("volumenTotalPedidos", Math.round(volumenTotalPedidos * 100.0) / 100.0);
+            }
+        }
+        
+        return ResponseEntity.ok(stats);
     }
 
     private DestinationDTO convertToDestinationDTO(Destino destino) {
