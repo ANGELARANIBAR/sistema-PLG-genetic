@@ -64,7 +64,7 @@ export default function Simulador() {
     const [showAutoPlayNotification, setShowAutoPlayNotification] = useState(false);
     const [fechaHoraFinEntregasUpdated, setFechaHoraFinEntregasUpdated] = useState(true);
     
-    // Reporte colapso modal states
+    // Reporte estado crítico modal states
     const [showReporteColapsoModal, setShowReporteColapsoModal] = useState(false);
     const [simulationStats, setSimulationStats] = useState(null);
     
@@ -325,14 +325,14 @@ export default function Simulador() {
         };
     }, [isPlaying, playbackSpeed, currentTime]);
 
-    // Poll for colapso status
+    // Monitoreo de estado crítico del sistema
     useEffect(() => {
         let intervalId;
         const checkColapso = async () => {
             try {
                 const info = await simulationService.getColapsoStatus();
                 if (info && info.colapsoDetectado) {
-                    // Obtener información detallada del colapso
+                    // Obtener información detallada del fallo crítico
                     const colapsoDetails = await simulationService.getColapsoInfo();
                     
                     // Obtener estadísticas de la simulación
@@ -342,13 +342,13 @@ export default function Simulador() {
                     setSimulationStats(stats);
                     setIsPlaying(false);
                     
-                    // Mostrar modal de reporte de colapso
+                    // Mostrar modal de reporte crítico
                     setShowReporteColapsoModal(true);
                 } else {
                     setColapsoInfo(null);
                 }
             } catch (error) {
-                console.error("Error checking colapso:", error);
+                console.error("Error checking sistema crítico:", error);
             }
         };
         checkColapso();
@@ -855,7 +855,7 @@ export default function Simulador() {
                 )}
             </Box>
 
-            {/* Reporte Colapso Modal */}
+            {/* Reporte Estado Crítico Modal */}
             <ReporteColapsoModal
                 open={showReporteColapsoModal}
                 onClose={() => setShowReporteColapsoModal(false)}

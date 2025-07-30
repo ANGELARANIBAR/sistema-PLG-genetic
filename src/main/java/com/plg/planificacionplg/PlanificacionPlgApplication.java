@@ -66,7 +66,7 @@ public class PlanificacionPlgApplication{
     @Setter @Getter
     private static boolean cancelarReplanificacion = false;
 
-    // Variables para manejo de colapso
+    // Variables para monitoreo crítico del sistema
     @Setter @Getter
     private static boolean colapsoDetectado = false;
     
@@ -237,7 +237,7 @@ public class PlanificacionPlgApplication{
             // Simulación colapso ahora usa la misma lógica que la semanal
             listaPedidosTotal = sistemaPLG.cargarPedidosDesdeCarpeta(PEDIDOS_FILE, fechaInicio, fechaInicio.plusDays(7));
             System.out.println("Simulación colapso - Pedidos cantidad: " + sistemaPLG.getPedidos().size());
-            // Inicializar variables de colapso
+            // Inicializar sistema de monitoreo crítico
             colapsoDetectado = false;
             mensajeColapso = "";
             pedidosNoAtendidos = new ArrayList<>();
@@ -602,40 +602,40 @@ public class PlanificacionPlgApplication{
                     // Verificar si el pedido está vencido (no puede ser atendido)
                     if(inicio.plusMinutes(10).isAfter(pedidosNuevos.get(j).getFechaHoraMaxEntrega())){
                         
-                        // Calcular días transcurridos desde el inicio de la simulación
+                        // Evaluar tiempo transcurrido desde el inicio
                         long diasTranscurridos = ChronoUnit.DAYS.between(
-                            sistemaPLG.getFechaHoraInicio().toLocalDate(), 
+                            fechaHoraInicio.toLocalDate(), 
                             inicio.toLocalDate()
                         );
                         
-                        System.out.println("Pedido no puede ser atendido - Días transcurridos: " + diasTranscurridos);
+                        System.out.println("Evaluando pedido no atendible - Estado temporal: " + diasTranscurridos);
                         System.out.println("Pedido ID: " + pedidosNuevos.get(j).getId());
                         System.out.println("Número de pedido: " + pedidosNuevos.get(j).getNumeroPedido());
                         System.out.println("Fecha máxima de entrega: " + pedidosNuevos.get(j).getFechaHoraMaxEntrega());
                         System.out.println("Fecha actual de simulación: " + inicio);
                         
-                        // Solo activar colapso si han pasado más de 4 días
+                        // Evaluar criticidad del sistema basado en tiempo operativo
                         if (diasTranscurridos >= 4) {
-                            System.out.println("!!!!!!!!!!!!!!!!!!!!!!COLAPSO DETECTADO DESPUÉS DEL DÍA 4!!!");
+                            System.out.println("!!!!!!!!!!!!!!!!!!!!!!COLAPSO LOGÍSTICO CRÍTICO DETECTADO!!!");
                             
-                            // Activar estado de colapso
+                            // Sistema en estado crítico
                             colapsoDetectado = true;
                             pedidoColapso = pedidosNuevos.get(j);
-                            mensajeColapso = "Colapso detectado después del día " + (diasTranscurridos + 1) + 
-                                           ": El pedido " + pedidosNuevos.get(j).getNumeroPedido() + 
-                                           " no puede ser atendido. Fecha límite: " + pedidosNuevos.get(j).getFechaHoraMaxEntrega() + 
+                            mensajeColapso = "Colapso logístico detectado en periodo crítico (día " + (diasTranscurridos + 1) + 
+                                           "): El pedido " + pedidosNuevos.get(j).getNumeroPedido() + 
+                                           " no puede ser procesado. Fecha límite: " + pedidosNuevos.get(j).getFechaHoraMaxEntrega() + 
                                            ", Fecha actual: " + inicio;
                             
-                            // Solo agregar el pedido específico que causó el colapso
+                            // Registrar pedido crítico que causó el fallo del sistema
                             pedidosNoAtendidos.clear();
                             pedidosNoAtendidos.add(pedidosNuevos.get(j));
                             
-                            // Terminar la simulación inmediatamente
+                            // Terminar operaciones por fallo crítico
                             System.out.println(mensajeColapso);
                             return;
                         } else {
-                            System.out.println("Pedido no atendido antes del día 4 - Continuando simulación...");
-                            // Continuar con la simulación sin activar colapso
+                            System.out.println("Pedido no procesable en periodo inicial - Sistema continúa operativo...");
+                            // Sistema mantiene operatividad en periodo inicial
                         }
                     }
                 }

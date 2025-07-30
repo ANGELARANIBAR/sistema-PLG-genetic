@@ -957,7 +957,7 @@ public class SolutionController {
         return PlanificacionPlgApplication.getPorcentajeEjecucion();
     }
 
-    // Endpoints para manejo de colapso
+    // Endpoints para monitoreo crítico del sistema
     @GetMapping("/colapso-status")
     public ResponseEntity<Map<String, Object>> getColapsoStatus() {
         Map<String, Object> response = new HashMap<>();
@@ -977,7 +977,7 @@ public class SolutionController {
         response.put("colapsoDetectado", true);
         response.put("mensajeColapso", PlanificacionPlgApplication.getMensajeColapso());
         
-        // Solo devolver el pedido específico que causó el colapso
+        // Devolver información del pedido crítico que causó el fallo
         Pedido pedidoColapso = PlanificacionPlgApplication.getPedidoColapso();
         List<Map<String, Object>> pedidosColapso = new ArrayList<>();
         

@@ -97,13 +97,13 @@ const ReporteColapsoModal = ({
                     icon={<WarningIcon />}
                 >
                     <Typography variant="h6" component="div">
-                        Sistema Colapsado - Después del Día 4
+                        Sistema Colapsado - Periodo Crítico
                     </Typography>
                     <Typography variant="body2">
                         {colapsoInfo.mensajeColapso}
                     </Typography>
                     <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
-                        * Solo se reporta el pedido específico que causó el colapso después del día 4
+                        * Se reporta el pedido específico que causó el fallo del sistema
                     </Typography>
                 </Alert>
 
@@ -115,9 +115,9 @@ const ReporteColapsoModal = ({
                 <Grid container spacing={3} sx={{ mb: 4 }}>
                     <Grid item xs={12} sm={6} md={3}>
                         <KPICard 
-                            title="Pedido Colapso (Día 4+)"
+                            title="Pedido Crítico"
                             value={colapsoInfo.pedidosNoAtendidos?.length || 0}
-                            unit="pedido crítico"
+                            unit="fallo del sistema"
                             icon={TrendingDownIcon}
                             color="error"
                         />
@@ -191,7 +191,7 @@ const ReporteColapsoModal = ({
                 {colapsoInfo.pedidosNoAtendidos && colapsoInfo.pedidosNoAtendidos.length > 0 && (
                     <>
                         <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                            🚨 Pedido Crítico que Causó el Colapso
+                            🚨 Pedido Crítico - Causa del Fallo del Sistema
                         </Typography>
                         <Paper elevation={1} sx={{ p: 2, bgcolor: 'error.light', border: '2px solid', borderColor: 'error.main' }}>
                             {colapsoInfo.pedidosNoAtendidos.map((pedido, index) => (
@@ -202,7 +202,7 @@ const ReporteColapsoModal = ({
                                                 Pedido #{pedido.numeroPedido}
                                             </Typography>
                                             <Typography variant="caption" color="text.secondary">
-                                                El pedido que no pudo ser atendido después del día 4
+                                                El pedido que causó el fallo crítico del sistema
                                             </Typography>
                                         </Grid>
                                         <Grid item xs={6} md={4}>
@@ -238,11 +238,11 @@ const ReporteColapsoModal = ({
                     </Typography>
                     <Paper elevation={1} sx={{ p: 2, bgcolor: 'info.light' }}>
                         <Typography variant="body2" component="div">
-                            • <strong>Análisis de Capacidad:</strong> El sistema funcionó 4 días antes del colapso - evalúe si la demanda acumulada superó la capacidad<br/>
-                            • <strong>Priorización de Pedidos:</strong> Implemente un sistema de prioridad para pedidos críticos después del día 4<br/>
-                            • <strong>Gestión de Carga:</strong> Revise la distribución de carga durante los primeros 4 días para optimizar la capacidad restante<br/>
-                            • <strong>Monitoreo Predictivo:</strong> Establezca alertas para pedidos en riesgo a partir del día 3<br/>
-                            • <strong>Flexibilidad Operativa:</strong> Considere recursos adicionales o rutas alternativas para situaciones post día 4
+                            • <strong>Análisis de Capacidad:</strong> El sistema operó durante varios días antes del colapso - evalúe si la demanda acumulada superó la capacidad disponible<br/>
+                            • <strong>Priorización de Pedidos:</strong> Implemente un sistema de clasificación para pedidos críticos en periodos de alta demanda<br/>
+                            • <strong>Gestión de Carga:</strong> Revise la distribución de carga durante el periodo operativo para optimizar la capacidad del sistema<br/>
+                            • <strong>Monitoreo Predictivo:</strong> Establezca alertas tempranas para pedidos en riesgo basado en tendencias operativas<br/>
+                            • <strong>Flexibilidad Operativa:</strong> Considere recursos adicionales o rutas alternativas para periodos de alta demanda
                         </Typography>
                     </Paper>
                 </Box>

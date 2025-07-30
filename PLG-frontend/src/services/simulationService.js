@@ -184,7 +184,7 @@ export const simulationService = {
         }
     },
 
-    // Check colapso status
+    // Check sistema crítico status
     async getColapsoStatus() {
         try {
             const response = await fetch(`${API_BASE_URL}/colapso-status`);
@@ -195,12 +195,12 @@ export const simulationService = {
 
             return await response.json();
         } catch (error) {
-            console.error('Error checking colapso status:', error);
+            console.error('Error checking sistema crítico status:', error);
             throw error;
         }
     },
 
-    // Get colapso information
+    // Get información del fallo crítico
     async getColapsoInfo() {
         try {
             const response = await fetch(`${API_BASE_URL}/colapso-info`);
@@ -211,7 +211,7 @@ export const simulationService = {
 
             return await response.json();
         } catch (error) {
-            console.error('Error getting colapso info:', error);
+            console.error('Error getting sistema crítico info:', error);
             throw error;
         }
     },
