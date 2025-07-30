@@ -40,6 +40,12 @@ import {
 } from "../services/routeService";
 import './Simulacion.css';
 
+// AGREGADO: Importar el modal de reporte de colapso
+import ColapsoReportModal from '../components/ColapsoReportModal/ColapsoReportModal';
+
+// AGREGADO: Importar simulationService para obtener información de colapso
+import { simulationService } from '../services/simulationService';
+
 /**
  * Simulador.jsx — Simulador con MapVisualization y controles de tiempo
  * ‣ Usa los servicios reales para obtener datos del sistema PLG
@@ -64,6 +70,12 @@ export default function Simulador() {
     // Summary modal states
     const [showSummaryModal, setShowSummaryModal] = useState(false);
     const [summaryInfo, setSummaryInfo] = useState({});
+    
+    // AGREGADO: Estados para control de colapso
+    const [colapsoDetectado, setColapsoDetectado] = useState(false);
+    const [infoColapso, setInfoColapso] = useState(null);
+    const [showColapsoReport, setShowColapsoReport] = useState(false);
+    const [colapsoReportData, setColapsoReportData] = useState(null);
     
     // Simulation tracking states
     const [simulationStartTime, setSimulationStartTime] = useState(null);
@@ -334,6 +346,46 @@ export default function Simulador() {
         intervalId = setInterval(checkColapso, 2000);
         return () => clearInterval(intervalId);
     }, []);
+    
+    // AGREGADO: Poll para información de colapso por pedido no atendido
+    useEffect(() => {
+        let intervalId;
+        const checkColapsoInfo = async () => {
+            try {
+                const info = await simulationService.getColapsoInfo();
+                if (info && info.simulacionTerminadaPorColapso && !colapsoDetectado) {
+                    setInfoColapso(info);
+                    setColapsoDetectado(true);
+                    setIsPlaying(false);
+                    
+                    // MODIFICADO: Obtener reporte detallado en lugar de mostrar alerta simple
+                    try {
+                        const reportData = await simulationService.getColapsoReporte();
+                        setColapsoReportData(reportData);
+                        setShowColapsoReport(true);
+                    } catch (error) {
+                        console.error('Error fetching colapso report:', error);
+                        // Fallback a alerta simple si falla el reporte
+                        alert(`🚨 SIMULACIÓN TERMINADA\n\n${info.mensajeColapso}\n\nPedido ID: ${info.pedidoCausanteId}\nNúmero: ${info.pedidoCausanteNumero}\nFecha límite: ${new Date(info.fechaHoraMaxEntrega).toLocaleString()}`);
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking colapso info:', error);
+            }
+        };
+        
+        // Solo hacer polling si la simulación está iniciada
+        if (simulationStarted) {
+            checkColapsoInfo();
+            intervalId = setInterval(checkColapsoInfo, 3000); // Cada 3 segundos
+        }
+        
+        return () => {
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+        };
+    }, [simulationStarted, colapsoDetectado]);
 
     
     useEffect(() => {
@@ -833,6 +885,38 @@ export default function Simulador() {
                     </Box>
                 )}
             </Box>
+             {/* Simulation Report Modal */}
+             {showSummaryModal && (
+                 <Dialog
+                     open={showSummaryModal}
+                     onClose={() => setShowSummaryModal(false)}
+                     maxWidth="md"
+                     fullWidth
+                 >
+                     <DialogTitle>Resumen de Simulación</DialogTitle>
+                     <DialogContent>
+                         <Typography variant="body1">
+                             {JSON.stringify(summaryInfo, null, 2)}
+                         </Typography>
+                     </DialogContent>
+                     <DialogActions>
+                         <Button onClick={() => setShowSummaryModal(false)}>
+                             Cerrar
+                         </Button>
+                     </DialogActions>
+                 </Dialog>
+             )}
+             {/* AGREGADO: Modal de reporte de colapso */}
+             {showColapsoReport && (
+                 <ColapsoReportModal
+                     open={showColapsoReport}
+                     onClose={() => {
+                         setShowColapsoReport(false);
+                         setColapsoReportData(null);
+                     }}
+                     reportData={colapsoReportData}
+                 />
+             )}
         </Box>
     );
 }
