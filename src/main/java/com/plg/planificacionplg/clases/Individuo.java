@@ -581,9 +581,18 @@ public class Individuo {
 
         // Ordenar pedidos de mayor a menor volumen
         pedidosDisponibles.sort((a, b) -> {
-            double volA = sistema.getPedidos().get(a - 1).getVolumenGLP();
-            double volB = sistema.getPedidos().get(b - 1).getVolumenGLP();
-            return Double.compare(volB, volA);
+            // Obtenemos las instancias de Pedido
+            Pedido pedA = sistema.getPedidos().get(a - 1);
+            Pedido pedB = sistema.getPedidos().get(b - 1);
+
+            // Comparar por fecha/hora de entrega (la más temprana primero)
+            int cmpFecha = pedA.getFechaHoraMaxEntrega()
+                            .compareTo(pedB.getFechaHoraMaxEntrega());
+            if (cmpFecha != 0) {
+                return cmpFecha;
+            }
+            //  Desempatar por volumen de GLP (mayor primero)
+            return Double.compare(pedB.getVolumenGLP(), pedA.getVolumenGLP());
         });
 
         // FASE 1: Asignación con mejor ajuste posible
