@@ -171,7 +171,7 @@ public class PlanificacionPlgApplication{
             camion.setPlaca("ABC-00" + String.valueOf(camion.getId()));
             camion.setEstado(EstadoCamion.DISPONIBLE);
             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
-            //camion.setCargaGLPActual(camion.getTipo().getCargaGLPMax());
+            camion.setCargaGLPActual(camion.getTipo().getCargaGLPMax());
             sistemaPLG.getFlota().add(camion);
         }
         cantCamionesInicial = sistemaPLG.getFlota().size();
@@ -184,6 +184,7 @@ public class PlanificacionPlgApplication{
             camion.setPlaca("ABC-00" + String.valueOf(camion.getId()));
             camion.setEstado(EstadoCamion.DISPONIBLE);
             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
+            camion.setCargaGLPActual(camion.getTipo().getCargaGLPMax());
             sistemaPLG.getFlota().add(camion);
         }
         cantCamionesInicial = sistemaPLG.getFlota().size();
@@ -196,6 +197,7 @@ public class PlanificacionPlgApplication{
             camion.setPlaca("ABC-00" + String.valueOf(camion.getId()));
             camion.setEstado(EstadoCamion.DISPONIBLE);
             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
+            camion.setCargaGLPActual(camion.getTipo().getCargaGLPMax());
             sistemaPLG.getFlota().add(camion);
         }
         cantCamionesInicial = sistemaPLG.getFlota().size();
@@ -208,6 +210,7 @@ public class PlanificacionPlgApplication{
             camion.setPlaca("ABC-00" + String.valueOf(camion.getId()));
             camion.setEstado(EstadoCamion.DISPONIBLE);
             camion.setCombustibleActual(camion.getTipo().getCapCombustibleMax());//estan con combustible al max
+            camion.setCargaGLPActual(camion.getTipo().getCargaGLPMax());
             sistemaPLG.getFlota().add(camion);
         }
 
@@ -255,7 +258,7 @@ public class PlanificacionPlgApplication{
         //System.out.println(sistemaPLG.getBloqueos());
 
         int tamPoblacion = 30;
-        int generaciones = 5;
+        int generaciones = 10;
         double probCruce = 0.10;
         double probMutacion = 0.10;
         double porcentajeElite = 0.1;
@@ -293,7 +296,7 @@ public class PlanificacionPlgApplication{
         //hilo para sacar solucion en 5 segundos
         int maxTiempoPrimerCalc;
         if(escenario==1)
-            maxTiempoPrimerCalc = 20000;
+            maxTiempoPrimerCalc = 30000;
         else maxTiempoPrimerCalc = 5000;
         if (!sistemaPLG.getPedidos().isEmpty()) {
             Thread hiloSaltoAlgoritmo = new Thread(() -> {

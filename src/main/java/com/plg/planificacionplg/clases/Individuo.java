@@ -283,6 +283,7 @@ public class Individuo {
                 continue;
             }
             camion.setIndicePedidoActual(0); // se pudo recargar GLP en el origen
+
             if (!pedidosXcargasGLP.get(camionIdx).isEmpty()) {
                 for (int i = 0; i < pedidosXcargasGLP.get(camionIdx).get(0); i++) {
                     GLPInicial += camion.getPedidosAsignados().get(i).getVolumenGLP();
@@ -346,6 +347,8 @@ public class Individuo {
 
             if(considerarMantenimiento(camion)==-1) return;
 
+            camion.setCargaGLPActual(camion.getTipo().getCargaGLPMax());
+            camion.getDestinos().getFirst().setSaldoGLPCamion(camion.getCargaGLPActual());
             int resultado = camion.construirRutaHaciaPedido(code, sistemaPLG);
             if (pedidosXcargasGLP.get(camionIdx).isEmpty() && pedidosAsignados.isEmpty() && (resultado == -3 || resultado == -5)) {
                 //cuando camion sin nada asignado da errores en planificación
@@ -564,7 +567,7 @@ public class Individuo {
     public void asignarEquitativamente(int numCamiones, List<Integer> pedidos, SistemaPLG sistema) {
         List<Camion> camionesOrdenados = new ArrayList<>(sistema.getFlota());
         List<Integer> pedidosDisponibles = new ArrayList<>(pedidos);
-        Collections.shuffle(pedidosDisponibles); // aleatorizar pedidos
+        //Collections.shuffle(pedidosDisponibles); // aleatorizar pedidos
 
         this.asignacion.clear();
         Map<Integer, Double> capacidadRestante = new HashMap<>();

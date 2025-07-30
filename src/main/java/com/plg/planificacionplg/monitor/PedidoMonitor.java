@@ -162,6 +162,7 @@ public class PedidoMonitor {
             //replanificado.imprimirPlanificacion();
             System.out.println("$$$$$$$$$$$$$$$$$INICIANDO REPLAN OP DIARIUA$$$$$$$$$$$$$$$$$$");
             Genetico ga = new Genetico(tamPoblacion, generaciones, probCruce, probMutacion, porcentajeElite);
+            replanificado.getPedidos().sort(Comparator.comparing(Pedido::getFechaHoraMaxEntrega));
             mejorSolucion = ga.ejecutar(2, replanificado);
             mejorSolucion.getSistemaPLG().imprimirPlanificacion();
             for(Pedido p : pedidosEnCurso){
