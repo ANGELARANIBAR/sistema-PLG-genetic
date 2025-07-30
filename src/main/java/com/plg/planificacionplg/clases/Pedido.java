@@ -32,7 +32,7 @@ public class Pedido{
     @Column(name = "volumen_glp_entregado", nullable = false, columnDefinition = "DOUBLE DEFAULT 0.0")
     private double volumenGLPEntregado;
     
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinColumn(name = "ubicacion_id", referencedColumnName = "id")
     private Nodo ubicacion;
     
