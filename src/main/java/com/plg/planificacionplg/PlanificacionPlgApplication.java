@@ -65,20 +65,22 @@ public class PlanificacionPlgApplication{
     @Setter @Getter
     private static boolean cancelarReplanificacion = false;
 
+    // Variables para manejo de colapso
+    @Setter @Getter
+    private static boolean colapsoDetectado = false;
+    
+    @Setter @Getter
+    private static String mensajeColapso = "";
+    
+    @Setter @Getter
+    private static List<Pedido> pedidosNoAtendidos = new ArrayList<>();
+
     // Rutas base para los archivos de datos
     private static final String BASE_DIR = "src/main/java/com/plg/planificacionplg/test/";
     private static final String PEDIDOS_FILE = BASE_DIR + "pedidos.20250419/";
     private static final String BLOQUEOS_FILE = BASE_DIR + "bloqueos.20250419/";
     private static final String AVERIAS_FILE = BASE_DIR + "averias.txt";
     private static final String MANTENIMIENTO_FILE = BASE_DIR + "planmantenimiento.txt";
-
-    private static Individuo primerSolucionValida;
-    private static List<Pedido> listaPedidosTotal;
-    
-    // AGREGADO: Variables para control de simulación colapso
-    private static boolean simulacionTerminadaPorColapso = false;
-    private static String mensajeColapso = "";
-    private static Pedido pedidoCausanteColapso = null;
 
     public static void main(String[] args) {
         context = SpringApplication.run(PlanificacionPlgApplication.class, args);
@@ -226,17 +228,15 @@ public class PlanificacionPlgApplication{
         List<Integer>idxPedidosBD;
         LocalDateTime fechaInicio = (fechaHoraInicio != null) ? fechaHoraInicio : null;
         sistemaPLG.setFechaHoraInicio(fechaInicio);
-        
-        // AGREGADO: Resetear flags de colapso al iniciar nueva simulación
-        setSimulacionTerminadaPorColapso(false);
-        setMensajeColapso("");
-        setPedidoCausanteColapso(null);
-        
         listaPedidosTotal = new ArrayList<>();
         if(escenario == 3) {
-            // MODIFICADO: Usar la misma lógica que semanal (7 días) en lugar de LocalDateTime.MAX
+            // Simulación colapso ahora usa la misma lógica que la semanal
             listaPedidosTotal = sistemaPLG.cargarPedidosDesdeCarpeta(PEDIDOS_FILE, fechaInicio, fechaInicio.plusDays(7));
-            System.out.println("Simulación Colapso - Pedidos cantidad: " + sistemaPLG.getPedidos().size());
+            System.out.println("Simulación colapso - Pedidos cantidad: " + sistemaPLG.getPedidos().size());
+            // Inicializar variables de colapso
+            colapsoDetectado = false;
+            mensajeColapso = "";
+            pedidosNoAtendidos = new ArrayList<>();
         }
         else if(escenario == 2) {
             listaPedidosTotal = sistemaPLG.cargarPedidosDesdeCarpeta(PEDIDOS_FILE, fechaInicio, fechaInicio.plusDays(7));
@@ -563,13 +563,6 @@ public class PlanificacionPlgApplication{
             while (inicioBatchActual < (listaPedidosTotal.size()+1)) {
                 //inicio = mejorSolucion.getSistemaPLG().getFechaHoraFinEntregas();
                 inicio = inicio.plusHours(2); //horas simuladas procesadas
-                
-                // AGREGADO: Verificar pedidos no atendidos después de cada incremento de tiempo
-                if (detectarPedidosNoAtendidos(inicio)) {
-                    System.out.println("🛑 Terminando simulación por pedido no atendido");
-                    return; // Terminar simulación inmediatamente
-                }
-                
                 int inicioBatch = inicioBatchActual;
                 double cargaActual = 0.0;
 
@@ -601,16 +594,25 @@ public class PlanificacionPlgApplication{
                 List<Pedido>pedidosVencidos = new ArrayList<>();
                 for (int j = 0; j < pedidosNuevos.size(); j++) {
                     pedidosNuevos.get(j).setId(j + 1);
-//                    if(inicio.plusMinutes(10).isAfter(pedidosNuevos.get(j).getFechaHoraMaxEntrega())){
-//                        //destinar a un camion en caliente
-//                        System.out.println("!!!!!!!!!!!!!!!!!!!!!!PEDIDO PARA REPROGRAMAR!!!");
-//                        System.out.println("max entrega: " + pedidosNuevos.get(j).getFechaHoraMaxEntrega());
-//                        //eliminar de prox batch
-//                        pedidosVencidos.add(pedidosNuevos.get(j));
-//                        pedidosNuevos.get(j).setId(pedidosVencidos.size());
-//                        pedidosNuevos.remove(j);
-//                        j--;
-//                    }
+                    // Verificar si el pedido está vencido (no puede ser atendido)
+                    if(inicio.plusMinutes(10).isAfter(pedidosNuevos.get(j).getFechaHoraMaxEntrega())){
+                        System.out.println("!!!!!!!!!!!!!!!!!!!!!!PEDIDO NO PUEDE SER ATENDIDO - COLAPSO DETECTADO!!!");
+                        System.out.println("Pedido ID: " + pedidosNuevos.get(j).getId());
+                        System.out.println("Número de pedido: " + pedidosNuevos.get(j).getNumeroPedido());
+                        System.out.println("Fecha máxima de entrega: " + pedidosNuevos.get(j).getFechaHoraMaxEntrega());
+                        System.out.println("Fecha actual de simulación: " + inicio);
+                        
+                        // Activar estado de colapso
+                        colapsoDetectado = true;
+                        mensajeColapso = "Colapso detectado: Pedido " + pedidosNuevos.get(j).getNumeroPedido() + 
+                                       " no puede ser atendido. Fecha límite: " + pedidosNuevos.get(j).getFechaHoraMaxEntrega() + 
+                                       ", Fecha actual: " + inicio;
+                        pedidosNoAtendidos.add(pedidosNuevos.get(j));
+                        
+                        // Terminar la simulación inmediatamente
+                        System.out.println(mensajeColapso);
+                        return;
+                    }
                 }
 
                 if(false && !pedidosVencidos.isEmpty()){
@@ -704,7 +706,7 @@ public class PlanificacionPlgApplication{
                     if(d instanceof EntregaPedido){
                         Destino nuevaEntrega = d.copiar();
                         Pedido p = new Pedido(d.getPedido());
-                        p.setEstado(EstadoPedido.PENDIENTE);   // o el enum que uses para "no entregado"
+                        p.setEstado(EstadoPedido.PENDIENTE);   // o el enum que uses para “no entregado”
                         p.setFechaHoraEntrega(null);
                         System.out.println("Entrega pedido en destino averia: "  + d.getPedido().getNumeroPedido());
                         encontrado = false;
@@ -1231,69 +1233,5 @@ public class PlanificacionPlgApplication{
             }
 
         }
-    }
-
-    public static void setListaPedidosTotal(List<Pedido> listaPedidosTotal) {
-        PlanificacionPlgApplication.listaPedidosTotal = listaPedidosTotal;
-    }
-    
-    public static Individuo getPrimerSolucionValida() {
-        return primerSolucionValida;
-    }
-    
-    public static void setPrimerSolucionValida(Individuo primerSolucionValida) {
-        PlanificacionPlgApplication.primerSolucionValida = primerSolucionValida;
-    }
-    
-    // AGREGADO: Métodos para control de simulación colapso
-    public static boolean isSimulacionTerminadaPorColapso() {
-        return simulacionTerminadaPorColapso;
-    }
-    
-    public static void setSimulacionTerminadaPorColapso(boolean simulacionTerminadaPorColapso) {
-        PlanificacionPlgApplication.simulacionTerminadaPorColapso = simulacionTerminadaPorColapso;
-    }
-    
-    public static String getMensajeColapso() {
-        return mensajeColapso;
-    }
-    
-    public static void setMensajeColapso(String mensajeColapso) {
-        PlanificacionPlgApplication.mensajeColapso = mensajeColapso;
-    }
-    
-    public static Pedido getPedidoCausanteColapso() {
-        return pedidoCausanteColapso;
-    }
-    
-    public static void setPedidoCausanteColapso(Pedido pedidoCausanteColapso) {
-        PlanificacionPlgApplication.pedidoCausanteColapso = pedidoCausanteColapso;
-    }
-
-    // AGREGADO: Método para detectar pedidos no atendidos
-    public static boolean detectarPedidosNoAtendidos(LocalDateTime fechaActual) {
-        if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {
-            return false;
-        }
-        
-        List<Pedido> pedidos = mejorSolucion.getSistemaPLG().getPedidos();
-        for (Pedido pedido : pedidos) {
-            // Si el pedido no está completado y su fecha máxima de entrega ya pasó
-            if (!pedido.isCompletado() && pedido.getFechaHoraMaxEntrega() != null && 
-                fechaActual.isAfter(pedido.getFechaHoraMaxEntrega())) {
-                
-                // COLAPSO DETECTADO: Pedido no atendido
-                setPedidoCausanteColapso(pedido);
-                setMensajeColapso("Simulación terminada: Pedido " + pedido.getId() + 
-                    " (Número: " + pedido.getNumeroPedido() + ") no pudo ser atendido. " +
-                    "Fecha límite: " + pedido.getFechaHoraMaxEntrega() + 
-                    ", Fecha actual: " + fechaActual);
-                setSimulacionTerminadaPorColapso(true);
-                
-                System.out.println("🚨 COLAPSO DETECTADO: " + getMensajeColapso());
-                return true;
-            }
-        }
-        return false;
     }
 }

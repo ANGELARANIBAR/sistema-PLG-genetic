@@ -30,6 +30,7 @@ import ItemListPanel from "../components/ItemListPanel/ItemListPanel";
 import ItemDetailsPanel from "../components/ItemDetailsPanel/ItemDetailsPanel";
 import BloqueosListPanel from "../components/BloqueosListPanel/BloqueosListPanel";
 import { mapService } from "../services/mapService";
+import { simulationService } from "../services/simulationService";
 import { useBatchRefreshMonitor } from "../hooks/useBatchRefreshMonitor";
 import { 
     fetchSystem, 
@@ -39,12 +40,6 @@ import {
     fetchTruckDestination 
 } from "../services/routeService";
 import './Simulacion.css';
-
-// AGREGADO: Importar el modal de reporte de colapso
-import ColapsoReportModal from '../components/ColapsoReportModal/ColapsoReportModal';
-
-// AGREGADO: Importar simulationService para obtener información de colapso
-import { simulationService } from '../services/simulationService';
 
 /**
  * Simulador.jsx — Simulador con MapVisualization y controles de tiempo
@@ -70,12 +65,6 @@ export default function Simulador() {
     // Summary modal states
     const [showSummaryModal, setShowSummaryModal] = useState(false);
     const [summaryInfo, setSummaryInfo] = useState({});
-    
-    // AGREGADO: Estados para control de colapso
-    const [colapsoDetectado, setColapsoDetectado] = useState(false);
-    const [infoColapso, setInfoColapso] = useState(null);
-    const [showColapsoReport, setShowColapsoReport] = useState(false);
-    const [colapsoReportData, setColapsoReportData] = useState(null);
     
     // Simulation tracking states
     const [simulationStartTime, setSimulationStartTime] = useState(null);
@@ -330,62 +319,31 @@ export default function Simulador() {
         };
     }, [isPlaying, playbackSpeed, currentTime]);
 
-    // Poll for primer colapso info
+    // Poll for colapso status
     useEffect(() => {
         let intervalId;
         const checkColapso = async () => {
-            const info = await mapService.fetchPrimerColapsoInfo();
-            if (info && info.colapso) {
-                setColapsoInfo(info);
-                setIsPlaying(false);
-            } else {
-                setColapsoInfo(null);
+            try {
+                const info = await simulationService.getColapsoStatus();
+                if (info && info.colapsoDetectado) {
+                    // Obtener información detallada del colapso
+                    const colapsoDetails = await simulationService.getColapsoInfo();
+                    setColapsoInfo(colapsoDetails);
+                    setIsPlaying(false);
+                    
+                    // Mostrar alerta de colapso
+                    alert(`⚠️ COLAPSO DETECTADO ⚠️\n\n${info.mensajeColapso}\n\nLa simulación se ha detenido.`);
+                } else {
+                    setColapsoInfo(null);
+                }
+            } catch (error) {
+                console.error("Error checking colapso:", error);
             }
         };
         checkColapso();
         intervalId = setInterval(checkColapso, 2000);
         return () => clearInterval(intervalId);
     }, []);
-    
-    // AGREGADO: Poll para información de colapso por pedido no atendido
-    useEffect(() => {
-        let intervalId;
-        const checkColapsoInfo = async () => {
-            try {
-                const info = await simulationService.getColapsoInfo();
-                if (info && info.simulacionTerminadaPorColapso && !colapsoDetectado) {
-                    setInfoColapso(info);
-                    setColapsoDetectado(true);
-                    setIsPlaying(false);
-                    
-                    // MODIFICADO: Obtener reporte detallado en lugar de mostrar alerta simple
-                    try {
-                        const reportData = await simulationService.getColapsoReporte();
-                        setColapsoReportData(reportData);
-                        setShowColapsoReport(true);
-                    } catch (error) {
-                        console.error('Error fetching colapso report:', error);
-                        // Fallback a alerta simple si falla el reporte
-                        alert(`🚨 SIMULACIÓN TERMINADA\n\n${info.mensajeColapso}\n\nPedido ID: ${info.pedidoCausanteId}\nNúmero: ${info.pedidoCausanteNumero}\nFecha límite: ${new Date(info.fechaHoraMaxEntrega).toLocaleString()}`);
-                    }
-                }
-            } catch (error) {
-                console.error('Error checking colapso info:', error);
-            }
-        };
-        
-        // Solo hacer polling si la simulación está iniciada
-        if (simulationStarted) {
-            checkColapsoInfo();
-            intervalId = setInterval(checkColapsoInfo, 3000); // Cada 3 segundos
-        }
-        
-        return () => {
-            if (intervalId) {
-                clearInterval(intervalId);
-            }
-        };
-    }, [simulationStarted, colapsoDetectado]);
 
     
     useEffect(() => {
@@ -885,38 +843,6 @@ export default function Simulador() {
                     </Box>
                 )}
             </Box>
-             {/* Simulation Report Modal */}
-             {showSummaryModal && (
-                 <Dialog
-                     open={showSummaryModal}
-                     onClose={() => setShowSummaryModal(false)}
-                     maxWidth="md"
-                     fullWidth
-                 >
-                     <DialogTitle>Resumen de Simulación</DialogTitle>
-                     <DialogContent>
-                         <Typography variant="body1">
-                             {JSON.stringify(summaryInfo, null, 2)}
-                         </Typography>
-                     </DialogContent>
-                     <DialogActions>
-                         <Button onClick={() => setShowSummaryModal(false)}>
-                             Cerrar
-                         </Button>
-                     </DialogActions>
-                 </Dialog>
-             )}
-             {/* AGREGADO: Modal de reporte de colapso */}
-             {showColapsoReport && (
-                 <ColapsoReportModal
-                     open={showColapsoReport}
-                     onClose={() => {
-                         setShowColapsoReport(false);
-                         setColapsoReportData(null);
-                     }}
-                     reportData={colapsoReportData}
-                 />
-             )}
         </Box>
     );
 }

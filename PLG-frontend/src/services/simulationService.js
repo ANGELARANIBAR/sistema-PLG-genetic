@@ -99,51 +99,6 @@ export const simulationService = {
             throw error;
         }
     },
-    
-    // AGREGADO: Obtener información de colapso
-    async getColapsoInfo() {
-        try {
-            const response = await fetch(`${API_BASE_URL}/colapso-info`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            return await response.json();
-            
-        } catch (error) {
-            console.error('Error fetching colapso info:', error);
-            throw error;
-        }
-    },
-    
-    // AGREGADO: Obtener reporte detallado de colapso con KPIs
-    async getColapsoReporte() {
-        try {
-            const response = await fetch(`${API_BASE_URL}/colapso-reporte`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            return await response.json();
-            
-        } catch (error) {
-            console.error('Error fetching colapso report:', error);
-            throw error;
-        }
-    },
-    
     // Execute simulation without fechaHoraInicio (existing method)
     async executeSimulation() {
         try {
@@ -225,6 +180,38 @@ export const simulationService = {
             return await response.json();
         } catch (error) {
             console.error('Error checking batch refresh status:', error);
+            throw error;
+        }
+    },
+
+    // Check colapso status
+    async getColapsoStatus() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/colapso-status`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error checking colapso status:', error);
+            throw error;
+        }
+    },
+
+    // Get colapso information
+    async getColapsoInfo() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/colapso-info`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error getting colapso info:', error);
             throw error;
         }
     }

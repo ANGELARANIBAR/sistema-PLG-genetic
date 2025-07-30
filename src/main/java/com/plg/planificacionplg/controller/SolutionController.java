@@ -20,7 +20,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -957,133 +956,35 @@ public class SolutionController {
     public double getPorcentajeEjecucion() {
         return PlanificacionPlgApplication.getPorcentajeEjecucion();
     }
-    
-    // AGREGADO: Endpoint para verificar si la simulación terminó por colapso
-    @GetMapping("/colapso-info")
-    public ResponseEntity<Map<String, Object>> getColapsoInfo() {
+
+    // Endpoints para manejo de colapso
+    @GetMapping("/colapso-status")
+    public ResponseEntity<Map<String, Object>> getColapsoStatus() {
         Map<String, Object> response = new HashMap<>();
-        response.put("simulacionTerminadaPorColapso", PlanificacionPlgApplication.isSimulacionTerminadaPorColapso());
+        response.put("colapsoDetectado", PlanificacionPlgApplication.isColapsoDetectado());
         response.put("mensajeColapso", PlanificacionPlgApplication.getMensajeColapso());
-        
-        Pedido pedidoCausante = PlanificacionPlgApplication.getPedidoCausanteColapso();
-        if (pedidoCausante != null) {
-            response.put("pedidoCausanteId", pedidoCausante.getId());
-            response.put("pedidoCausanteNumero", pedidoCausante.getNumeroPedido());
-            response.put("fechaHoraMaxEntrega", pedidoCausante.getFechaHoraMaxEntrega());
-        }
-        
+        response.put("cantidadPedidosNoAtendidos", PlanificacionPlgApplication.getPedidosNoAtendidos().size());
         return ResponseEntity.ok(response);
     }
-    
-    // AGREGADO: Endpoint para generar reporte detallado de colapso con KPIs
-    @GetMapping("/colapso-reporte")
-    public ResponseEntity<Map<String, Object>> getColapsoReporte() {
-        if (!PlanificacionPlgApplication.isSimulacionTerminadaPorColapso()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "No hay colapso detectado"));
+
+    @GetMapping("/colapso-info")
+    public ResponseEntity<Map<String, Object>> getColapsoInfo() {
+        if (!PlanificacionPlgApplication.isColapsoDetectado()) {
+            return ResponseEntity.ok(Map.of("colapsoDetectado", false));
         }
         
-        Individuo mejorSolucion = PlanificacionPlgApplication.getMejorSolucion();
-        if (mejorSolucion == null || mejorSolucion.getSistemaPLG() == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "No hay solución disponible"));
-        }
-        
-        SistemaPLG sistema = mejorSolucion.getSistemaPLG();
-        Map<String, Object> reporte = new HashMap<>();
-        
-        // KPIs Generales
-        List<Pedido> pedidos = sistema.getPedidos();
-        long pedidosCompletados = pedidos.stream().mapToLong(p -> p.isCompletado() ? 1 : 0).sum();
-        long pedidosPendientes = pedidos.size() - pedidosCompletados;
-        
-        reporte.put("pedidosTotales", pedidos.size());
-        reporte.put("pedidosCompletados", pedidosCompletados);
-        reporte.put("pedidosPendientes", pedidosPendientes);
-        reporte.put("porcentajeCompletado", pedidos.size() > 0 ? (double)pedidosCompletados / pedidos.size() * 100 : 0);
-        
-        // KPIs de Volumen GLP
-        double volumenTotalSolicitado = pedidos.stream().mapToDouble(Pedido::getVolumenGLP).sum();
-        double volumenTotalEntregado = pedidos.stream().mapToDouble(Pedido::getVolumenGLPEntregado).sum();
-        
-        reporte.put("volumenTotalSolicitado", volumenTotalSolicitado);
-        reporte.put("volumenTotalEntregado", volumenTotalEntregado);
-        reporte.put("porcentajeVolumenEntregado", volumenTotalSolicitado > 0 ? volumenTotalEntregado / volumenTotalSolicitado * 100 : 0);
-        
-        // KPIs de Flota
-        List<Camion> flota = sistema.getFlota();
-        double combustibleTotalConsumido = flota.stream().mapToDouble(Camion::getCombustibleEmpleado).sum();
-        
-        reporte.put("camionesTotales", flota.size());
-        reporte.put("combustibleTotalConsumido", combustibleTotalConsumido);
-        
-        // Análisis de Pedidos por Estado
-        Map<String, Long> pedidosPorEstado = pedidos.stream()
-            .collect(Collectors.groupingBy(p -> p.getEstado().toString(), Collectors.counting()));
-        reporte.put("pedidosPorEstado", pedidosPorEstado);
-        
-        // Análisis de Entregas a Tiempo vs Tardías
-        LocalDateTime fechaColapso = LocalDateTime.now(); // Aproximación
-        if (sistema.getFechaHoraFinEntregas() != null) {
-            fechaColapso = sistema.getFechaHoraFinEntregas();
-        }
-        
-        long pedidosATiempo = 0;
-        long pedidosTardios = 0;
-        
-        for (Pedido p : pedidos) {
-            if (p.isCompletado() && p.getFechaHoraEntrega() != null && p.getFechaHoraMaxEntrega() != null) {
-                if (p.getFechaHoraEntrega().isBefore(p.getFechaHoraMaxEntrega()) || 
-                    p.getFechaHoraEntrega().isEqual(p.getFechaHoraMaxEntrega())) {
-                    pedidosATiempo++;
-                } else {
-                    pedidosTardios++;
-                }
-            }
-        }
-        
-        reporte.put("pedidosATiempo", pedidosATiempo);
-        reporte.put("pedidosTardios", pedidosTardios);
-        reporte.put("porcentajePuntualidad", (pedidosATiempo + pedidosTardios) > 0 ? 
-            (double)pedidosATiempo / (pedidosATiempo + pedidosTardios) * 100 : 0);
-        
-        // Información del Pedido Causante del Colapso
-        Pedido pedidoCausante = PlanificacionPlgApplication.getPedidoCausanteColapso();
-        if (pedidoCausante != null) {
-            Map<String, Object> infoCausante = new HashMap<>();
-            infoCausante.put("id", pedidoCausante.getId());
-            infoCausante.put("numeroPedido", pedidoCausante.getNumeroPedido());
-            infoCausante.put("volumenGLP", pedidoCausante.getVolumenGLP());
-            infoCausante.put("fechaHoraMaxEntrega", pedidoCausante.getFechaHoraMaxEntrega());
-            infoCausante.put("fechaHoraRegistro", pedidoCausante.getFechaHoraRegistro());
-            if (pedidoCausante.getUbicacion() != null) {
-                infoCausante.put("ubicacion", Map.of(
-                    "x", pedidoCausante.getUbicacion().getPosX(),
-                    "y", pedidoCausante.getUbicacion().getPosY()
-                ));
-            }
-            reporte.put("pedidoCausante", infoCausante);
-        }
-        
-        // Tiempo de Simulación
-        if (sistema.getFechaHoraInicio() != null) {
-            reporte.put("fechaHoraInicioSimulacion", sistema.getFechaHoraInicio());
-            reporte.put("fechaHoraColapso", fechaColapso);
-            
-            Duration duracion = Duration.between(sistema.getFechaHoraInicio(), fechaColapso);
-            reporte.put("tiempoSimuladoHoras", duracion.toHours());
-            reporte.put("tiempoSimuladoMinutos", duracion.toMinutes());
-        }
-        
-        // Eficiencia Promedio de Camiones
-        double promedioDestinationsPorCamion = flota.stream()
-            .mapToInt(c -> c.getDestinos().size())
-            .average()
-            .orElse(0.0);
-        reporte.put("promedioDestinosPorCamion", promedioDestinationsPorCamion);
-        
-        // Mensaje del Colapso
-        reporte.put("mensajeColapso", PlanificacionPlgApplication.getMensajeColapso());
-        
-        return ResponseEntity.ok(reporte);
+        Map<String, Object> response = new HashMap<>();
+        response.put("colapsoDetectado", true);
+        response.put("mensajeColapso", PlanificacionPlgApplication.getMensajeColapso());
+        response.put("pedidosNoAtendidos", PlanificacionPlgApplication.getPedidosNoAtendidos().stream()
+                .map(pedido -> Map.of(
+                    "id", pedido.getId(),
+                    "numeroPedido", pedido.getNumeroPedido(),
+                    "fechaHoraMaxEntrega", pedido.getFechaHoraMaxEntrega(),
+                    "volumenGLP", pedido.getVolumenGLP()
+                ))
+                .collect(Collectors.toList()));
+        return ResponseEntity.ok(response);
     }
 
     private DestinationDTO convertToDestinationDTO(Destino destino) {
