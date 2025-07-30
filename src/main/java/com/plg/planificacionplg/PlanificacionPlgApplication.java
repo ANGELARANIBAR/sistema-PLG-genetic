@@ -127,7 +127,7 @@ public class PlanificacionPlgApplication{
                 LocalTime.MAX
         ));
         //double velocidadPromedio = 5.0 / 6.0;
-        double velocidadPromedio = 25.0 / 6.0;
+        double velocidadPromedio = 15.0 / 6.0;
 
         TipoCamion tipoCamion1 = new TipoCamion();
         tipoCamion1.setId(1);
