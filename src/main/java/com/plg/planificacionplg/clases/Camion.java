@@ -364,7 +364,7 @@ public class Camion {
             if(destinoFinal instanceof EntregaPedido &&
                     destinoFinal.getFechaHoraLlegada()
                             .isAfter(destinoFinal.getPedido().getFechaHoraMaxEntrega())){
-                if(code != 3)return -1; //pedido con retraso
+                //if(code != 3)return -1; //pedido con retraso
                 if(sistemaPLG.getFechaHoraPrimerColapso() == null
                         || sistemaPLG.getFechaHoraPrimerColapso().isAfter(destinoFinal.getPedido().getFechaHoraMaxEntrega())){
                     sistemaPLG.setFechaHoraPrimerColapso(destinoFinal.getPedido().getFechaHoraMaxEntrega());
@@ -391,7 +391,7 @@ public class Camion {
     //verificando si existe una cisterna que te de el GLP qeu quieres
     private int insertarNodosIntermediosCargaGLP(Destino start, Destino end, SistemaPLG sistemaPLG) {
         if (start.getUbicacion().sonIguales(end.getUbicacion())) {
-            return -1;
+            if(end instanceof Reabastecimiento && start instanceof Reabastecimiento){return -1;}
         }
         if (end instanceof EntregaPedido && end.getGLPOperacion() > cargaGLPActual && Math.abs(end.getGLPOperacion() - cargaGLPActual) > 0.001) {
             int mejorCisterna = -1;
@@ -566,7 +566,7 @@ public class Camion {
         intentos++;
         if(intentos==5){return -1;}
         if (start.getUbicacion().sonIguales(end.getUbicacion())) {
-            return -1;
+            if(end instanceof Reabastecimiento && start instanceof Reabastecimiento){return -1;}
         }
         end.getRuta().aStar(start.getUbicacion(), end.getUbicacion(), sistemaPLG, tipo.getVelocidadPromedio(), start.getFechaHoraSalida());
         //decidir si va a Cistenna intermedia, a trasvase, directamene a entregar el pedido
@@ -644,7 +644,13 @@ public class Camion {
     private int buscarDestinosIntermediosCargaCombustible(List<Destino> destinos, Destino start,
                                                            Destino end, SistemaPLG sistemaPLG,
                                                             Camion camion){
-        if(start.getUbicacion().sonIguales(end.getUbicacion())){return -1;}
+        if(start.getUbicacion().sonIguales(end.getUbicacion())){
+            if(end instanceof Reabastecimiento && start instanceof Reabastecimiento){return -1;}
+            end.setFechaHoraLlegada(start.getFechaHoraSalida());
+            end.getRuta().setNodos(new ArrayList<>());
+            end.getRuta().getNodos().add(end.getUbicacion());
+            return 0;
+        }
         end.getRuta().aStar(start.getUbicacion(), end.getUbicacion(), sistemaPLG, camion.tipo.getVelocidadPromedio(), start.getFechaHoraSalida());
         if(end.getRuta().getNodos()==null)return -1;
 

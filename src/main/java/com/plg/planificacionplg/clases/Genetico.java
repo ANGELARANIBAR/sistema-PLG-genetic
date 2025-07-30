@@ -34,8 +34,8 @@ public class Genetico {
         numIndividuosExploratorios = (int)(tamPoblacion*0.1);
         // Inicializar población aleatora controlada
 //        System.out.println("Inicio replan");
-
-        for (int i = 0; i < tamPoblacion; i++) {
+        System.out.println("init");
+        for (int i = tamPoblacion; i < tamPoblacion; i++) {
 //            System.out.println("ind " + (i+1));
 //            System.out.println("ped " + (numPedidos+1));
 //            System.out.println("cam " + (numCamiones+1));
