@@ -35,7 +35,7 @@ public class Genetico {
         // Inicializar población aleatora controlada
 //        System.out.println("Inicio replan");
         System.out.println("init");
-        for (int i = tamPoblacion; i < tamPoblacion; i++) {
+        for (int i = 0; i < tamPoblacion; i++) {
 //            System.out.println("ind " + (i+1));
 //            System.out.println("ped " + (numPedidos+1));
 //            System.out.println("cam " + (numCamiones+1));

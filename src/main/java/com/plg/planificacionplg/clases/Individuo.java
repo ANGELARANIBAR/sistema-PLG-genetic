@@ -567,7 +567,6 @@ public class Individuo {
     public void asignarEquitativamente(int numCamiones, List<Integer> pedidos, SistemaPLG sistema) {
         List<Camion> camionesOrdenados = new ArrayList<>(sistema.getFlota());
         List<Integer> pedidosDisponibles = new ArrayList<>(pedidos);
-        //Collections.shuffle(pedidosDisponibles); // aleatorizar pedidos
 
         this.asignacion.clear();
         Map<Integer, Double> capacidadRestante = new HashMap<>();
@@ -580,35 +579,50 @@ public class Individuo {
             cargaAsignada.put(id, 0.0);
         }
 
-        // FASE 1: Intentar asignar un pedido a cada camión (preasignación)
-        for (Camion camion : camionesOrdenados) {
-            int idCamion = camion.getId();
-            double capacidad = capacidadRestante.get(idCamion);
+        // Ordenar pedidos de mayor a menor volumen
+        pedidosDisponibles.sort((a, b) -> {
+            double volA = sistema.getPedidos().get(a - 1).getVolumenGLP();
+            double volB = sistema.getPedidos().get(b - 1).getVolumenGLP();
+            return Double.compare(volB, volA);
+        });
 
-            if ((sistema.getCamionCausanteReplan() != null &&
-                    sistema.getCamionCausanteReplan().getId() == idCamion) ||
-                    esCamionAveriadoTipo(sistema, idCamion, 0)) {
-                continue;
+        // FASE 1: Asignación con mejor ajuste posible
+        Iterator<Integer> it = pedidosDisponibles.iterator();
+        while (it.hasNext()) {
+            int pedidoId = it.next();
+            Pedido pedido = sistema.getPedidos().get(pedidoId - 1);
+            if (pedido.getEstado() != EstadoPedido.PENDIENTE) continue;
+
+            double volumen = pedido.getVolumenGLP();
+            Camion mejorCamion = null;
+            double menorExceso = Double.MAX_VALUE;
+
+            for (Camion camion : camionesOrdenados) {
+                int idCamion = camion.getId();
+
+                if ((sistema.getCamionCausanteReplan() != null &&
+                        sistema.getCamionCausanteReplan().getId() == idCamion) ||
+                        esCamionAveriadoTipo(sistema, idCamion, 0)) continue;
+
+                double capacidad = capacidadRestante.get(idCamion);
+                double exceso = capacidad - volumen;
+
+                if (exceso >= 0 && exceso < menorExceso) {
+                    menorExceso = exceso;
+                    mejorCamion = camion;
+                }
             }
 
-            Iterator<Integer> it = pedidosDisponibles.iterator();
-            while (it.hasNext()) {
-                int pedidoId = it.next();
-                Pedido pedido = sistema.getPedidos().get(pedidoId - 1);
-                if (pedido.getEstado() != EstadoPedido.PENDIENTE) continue;
-
-                double volumen = pedido.getVolumenGLP();
-                if (volumen <= capacidad) {
-                    this.asignacion.get(idCamion).add(pedidoId);
-                    capacidadRestante.put(idCamion, capacidad - volumen);
-                    cargaAsignada.put(idCamion, cargaAsignada.get(idCamion) + volumen);
-                    it.remove(); // quitar pedido usado
-                    break;
-                }
+            if (mejorCamion != null) {
+                int id = mejorCamion.getId();
+                this.asignacion.get(id).add(pedidoId);
+                capacidadRestante.put(id, capacidadRestante.get(id) - volumen);
+                cargaAsignada.put(id, cargaAsignada.get(id) + volumen);
+                it.remove();
             }
         }
 
-        // FASE 2: Asignar pedidos restantes balanceando carga
+        // FASE 2: Balanceo usando porcentaje de ocupación
         for (int pedidoId : pedidosDisponibles) {
             Pedido pedido = sistema.getPedidos().get(pedidoId - 1);
             if (pedido.getEstado() != EstadoPedido.PENDIENTE) continue;
@@ -616,10 +630,16 @@ public class Individuo {
             double volumen = pedido.getVolumenGLP();
             boolean asignado = false;
 
-            camionesOrdenados.sort(Comparator.comparingDouble(c -> cargaAsignada.get(c.getId())));
+            camionesOrdenados.sort(Comparator.comparingDouble(c -> {
+                int id = c.getId();
+                double ocupado = cargaAsignada.get(id);
+                double max = c.getTipo().getCargaGLPMax();
+                return ocupado / max;
+            }));
 
             for (Camion camion : camionesOrdenados) {
                 int idCamion = camion.getId();
+
                 if ((sistema.getCamionCausanteReplan() != null &&
                         sistema.getCamionCausanteReplan().getId() == idCamion) ||
                         esCamionAveriadoTipo(sistema, idCamion, 0)) continue;
@@ -633,7 +653,7 @@ public class Individuo {
                 }
             }
 
-            // Si aún no fue asignado, forzar a uno con capacidad total
+            // Forzar asignación si no se encontró lugar (camión con capacidad total suficiente)
             if (!asignado) {
                 for (Camion camion : camionesOrdenados) {
                     double capacidadTotal = camion.getTipo().getCargaGLPMax();
@@ -648,9 +668,6 @@ public class Individuo {
             }
         }
     }
-
-
-
 
 
 
