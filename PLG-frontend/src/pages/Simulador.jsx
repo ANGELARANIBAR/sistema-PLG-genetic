@@ -67,6 +67,7 @@ export default function Simulador() {
     // Reporte estado crítico modal states
     const [showReporteColapsoModal, setShowReporteColapsoModal] = useState(false);
     const [simulationStats, setSimulationStats] = useState(null);
+    const [usandoDatosDummy, setUsandoDatosDummy] = useState(false);
     
     // Summary modal states
     const [showSummaryModal, setShowSummaryModal] = useState(false);
@@ -161,6 +162,7 @@ export default function Simulador() {
 
                 setColapsoInfo(dataDummy);
                 setSimulationStats(statsDummy);
+                setUsandoDatosDummy(true);
                 setShowReporteColapsoModal(true);
                 //console.log("Simulation initialized:", startTime);
             } catch (error) {
@@ -356,6 +358,9 @@ export default function Simulador() {
 
     // Monitoreo de estado crítico del sistema
     useEffect(() => {
+        // No monitorear si estamos usando datos dummy
+        if (usandoDatosDummy) return;
+        
         let intervalId;
         const checkColapso = async () => {
             try {
@@ -383,7 +388,7 @@ export default function Simulador() {
         checkColapso();
         intervalId = setInterval(checkColapso, 2000);
         return () => clearInterval(intervalId);
-    }, []);
+    }, [usandoDatosDummy]);
 
     
     useEffect(() => {
