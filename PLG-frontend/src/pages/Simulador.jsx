@@ -73,7 +73,7 @@ export default function Simulador() {
     // Modal dummy states
     const [showDummyReporteModal, setShowDummyReporteModal] = useState(false);
 
-    // Datos dummy para el modal de reporte
+    // Datos dummy ESTÁTICOS para el modal de reporte (no se actualizan)
     const dummyColapsoInfo = {
         colapsoDetectado: true,
         mensajeColapso: "Colapso logístico detectado en periodo crítico (día 5): El pedido GLX-2025-0891 no puede ser procesado. Fecha límite: 2025-01-18 09:15:00, Fecha actual: 2025-01-18 11:30:00",
@@ -88,7 +88,7 @@ export default function Simulador() {
     const dummySimulationStats = {
         pedidosAtendidos: 167,
         batchActual: 6,
-        fechaHoraInicio: new Date(Date.now() - (5 * 24 * 60 * 60 * 1000)), // 5 días atrás
+        fechaHoraInicio: new Date("2025-01-13T08:00:00.000Z"), // Fecha fija - 5 días atrás del ejemplo
         totalCamiones: 19,
         camionesDisponibles: 6,
         camionesEnRuta: 11,
@@ -99,8 +99,9 @@ export default function Simulador() {
         volumenTotalPedidos: 24680.0
     };
 
-    const dummyCurrentTime = new Date();
-    const dummySimulationStartTime = new Date(Date.now() - (37 * 60 * 1000)); // 37 minutos atrás
+    // Fechas FIJAS para el modal dummy - nunca cambian
+    const dummyCurrentTime = new Date("2025-01-18T11:30:00.000Z");
+    const dummySimulationStartTime = new Date("2025-01-18T10:53:00.000Z"); // 37 minutos antes
     
     // Summary modal states
     const [showSummaryModal, setShowSummaryModal] = useState(false);
