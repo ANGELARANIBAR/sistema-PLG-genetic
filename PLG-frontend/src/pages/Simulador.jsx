@@ -12,7 +12,8 @@ import {
     Alert,
     LinearProgress,
     Tabs,
-    Tab
+    Tab,
+    Tooltip
 } from "@mui/material";
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -25,6 +26,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import StopIcon from '@mui/icons-material/Stop';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 import MapVisualization from "../components/MapVisualization";
 import ItemListPanel from "../components/ItemListPanel/ItemListPanel";
 import ItemDetailsPanel from "../components/ItemDetailsPanel/ItemDetailsPanel";
@@ -67,7 +69,38 @@ export default function Simulador() {
     // Reporte estado crítico modal states
     const [showReporteColapsoModal, setShowReporteColapsoModal] = useState(false);
     const [simulationStats, setSimulationStats] = useState(null);
-    const [usandoDatosDummy, setUsandoDatosDummy] = useState(false);
+    
+    // Modal dummy states
+    const [showDummyReporteModal, setShowDummyReporteModal] = useState(false);
+
+    // Datos dummy para el modal de reporte
+    const dummyColapsoInfo = {
+        colapsoDetectado: true,
+        mensajeColapso: "Colapso logístico detectado en periodo crítico (día 5): El pedido GLX-2025-0891 no puede ser procesado. Fecha límite: 2025-01-18 09:15:00, Fecha actual: 2025-01-18 11:30:00",
+        pedidosNoAtendidos: [{
+            id: 891,
+            numeroPedido: "GLX-2025-0891",
+            fechaHoraMaxEntrega: "2025-01-18T09:15:00.000Z",
+            volumenGLP: 1250
+        }]
+    };
+
+    const dummySimulationStats = {
+        pedidosAtendidos: 167,
+        batchActual: 6,
+        fechaHoraInicio: new Date(Date.now() - (5 * 24 * 60 * 60 * 1000)), // 5 días atrás
+        totalCamiones: 19,
+        camionesDisponibles: 6,
+        camionesEnRuta: 11,
+        camionesAveriados: 2,
+        combustibleTotalEmpleado: 3542.75,
+        capacidadTotalFlota: 15800,
+        totalPedidosPlanificados: 203,
+        volumenTotalPedidos: 24680.0
+    };
+
+    const dummyCurrentTime = new Date();
+    const dummySimulationStartTime = new Date(Date.now() - (37 * 60 * 1000)); // 37 minutos atrás
     
     // Summary modal states
     const [showSummaryModal, setShowSummaryModal] = useState(false);
@@ -134,36 +167,6 @@ export default function Simulador() {
                 setCurrentTime(startTime);
                 setSimulationStartTime(startTime);
                 setSimulationStarted(true);
-                
-                // Mostrar modal de reporte al iniciar la simulación con datos dummy
-                const dataDummy = {
-                    colapsoDetectado: true,
-                    mensajeColapso: "Colapso logístico detectado en periodo crítico (día 5): El pedido PED-2025-001 no puede ser procesado. Fecha límite: " + new Date().toLocaleString() + ", Fecha actual: " + new Date().toLocaleString(),
-                    pedidosNoAtendidos: [{
-                        id: 1,
-                        numeroPedido: "PED-2025-001",
-                        fechaHoraMaxEntrega: new Date().toISOString(),
-                        volumenGLP: 1500
-                    }]
-                };
-
-                const statsDummy = {
-                    pedidosAtendidos: 45,
-                    batchActual: 3,
-                    totalCamiones: 19,
-                    camionesDisponibles: 12,
-                    camionesEnRuta: 5,
-                    camionesAveriados: 2,
-                    combustibleTotalEmpleado: 245.8,
-                    capacidadTotalFlota: 95000,
-                    totalPedidosPlanificados: 67,
-                    volumenTotalPedidos: 125000
-                };
-
-                setColapsoInfo(dataDummy);
-                setSimulationStats(statsDummy);
-                setUsandoDatosDummy(true);
-                setShowReporteColapsoModal(true);
                 //console.log("Simulation initialized:", startTime);
             } catch (error) {
                 const currentDateTime = null;
@@ -358,9 +361,6 @@ export default function Simulador() {
 
     // Monitoreo de estado crítico del sistema
     useEffect(() => {
-        // No monitorear si estamos usando datos dummy
-        if (usandoDatosDummy) return;
-        
         let intervalId;
         const checkColapso = async () => {
             try {
@@ -388,7 +388,7 @@ export default function Simulador() {
         checkColapso();
         intervalId = setInterval(checkColapso, 2000);
         return () => clearInterval(intervalId);
-    }, [usandoDatosDummy]);
+    }, []);
 
     
     useEffect(() => {
@@ -616,6 +616,30 @@ export default function Simulador() {
                     >
                         {isPlaying ? <PauseIcon sx={{ fontSize: 24 }} /> : <PlayArrowIcon sx={{ fontSize: 24 }} />}
                     </Button>
+
+                    <Tooltip title="Ver Reporte de Colapso (Ejemplo)" arrow placement="bottom">
+                        <Button
+                            onClick={() => setShowDummyReporteModal(true)}
+                            sx={{ 
+                                minWidth: 'auto',
+                                width: 45,
+                                height: 45,
+                                borderRadius: '50%',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                border: '2px solid rgba(59, 130, 246, 0.5)',
+                                color: '#3b82f6',
+                                '&:hover': {
+                                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                                    borderColor: '#3b82f6',
+                                    transform: 'scale(1.05)'
+                                },
+                                transition: 'all 0.2s ease'
+                            }}
+                            aria-label="Ver reporte de ejemplo"
+                        >
+                            <AssessmentIcon sx={{ fontSize: 20 }} />
+                        </Button>
+                    </Tooltip>
 
                     <Button
                         onClick={() => {
@@ -897,6 +921,16 @@ export default function Simulador() {
                 simulationStats={simulationStats}
                 currentTime={currentTime}
                 simulationStartTime={simulationStartTime}
+            />
+
+            {/* Modal Dummy de Reporte */}
+            <ReporteColapsoModal
+                open={showDummyReporteModal}
+                onClose={() => setShowDummyReporteModal(false)}
+                colapsoInfo={dummyColapsoInfo}
+                simulationStats={dummySimulationStats}
+                currentTime={dummyCurrentTime}
+                simulationStartTime={dummySimulationStartTime}
             />
         </Box>
     );
