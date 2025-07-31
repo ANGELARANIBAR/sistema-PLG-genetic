@@ -133,6 +133,35 @@ export default function Simulador() {
                 setCurrentTime(startTime);
                 setSimulationStartTime(startTime);
                 setSimulationStarted(true);
+                
+                // Mostrar modal de reporte al iniciar la simulación con datos dummy
+                const dataDummy = {
+                    colapsoDetectado: true,
+                    mensajeColapso: "Colapso logístico detectado en periodo crítico (día 5): El pedido PED-2025-001 no puede ser procesado. Fecha límite: " + new Date().toLocaleString() + ", Fecha actual: " + new Date().toLocaleString(),
+                    pedidosNoAtendidos: [{
+                        id: 1,
+                        numeroPedido: "PED-2025-001",
+                        fechaHoraMaxEntrega: new Date().toISOString(),
+                        volumenGLP: 1500
+                    }]
+                };
+
+                const statsDummy = {
+                    pedidosAtendidos: 45,
+                    batchActual: 3,
+                    totalCamiones: 19,
+                    camionesDisponibles: 12,
+                    camionesEnRuta: 5,
+                    camionesAveriados: 2,
+                    combustibleTotalEmpleado: 245.8,
+                    capacidadTotalFlota: 95000,
+                    totalPedidosPlanificados: 67,
+                    volumenTotalPedidos: 125000
+                };
+
+                setColapsoInfo(dataDummy);
+                setSimulationStats(statsDummy);
+                setShowReporteColapsoModal(true);
                 //console.log("Simulation initialized:", startTime);
             } catch (error) {
                 const currentDateTime = null;
