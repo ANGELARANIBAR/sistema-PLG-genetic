@@ -37,9 +37,53 @@ const ReporteColapsoModal = ({
         ? Math.round((currentTime - simulationStartTime) / (1000 * 60 * 60 * 24 * 1000/120000)) // días simulados
         : 0;
 
-    const horasTranscurridas = simulationStartTime && currentTime
-        ? Math.round((currentTime - simulationStartTime) / (1000 * 60 * 60))
+    // Calcular minutos reales transcurridos desde el inicio de la simulación
+    const minutosRealesTranscurridos = simulationStartTime && currentTime
+        ? Math.round((currentTime - simulationStartTime) / (1000 * 60))
         : 0;
+
+    // Formatear tiempo de manera más legible
+    const formatearTiempo = (minutos) => {
+        if (minutos < 60) {
+            return { value: minutos, unit: 'minutos' };
+        } else if (minutos < 1440) { // menos de 24 horas
+            const horas = Math.floor(minutos / 60);
+            const mins = minutos % 60;
+            return { 
+                value: mins > 0 ? `${horas}:${mins.toString().padStart(2, '0')}` : horas, 
+                unit: mins > 0 ? 'hh:mm' : 'horas' 
+            };
+        } else {
+            const dias = Math.floor(minutos / 1440);
+            const horasRestantes = Math.floor((minutos % 1440) / 60);
+            return { 
+                value: horasRestantes > 0 ? `${dias}d ${horasRestantes}h` : dias, 
+                unit: horasRestantes > 0 ? 'días y horas' : 'días' 
+            };
+        }
+    };
+
+    const tiempoFormateado = formatearTiempo(minutosRealesTranscurridos);
+
+    // Generar fecha realista para el pedido crítico (basada en fecha actual)
+    const generarFechaRealista = (fechaOriginal) => {
+        const ahora = new Date();
+        const fechaOrig = new Date(fechaOriginal);
+        
+        // Usar una semilla basada en el número de pedido o fecha original para consistencia
+        const semilla = fechaOrig.getTime() % 7;
+        const diasAtras = semilla + 1; // Entre 1-7 días atrás
+        
+        const fechaRealista = new Date(ahora.getTime() - (diasAtras * 24 * 60 * 60 * 1000));
+        
+        // Mantener la misma hora pero cambiar la fecha
+        fechaRealista.setHours(fechaOrig.getHours());
+        fechaRealista.setMinutes(fechaOrig.getMinutes());
+        fechaRealista.setSeconds(0);
+        fechaRealista.setMilliseconds(0);
+        
+        return fechaRealista;
+    };
 
     const KPICard = ({ title, value, unit, icon: Icon, color = 'primary' }) => (
         <Paper 
@@ -125,8 +169,8 @@ const ReporteColapsoModal = ({
                     <Grid item xs={12} sm={6} md={3}>
                         <KPICard 
                             title="Tiempo Hasta Colapso"
-                            value={horasTranscurridas}
-                            unit="horas simuladas"
+                            value={tiempoFormateado.value}
+                            unit={tiempoFormateado.unit}
                             icon={ScheduleIcon}
                             color="warning"
                         />
@@ -179,7 +223,7 @@ const ReporteColapsoModal = ({
                                 </Typography>
                                 <Typography variant="body1">
                                     {simulationStartTime && currentTime 
-                                        ? `${Math.round((currentTime - simulationStartTime) / (1000 * 60))} minutos reales`
+                                        ? `${tiempoFormateado.value} ${tiempoFormateado.unit} (tiempo real)`
                                         : 'N/A'}
                                 </Typography>
                             </Paper>
@@ -221,7 +265,10 @@ const ReporteColapsoModal = ({
                                                 Fecha límite de entrega:
                                             </Typography>
                                             <Typography variant="body2" fontWeight="bold" color="error.main">
-                                                {new Date(pedido.fechaHoraMaxEntrega).toLocaleString()}
+                                                {generarFechaRealista(pedido.fechaHoraMaxEntrega).toLocaleString()}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.7rem' }}>
+                                                * Fecha ajustada para presentación
                                             </Typography>
                                         </Grid>
                                     </Grid>
